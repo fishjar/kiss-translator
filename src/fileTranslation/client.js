@@ -298,6 +298,7 @@ export class FileTranslationClient {
       {
         serviceId: selection?.apiSlug,
         capability: selection?.capability,
+        ...(options.kind && { kind: options.kind }),
         taskMode: options.taskMode || "doc",
         promptSlug: options.promptSlug || "",
         requireCoordinates: options.requireCoordinates === true,

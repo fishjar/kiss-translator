@@ -42,6 +42,7 @@ function regionsForImage(layout, size) {
         clamp(value * (axis % 2 ? sy : sx), axis)
       );
       return {
+        id: region.id,
         box,
         type: region.type,
         label: region.label,
@@ -113,7 +114,8 @@ export function groupImageTextByLayout(recognized, layout) {
           .map((item) => item.text.trim())
           .join(" ")
           .replace(/([\u3400-\u9fff]) (?=[\u3400-\u9fff])/g, "$1"),
-        poly: regions[index].poly,
+        poly: polygon(bounds(group.flatMap((item) => item.poly))),
+        regionPoly: regions[index].poly,
         box: regions[index].box,
         type: regions[index].type,
         label: regions[index].label,
@@ -145,6 +147,12 @@ export async function recognizeImageWithLayout(
   if (coordinates || !validSize(layout?.imageSize) || !layout.regions?.length) {
     const recognized = await client.recognize(file, selection, signal, options);
     check(signal);
+    if (
+      recognized.translation ||
+      recognized.layout ||
+      recognized.items?.some((item) => item.translation || item.error)
+    )
+      return { ...recognized, independentLayout: layout };
     return groupImageTextByLayout(recognized, layout);
   }
   // Text-only services cannot map a whole-image response back to layout regions.
@@ -193,10 +201,29 @@ export async function recognizeImageWithLayout(
       check(signal);
       const result = await client.recognize(blob, selection, signal, options);
       check(signal);
-      if (result.text?.trim())
+      if (
+        result.translation ||
+        result.layout ||
+        result.items?.some((item) => item.translation || item.error)
+      ) {
+        const sx = (right - left) / result.imageSize.width;
+        const sy = (bottom - top) / result.imageSize.height;
+        const offset = (poly) =>
+          poly?.map(([x, y]) => [left + x * sx, top + y * sy]);
+        items.push(
+          ...result.items.map((item, index) => ({
+            ...item,
+            id: `${region.id || regions.indexOf(region)}:${item.id || index}`,
+            poly: offset(item.poly) || null,
+            regionPoly: offset(item.regionPoly) || region.poly,
+            type: item.type || region.type,
+          }))
+        );
+      } else if (result.text?.trim())
         items.push({
           text: result.text.trim(),
-          poly: region.poly,
+          poly: null,
+          regionPoly: region.poly,
           box: region.box,
           type: region.type,
           label: region.label,
@@ -206,7 +233,10 @@ export async function recognizeImageWithLayout(
     return {
       imageSize: { width: image.width, height: image.height },
       items,
-      text: items.map((item) => item.text).join("\n\n"),
+      text: items
+        .map((item) => item.text || "")
+        .filter(Boolean)
+        .join("\n\n"),
       inputAdjustments,
     };
   } finally {

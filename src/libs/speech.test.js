@@ -1,4 +1,4 @@
-import { canSpeak, speak } from "./speech";
+import { canSpeak, speak, getSpeechVoices } from "./speech";
 
 describe("speech", () => {
   const originalChrome = globalThis.chrome;
@@ -46,6 +46,42 @@ describe("speech", () => {
       expect.any(Function)
     );
     expect(webSpeak).not.toHaveBeenCalled();
+  });
+
+  test("lists Chrome voices using the names accepted by playback", async () => {
+    globalThis.chrome = {
+      tts: {
+        speak: jest.fn(),
+        getVoices: (callback) =>
+          callback([{ voiceName: "Edge voice", lang: "en-US" }, {}]),
+      },
+    };
+    globalThis.speechSynthesis = {
+      getVoices: () => [{ name: "Web voice", lang: "zh-CN" }],
+    };
+    await expect(getSpeechVoices()).resolves.toEqual([
+      { value: "Edge voice", label: "Edge voice (en-US)" },
+    ]);
+  });
+
+  test("lists Web Speech voices when Chrome voice enumeration fails", async () => {
+    globalThis.chrome = {
+      runtime: { lastError: { message: "Unavailable" } },
+      tts: {
+        speak: jest.fn(),
+        getVoices: (callback) => callback(),
+      },
+    };
+    globalThis.speechSynthesis = {
+      getVoices: () => [{ name: "Web voice", lang: "zh-CN" }],
+    };
+    await expect(getSpeechVoices()).resolves.toEqual([
+      { value: "Web voice", label: "Web voice (zh-CN)" },
+    ]);
+  });
+
+  test("returns no voices when speech is unavailable", async () => {
+    await expect(getSpeechVoices()).resolves.toEqual([]);
   });
 
   test("normalizes automatic language detection values for chrome tts", () => {

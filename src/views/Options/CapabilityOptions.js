@@ -5,6 +5,7 @@ import {
   enabledApiCapabilities,
 } from "../../config/serviceSelection";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
+import ImageParsingFeatures from "./ImageParsingFeatures";
 
 /** Users narrow the service contract; this control can never add a handler. */
 export default function CapabilityOptions({ api, onChange }) {
@@ -28,11 +29,20 @@ export default function CapabilityOptions({ api, onChange }) {
             selected.length ? (
               <Stack direction="row" useFlexGap flexWrap="wrap" spacing={0.75}>
                 {selected.map((name) => (
-                  <Chip
+                  <ImageParsingFeatures
                     key={name}
-                    size="small"
-                    label={i18n(capabilityLabelKeys[name], name)}
-                  />
+                    descriptor={
+                      name === "parseImage"
+                        ? api.provider?.capabilities?.parseImage
+                        : undefined
+                    }
+                  >
+                    <Chip
+                      component="span"
+                      size="small"
+                      label={i18n(capabilityLabelKeys[name], name)}
+                    />
+                  </ImageParsingFeatures>
                 ))}
               </Stack>
             ) : (
@@ -54,6 +64,18 @@ export default function CapabilityOptions({ api, onChange }) {
           </MenuItem>
         ))}
       </TextField>
+      {!enabled.includes("parseImage") &&
+        api.provider?.capabilities?.parseImage && (
+          <ImageParsingFeatures
+            descriptor={api.provider.capabilities.parseImage}
+          >
+            <Chip
+              component="span"
+              size="small"
+              label={i18n(capabilityLabelKeys.parseImage)}
+            />
+          </ImageParsingFeatures>
+        )}
       {!supported.length ? (
         <Alert severity="info">
           {i18n("plugin_select_a_supported_model_and_runtime_backend_first")}

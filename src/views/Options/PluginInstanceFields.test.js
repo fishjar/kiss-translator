@@ -99,6 +99,21 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
+test("declared Origin rewriting domains are visible without changing settings", async () => {
+  await render({
+    ...api,
+    provider: {
+      ...api.provider,
+      permissions: {
+        network: ["https://api.invalid"],
+        originRewrite: ["https://api.invalid"],
+      },
+    },
+  });
+  expect(container.textContent).toContain("https://api.invalid");
+  expect(mockUpdateSetting).not.toHaveBeenCalled();
+});
+
 test("changing the model preserves explicitly disabled capabilities", async () => {
   const disabled = {
     ...api,
@@ -166,10 +181,57 @@ test("the cancel button still cancels an active service test", async () => {
   await render();
   await act(async () => button("执行测试").click());
   expect(invokeService).toHaveBeenCalledTimes(1);
+  expect(button("测试中…").disabled).toBe(true);
+  expect(
+    button("测试中…").querySelector('[role="progressbar"]')
+  ).not.toBeNull();
   await act(async () => button("取消").click());
   expect(cancel).toHaveBeenCalledTimes(1);
   expect(button("执行测试").disabled).toBe(false);
+  expect(container.querySelector('[role="progressbar"]')).toBeNull();
 });
+
+test.each(["success", "failure"])(
+  "test loading starts before saved configuration resolves and clears on %s",
+  async (outcome) => {
+    let loaded, finish, fail;
+    getSettingWithDefault.mockReturnValue(
+      new Promise((resolve) => {
+        loaded = resolve;
+      })
+    );
+    invokeService.mockReturnValue({
+      result: new Promise((resolve, reject) => {
+        finish = resolve;
+        fail = reject;
+      }),
+      events: (async function* () {})(),
+      cancel: jest.fn(),
+    });
+    await render();
+    await act(async () => button("执行测试").click());
+    expect(button("测试中…").getAttribute("aria-busy")).toBe("true");
+    expect(
+      button("测试中…").querySelector('[role="progressbar"]')
+    ).not.toBeNull();
+    expect(button("取消").disabled).toBe(false);
+    expect(invokeService).not.toHaveBeenCalled();
+    await act(async () =>
+      loaded({ transApis: [api], prompts: [], subtitleSetting: {} })
+    );
+    expect(button("测试中…").disabled).toBe(true);
+    await act(async () => {
+      if (outcome === "success") finish({ text: "Test completed" });
+      else fail(new Error("Test failed"));
+    });
+    expect(button("执行测试").disabled).toBe(false);
+    expect(button("取消").disabled).toBe(true);
+    expect(container.querySelector('[role="progressbar"]')).toBeNull();
+    expect(container.textContent).toContain(
+      outcome === "success" ? "Test completed" : "Test failed"
+    );
+  }
+);
 
 test("translation quick test stays available while chat is selected and uses edited configuration", async () => {
   const translatedApi = {
@@ -499,6 +561,66 @@ test("external service timeout is a saved service option, separate from pluginCo
   const saved = mockUpdateSetting.mock.calls[0][0]({ transApis: [api] });
   expect(saved.transApis[0].httpTimeout).toBe(600);
   expect(saved.transApis[0].pluginConfig).toEqual(api.pluginConfig);
+});
+
+test("plugin TTS selects and saves its declared voice for capability tests", async () => {
+  const speechApi = {
+    ...api,
+    enabledCapabilities: ["synthesizeSpeech"],
+    pluginConfig: { voice: "alloy" },
+    provider: {
+      ...api.provider,
+      capabilities: { synthesizeSpeech: { handler: "synthesizeSpeech" } },
+      settings: [
+        {
+          key: "voice",
+          label: "音色",
+          type: "select",
+          required: true,
+          options: [
+            { value: "alloy", label: "Alloy" },
+            { value: "nova", label: "Nova" },
+          ],
+        },
+      ],
+    },
+  };
+  await render(speechApi);
+  const select = [...container.querySelectorAll('[role="combobox"]')].find(
+    (item) => item.textContent === "Alloy"
+  );
+  await act(async () => Simulate.mouseDown(select, { button: 0 }));
+  const option = [...document.querySelectorAll('[role="option"]')].find(
+    (item) => item.textContent === "Nova"
+  );
+  await act(async () => option.click());
+  await act(async () => button("保存").click());
+  const saved = mockUpdateSetting.mock.calls[0][0]({ transApis: [speechApi] })
+    .transApis[0];
+  expect(saved.pluginConfig.voice).toBe("nova");
+  await render(saved);
+  expect(
+    [...container.querySelectorAll('[role="combobox"]')].some(
+      (item) => item.textContent === "Nova"
+    )
+  ).toBe(true);
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [saved],
+    prompts: [],
+    subtitleSetting: {},
+  });
+  invokeService.mockReturnValue({
+    result: Promise.resolve({}),
+    events: (async function* () {})(),
+    cancel: jest.fn(),
+  });
+  await act(async () => button("执行测试").click());
+  expect(invokeService).toHaveBeenCalledWith(
+    expect.objectContaining({ pluginConfig: { voice: "nova" } }),
+    "synthesizeSpeech",
+    expect.objectContaining({ text: "Hello" }),
+    expect.anything()
+  );
 });
 
 test("summary capability test supplies the saved scene template pair", async () => {

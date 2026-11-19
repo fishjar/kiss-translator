@@ -17,13 +17,13 @@ export default function LocalServiceNotice({
       .filter((model) => model.state === "installed")
       .map((model) => model.id)
   );
-  const missing = apis.filter((api) => {
-    if (api?.apiType !== "LocalAI") return false;
+  const missing = apis.flatMap((api) => {
+    if (api?.apiType !== "LocalAI") return [];
     const group = localModelTasks.ocrGroups.find(
       (item) => item.id === api.modelRef
     );
-    return !(group ? [group.detId, group.recId] : [api.modelRef]).every((id) =>
-      installed.has(id)
+    return (group ? [group.detId, group.recId] : [api.modelRef]).filter(
+      (id) => id && !installed.has(id)
     );
   });
   if (!missing.length) return null;
@@ -37,9 +37,14 @@ export default function LocalServiceNotice({
         </Button>
       }
     >
-      {[...new Set(missing.map((api) => api.apiName || api.apiSlug))].join(
-        "、"
-      )}
+      {[...new Set(missing)]
+        .map((id) => {
+          const name = available.find((model) => model.id === id)?.name || id;
+          return id.startsWith("piper-")
+            ? i18n("model_name_piper", name).replace("{0}", id.slice(6))
+            : i18n(`model_name_${id.replace(/[-.]/g, "_")}`, name);
+        })
+        .join("、")}
       {"："}
       {i18n(
         "api_local_model_required",

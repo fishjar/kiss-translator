@@ -3,7 +3,13 @@ import { ServiceTestCard, ServiceTestResult } from "./ServiceForm";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, MenuItem, TextField } from "@mui/material";
+import {
+  Alert,
+  Button,
+  CircularProgress,
+  MenuItem,
+  TextField,
+} from "@mui/material";
 import {
   createTestInput,
   structuredTestSamples,
@@ -116,8 +122,21 @@ export default function NativeCapabilityTest({ api, translationTest }) {
     <ServiceTestCard
       actions={
         <>
-          <Button disabled={busy || !names.includes(capability)} onClick={test}>
-            {i18n("plugin_run_test")}
+          <Button
+            disabled={busy || !names.includes(capability)}
+            onClick={test}
+            aria-busy={busy}
+            startIcon={
+              busy ? (
+                <CircularProgress
+                  size={16}
+                  color="inherit"
+                  aria-label={i18n("plugin_test_running")}
+                />
+              ) : undefined
+            }
+          >
+            {i18n(busy ? "plugin_test_running" : "plugin_run_test")}
           </Button>
           <Button disabled={!busy} onClick={() => active.current?.cancel()}>
             {i18n("cancel")}

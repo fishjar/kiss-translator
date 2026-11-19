@@ -280,6 +280,22 @@ describe("ImageTranslateContent", () => {
     }
   });
 
+  test("translation-only content disables source views and copies only translated content", () => {
+    act(() =>
+      root.render(
+        <ImageTranslateContent
+          items={[{ original: "", translation: "Translated document" }]}
+          viewMode="target"
+        />
+      )
+    );
+    const tabs = container.querySelectorAll('[role="tab"]');
+    expect(tabs[0].disabled).toBe(true);
+    expect(tabs[1].disabled).toBe(true);
+    expect(tabs[2].disabled).toBe(false);
+    expect(container.textContent).toContain("Translated document");
+  });
+
   test("renders bilingual segments by default", () => {
     act(() => {
       root.render(
@@ -554,7 +570,7 @@ describe("ImageTranslateHeader", () => {
       );
     };
     mountHeader("");
-    expect(select().textContent).toBe("不启用");
+    expect(select().textContent).toBe("不调用独立界面分析服务");
     expect(control().querySelector("label").getAttribute("data-shrink")).toBe(
       "true"
     );
@@ -563,10 +579,10 @@ describe("ImageTranslateHeader", () => {
     choose("");
     expect(onSettingChange).toHaveBeenLastCalledWith({ layoutApiSlug: "" });
     mountHeader("");
-    expect(select().textContent).toBe("不启用");
+    expect(select().textContent).toBe("不调用独立界面分析服务");
     act(() => root.render(null));
     mountHeader("");
-    expect(select().textContent).toBe("不启用");
+    expect(select().textContent).toBe("不调用独立界面分析服务");
     choose("layout");
     expect(onSettingChange).toHaveBeenLastCalledWith({
       layoutApiSlug: "layout",
@@ -617,8 +633,8 @@ describe("ImageTranslateHeader", () => {
     let actions = container.querySelectorAll('[role="menu"] [role="menuitem"]');
     expect(Array.from(actions, (item) => item.textContent)).toEqual([
       "布局分析",
-      "文本识别",
-      "文本翻译",
+      "重新解析图片",
+      "补译缺失内容",
     ]);
     act(() => actions[0].click());
     expect(onRunAction).toHaveBeenLastCalledWith("layout");
@@ -659,7 +675,7 @@ describe("ImageTranslateHeader", () => {
       );
     });
 
-    expect(container.textContent).toContain("识别提示词");
+    expect(container.textContent).toContain("视觉解析提示词");
   });
 });
 

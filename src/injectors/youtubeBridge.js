@@ -296,7 +296,8 @@ export function installYoutubeBridge(createAudioBridge) {
   };
   const onMessage = async (event) => {
     if (
-      event.source !== window ||
+      // Safari + Tampermonkey delivers same-window messages with a null source.
+      (event.source !== window && event.source !== null) ||
       event.origin !== origin ||
       event.data?.protocol !== protocol ||
       event.data?.type !== "request"

@@ -367,3 +367,32 @@ test("client accepts bridge responses from unsafeWindow when the userscript has 
     delete global.unsafeWindow;
   }
 });
+
+test("client accepts bridge responses with a null source (Safari userscript managers)", async () => {
+  window.history.replaceState({}, "", "/watch?v=one");
+  const client = new YouTubeCaptionBridgeClient();
+  try {
+    const promise = client.request("snapshot", "one");
+    const requestId = [...client.pending.keys()][0];
+    const respond = (source, origin) =>
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          source,
+          origin,
+          data: {
+            protocol: YOUTUBE_CAPTION_PROTOCOL,
+            type: "response",
+            requestId,
+            videoId: "one",
+            result: snapshot(),
+          },
+        })
+      );
+    respond(null, "https://evil.test");
+    expect(client.pending.size).toBe(1);
+    respond(null, window.location.origin);
+    await expect(promise).resolves.toMatchObject({ videoId: "one" });
+  } finally {
+    client.dispose();
+  }
+});

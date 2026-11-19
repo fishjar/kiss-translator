@@ -1,4 +1,3 @@
-import { supportsSdkVersion } from "./sdk/version";
 import {
   PROVIDER_CAPABILITIES,
   providerError,
@@ -27,6 +26,9 @@ export function validateCapabilities(capabilities, { external = false } = {}) {
   for (const [name, descriptor] of Object.entries(capabilities)) {
     if (
       !PROVIDER_CAPABILITIES.includes(name) ||
+      (name !== "parseImage" &&
+        (descriptor?.includesTranslation !== undefined ||
+          descriptor?.includesLayout !== undefined)) ||
       (external && name === "speak") ||
       !descriptor ||
       typeof descriptor.handler !== "string" ||
@@ -44,7 +46,12 @@ export function validateCapabilities(capabilities, { external = false } = {}) {
           descriptor.inputModalities.some(
             (mode) => !["text", "image", "audio"].includes(mode)
           ))) ||
-      ["coordinates", "timestamps"].some(
+      [
+        "coordinates",
+        "timestamps",
+        "includesTranslation",
+        "includesLayout",
+      ].some(
         (key) =>
           descriptor[key] !== undefined && typeof descriptor[key] !== "boolean"
       ) ||
@@ -74,7 +81,17 @@ export function mergeSettingFields(shared = [], settings = []) {
       !field?.key ||
       !/^[A-Za-z_$][\w$]*$/.test(field.key) ||
       forbidden.has(field.key) ||
-      !["text", "password", "number", "boolean", "select"].includes(field.type)
+      !["text", "password", "number", "boolean", "select"].includes(
+        field.type
+      ) ||
+      (field.helpText !== undefined && typeof field.helpText !== "string") ||
+      (field.helpTextI18n !== undefined &&
+        (!field.helpTextI18n ||
+          typeof field.helpTextI18n !== "object" ||
+          Array.isArray(field.helpTextI18n) ||
+          Object.values(field.helpTextI18n).some(
+            (text) => typeof text !== "string"
+          )))
     ) {
       throw providerError("INVALID_MANIFEST", "Invalid setting field.");
     }
@@ -148,7 +165,6 @@ export function createServiceInstance(
   if (
     Object.hasOwn(manifest, "manifestVersion") ||
     Object.hasOwn(manifest, "rulesVersion") ||
-    !supportsSdkVersion(manifest.apiVersion) ||
     !apiSlug
   ) {
     throw providerError(
@@ -390,6 +406,8 @@ export function validatePermissions(permissions = {}, fields) {
     Array.isArray(permissions) ||
     (permissions.network !== undefined &&
       !Array.isArray(permissions.network)) ||
+    (permissions.originRewrite !== undefined &&
+      !Array.isArray(permissions.originRewrite)) ||
     (permissions.endpointFields !== undefined &&
       !Array.isArray(permissions.endpointFields))
   )
@@ -412,6 +430,28 @@ export function validatePermissions(permissions = {}, fields) {
       throw providerError(
         "INVALID_MANIFEST",
         "Network permissions require HTTP or HTTPS origins."
+      );
+  }
+  for (const origin of permissions.originRewrite || []) {
+    let url;
+    try {
+      url = new URL(origin);
+    } catch {
+      throw providerError(
+        "INVALID_MANIFEST",
+        "Origin rewriting requires complete HTTP or HTTPS origins."
+      );
+    }
+    if (
+      typeof origin !== "string" ||
+      url.origin !== origin ||
+      !["http:", "https:"].includes(url.protocol) ||
+      url.hostname.includes("*") ||
+      !(permissions.network || []).includes(origin)
+    )
+      throw providerError(
+        "INVALID_MANIFEST",
+        "Origin rewriting must be a subset of fixed network origins."
       );
   }
   for (const key of permissions.endpointFields || [])

@@ -9,6 +9,9 @@ const originalResizeObserver = globalThis.ResizeObserver;
 let mockConnected = true;
 let mockOnlineLanguage = "zh";
 let mockPdfStateOverrides = {};
+let mockVisualSignatures;
+let mockTerminologySignatures;
+const mockWaitForSceneSave = jest.fn();
 const mockAnalyzeLayout = jest.fn().mockResolvedValue({ regions: [] });
 beforeAll(() => {
   globalThis.ResizeObserver = class {
@@ -34,14 +37,18 @@ jest.mock("./State", () => ({
     const i18n = require("../../hooks/I18n").useI18n();
     return {
       context: {
+        features: { structuredImageResults: true },
+        visualSignatures: mockVisualSignatures,
+        terminologySignatures: mockTerminologySignatures,
         scenes: setting.fileTranslateSetting,
         services: setting.transApis,
         prompts: require("../../hooks/Prompt").usePromptList().prompts,
         styles: [],
-        models: [],
+        models: [{ id: "pp-doclayout-v3-onnx", state: "installed" }],
         ocrModels: ops.ALL_OCR_MODELS || ops.OCR_GROUPS,
       },
       connected: mockConnected,
+      waitForSceneSave: mockWaitForSceneSave,
       i18n,
       uiLang: "zh",
       allTextStyles: require("../../hooks/CustomStyles").useAllTextStyles()
@@ -1042,7 +1049,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       [100, 60],
       [10, 60],
     ];
-    let originalCreate, originalRevoke;
+    let originalCreate, originalRevoke, originalLayoutSlug;
     const button = (label) =>
       [...container.querySelectorAll("button")].find(
         (item) => item.textContent === label
@@ -1079,6 +1086,8 @@ describe("FileTranslatePage (M2 UI)", () => {
     };
     const regions = () => [...container.querySelectorAll("polygon")];
     beforeEach(async () => {
+      originalLayoutSlug = mockSetting.fileTranslateSetting.image.layoutApiSlug;
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "local-layout";
       originalCreate = URL.createObjectURL;
       originalRevoke = URL.revokeObjectURL;
       URL.createObjectURL = jest.fn(() => "blob:stage-test");
@@ -1108,6 +1117,249 @@ describe("FileTranslatePage (M2 UI)", () => {
       await act(async () => root.render(<FileTranslatePage />));
       await upload();
     };
+    test("waits for the saved image scene before recognition", async () => {
+      let finishSave;
+      mockWaitForSceneSave.mockReturnValueOnce(
+        new Promise((resolve) => (finishSave = resolve))
+      );
+      await setup();
+      await step("布局与识别");
+      expect(mockWaitForSceneSave).toHaveBeenLastCalledWith(
+        "image",
+        expect.any(AbortSignal)
+      );
+      expect(ops.recognizeFileImage).not.toHaveBeenCalled();
+      await act(async () => finishSave());
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+    });
+
+    test("uses the saved image snapshot and keeps recognition through its context refresh", async () => {
+      const previousScenes = mockSetting.fileTranslateSetting;
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+      mockVisualSignatures = { image: "before-save" };
+      mockTerminologySignatures = { image: "before-save-text" };
+      let finishRecognition;
+      ops.recognizeFileImage.mockReturnValueOnce(
+        new Promise((resolve) => (finishRecognition = resolve))
+      );
+      const saved = {
+        scenes: {
+          ...previousScenes,
+          image: { ...previousScenes.image, toLang: "ja" },
+        },
+        services: mockSetting.transApis,
+        features: { structuredImageResults: true },
+        visualSignatures: { image: "saved" },
+        terminologySignatures: { image: "saved-text" },
+      };
+      mockWaitForSceneSave.mockResolvedValueOnce(saved);
+      try {
+        await setup();
+        await act(async () => button("一键翻译").click());
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        mockSetting.fileTranslateSetting = saved.scenes;
+        mockVisualSignatures = saved.visualSignatures;
+        mockTerminologySignatures = saved.terminologySignatures;
+        await act(async () => root.render(<FileTranslatePage />));
+        await act(async () =>
+          finishRecognition({
+            items: [
+              {
+                text: "",
+                translation: "已保存术语的译文",
+                translationLanguage: "ja",
+                translationFromImage: true,
+                poly: null,
+              },
+              { text: "Missing", poly: null },
+            ],
+          })
+        );
+        expect(container.textContent).toContain("已保存术语的译文");
+        expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+        expect(lib.translateFileText.mock.calls[0].slice(0, 2)).toEqual([
+          "Missing",
+          expect.objectContaining({ toLang: "ja" }),
+        ]);
+        mockVisualSignatures = { image: "later-edit" };
+        await act(async () => root.render(<FileTranslatePage />));
+        expect(container.textContent).not.toContain("已保存术语的译文");
+      } finally {
+        mockSetting.fileTranslateSetting = previousScenes;
+        mockVisualSignatures = undefined;
+        mockTerminologySignatures = undefined;
+      }
+    });
+
+    test("refresh keeps selection on the same visual region with duplicate text", async () => {
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+      ops.recognizeFileImage.mockResolvedValue({
+        items: [
+          { text: "repeated", regionPoly: poly },
+          { text: "repeated", regionPoly: poly.map(([x, y]) => [x + 90, y]) },
+        ],
+      });
+      await setup();
+      await step("识别文本");
+      await measurePreview();
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
+      await act(async () =>
+        [...container.querySelectorAll('input[type="checkbox"]')]
+          .find((input) =>
+            input.closest("label")?.textContent.includes("忽略缓存")
+          )
+          .click()
+      );
+      await act(async () => button("一键翻译").click());
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(2);
+      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+      expect(
+        regions().map((item) => item.getAttribute("aria-pressed"))
+      ).toEqual(["false", "true"]);
+    });
+    test.each(["translation-only", "bilingual", "partial"])(
+      "reuses structured image translations: %s",
+      async (shape) => {
+        mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+        await setup();
+        ops.recognizeFileImage.mockResolvedValueOnce({
+          format: "text",
+          items: [
+            {
+              text: shape === "translation-only" ? "" : "Original",
+              translation: "模型译文",
+              translationLanguage: "ZH_cn",
+              translationFromImage: true,
+              poly: null,
+            },
+            ...(shape === "partial"
+              ? [{ text: "Missing", translation: "", poly: null }]
+              : []),
+          ],
+        });
+        await act(async () => button("一键翻译").click());
+        expect(mockAnalyzeLayout).not.toHaveBeenCalled();
+        expect(lib.translateFileText).toHaveBeenCalledTimes(
+          shape === "partial" ? 1 : 0
+        );
+        expect(container.textContent).toContain("模型译文");
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        expect(lib.synthesizeTranslatedImage).not.toHaveBeenCalled();
+        const source = [...container.querySelectorAll("button")].find(
+          (node) => node.textContent === "原文"
+        );
+        expect(source.disabled).toBe(shape === "translation-only");
+      }
+    );
+    test("stable region IDs preserve selections when original text is repeated", async () => {
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+      await setup();
+      ops.recognizeFileImage.mockResolvedValue({
+        items: [
+          {
+            id: "first",
+            text: "Repeated",
+            translation: "第一处",
+            translationLanguage: "zh-CN",
+            translationFromImage: true,
+            poly: null,
+            regionPoly: [
+              [0, 0],
+              [90, 0],
+              [90, 40],
+              [0, 40],
+            ],
+          },
+          {
+            id: "second",
+            text: "Repeated",
+            translation: "第二处",
+            translationLanguage: "zh-CN",
+            translationFromImage: true,
+            poly: null,
+            regionPoly: [
+              [100, 0],
+              [190, 0],
+              [190, 40],
+              [100, 40],
+            ],
+          },
+        ],
+      });
+      await act(async () => button("一键翻译").click());
+      await measurePreview();
+      await act(async () =>
+        regions()[0].dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      );
+      const cache = [
+        ...container.querySelectorAll('input[type="checkbox"]'),
+      ].find((input) =>
+        input.closest("label")?.textContent.includes("忽略缓存")
+      );
+      await act(async () => cache.click());
+      await act(async () => button("一键翻译").click());
+      expect(
+        regions().map((node) => node.getAttribute("aria-pressed"))
+      ).toEqual(["false", "true"]);
+      expect(ops.recognizeFileImage).toHaveBeenCalledTimes(2);
+      expect(lib.translateFileText).not.toHaveBeenCalled();
+    });
+    test("fallback changes preserve image translations and reuse recognition", async () => {
+      const previous = mockSetting.fileTranslateSetting;
+      try {
+        mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+        await setup();
+        ops.recognizeFileImage.mockResolvedValueOnce({
+          items: [
+            {
+              text: "Original",
+              translation: "模型译文",
+              translationLanguage: "zh_CN",
+              translationFromImage: true,
+            },
+            { text: "Missing" },
+          ],
+        });
+        await act(async () => button("一键翻译").click());
+        mockSetting.fileTranslateSetting = {
+          ...previous,
+          image: { ...previous.image, apiSlug: "changed-fallback" },
+        };
+        await act(async () => root.render(<FileTranslatePage />));
+        await step("翻译文本");
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        expect(lib.translateFileText).toHaveBeenCalledTimes(2);
+        expect(lib.translateFileText.mock.calls.map((call) => call[0])).toEqual(
+          ["Missing", "Missing"]
+        );
+        expect(container.textContent).toContain("模型译文");
+      } finally {
+        mockSetting.fileTranslateSetting = previous;
+      }
+    });
+    test("recognize-only retains image translations without filling missing content", async () => {
+      mockSetting.fileTranslateSetting.image.layoutApiSlug = "";
+      await setup();
+      ops.recognizeFileImage.mockResolvedValueOnce({
+        format: "text",
+        items: [
+          {
+            text: "Original",
+            translation: "已有译文",
+            translationLanguage: "zh-CN",
+            translationFromImage: true,
+          },
+          { text: "Missing" },
+        ],
+      });
+      await step("识别文本");
+      expect(lib.translateFileText).not.toHaveBeenCalled();
+      await step("翻译文本");
+      expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+      expect(lib.translateFileText.mock.calls[0][0]).toBe("Missing");
+    });
     test.each([true, false])(
       "image recognition label and prerequisite match layout availability: %s",
       async (available) => {
@@ -1201,6 +1453,11 @@ describe("FileTranslatePage (M2 UI)", () => {
       mockSetting.transApis.pop();
       URL.createObjectURL = originalCreate;
       URL.revokeObjectURL = originalRevoke;
+      if (originalLayoutSlug === undefined)
+        delete mockSetting.fileTranslateSetting.image.layoutApiSlug;
+      else
+        mockSetting.fileTranslateSetting.image.layoutApiSlug =
+          originalLayoutSlug;
     });
     test("switching image layout services saves only the service and invalidates recognition", async () => {
       const savedScenes = mockSetting.fileTranslateSetting;
@@ -1236,8 +1493,46 @@ describe("FileTranslatePage (M2 UI)", () => {
         mockSetting.fileTranslateSetting = savedScenes;
       }
     });
+    test("a document parser skips separate layout and its result survives layout setting changes", async () => {
+      const saved = mockSetting.fileTranslateSetting;
+      const service = mockSetting.transApis.at(-1);
+      service.recognitionFeatures.parseImage = { includesLayout: true };
+      mockSetting.fileTranslateSetting = {
+        ...saved,
+        image: {
+          ...saved.image,
+          recognitionService: {
+            apiSlug: service.apiSlug,
+            capability: "parseImage",
+          },
+        },
+      };
+      mockAnalyzeLayout.mockClear();
+      try {
+        await setup();
+        expect(container.textContent).toContain("整图识别将跳过独立版面服务");
+        await step("布局与识别");
+        expect(mockAnalyzeLayout).not.toHaveBeenCalled();
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+
+        mockSetting.fileTranslateSetting = {
+          ...mockSetting.fileTranslateSetting,
+          image: {
+            ...mockSetting.fileTranslateSetting.image,
+            layoutApiSlug: "gpu-layout",
+          },
+        };
+        await act(async () => root.render(<FileTranslatePage />));
+        await step("翻译文本");
+        expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        expect(mockAnalyzeLayout).not.toHaveBeenCalled();
+      } finally {
+        mockSetting.fileTranslateSetting = saved;
+      }
+    });
     test.each(["toLang", "apiSlug", "promptSlug", "service"])(
-      "image translation invalidates %s changes without repeating OCR",
+      "image translation invalidates %s changes with independent parsing cache",
       async (field) => {
         await setup();
         await step("布局与识别");
@@ -1264,9 +1559,12 @@ describe("FileTranslatePage (M2 UI)", () => {
               },
             };
           await act(async () => root.render(<FileTranslatePage />));
+          if (field === "toLang") await step("布局与识别");
           await step("翻译文本");
           expect(lib.translateFileText).toHaveBeenCalledTimes(2);
-          expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+          expect(ops.recognizeFileImage).toHaveBeenCalledTimes(
+            field === "toLang" ? 2 : 1
+          );
           expect(lib.translateFileText.mock.calls.at(-1)[0]).toBe(
             "source block"
           );

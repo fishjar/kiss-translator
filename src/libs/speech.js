@@ -35,6 +35,33 @@ function hasWebSpeech() {
   );
 }
 
+/** Use the same engine and voice names as playback. */
+export async function getSpeechVoices() {
+  if (hasChromeTts() && globalThis.chrome.tts.getVoices) {
+    try {
+      const voices = await new Promise((resolve, reject) => {
+        globalThis.chrome.tts.getVoices((items) => {
+          const error = globalThis.chrome?.runtime?.lastError;
+          if (error) reject(new Error(error.message));
+          else resolve(items);
+        });
+      });
+      return voices
+        .filter((voice) => voice.voiceName)
+        .map((voice) => ({
+          value: voice.voiceName,
+          label: `${voice.voiceName}${voice.lang ? ` (${voice.lang})` : ""}`,
+        }));
+    } catch {
+      // Match playback's Web Speech fallback when Chrome TTS is unavailable.
+    }
+  }
+  return (globalThis.speechSynthesis?.getVoices?.() || []).map((voice) => ({
+    value: voice.name,
+    label: `${voice.name} (${voice.lang})`,
+  }));
+}
+
 const FINAL_CHROME_TTS_EVENTS = new Set([
   "end",
   "interrupted",

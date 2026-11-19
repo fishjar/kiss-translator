@@ -20,6 +20,7 @@ import { ImageSourceHighlight } from "./imageSourceHighlight";
 import ImageLayoutOverlay from "../../views/ImageTranslate/ImageLayoutOverlay";
 import { readImageAsBlob } from "./imageReader";
 import ImageTranslate from "../../views/ImageTranslate";
+import { automaticLayoutRegions } from "./layoutSelection";
 
 export class ImageTranslateManager {
   #setting;
@@ -228,7 +229,9 @@ export class ImageTranslateManager {
         if (!isCurrent()) return;
         this.#layoutRegions = regions;
         this.#showLayoutOverlay = visible;
-        this.#boxProps = { ...this.#boxProps, selectedRegions: regions };
+        if (!automaticLayoutRegions.has(regions)) {
+          this.#boxProps = { ...this.#boxProps, selectedRegions: regions };
+        }
         this.#render();
       },
       onSelectionChange: () => {
@@ -334,19 +337,25 @@ export class ImageTranslateManager {
             }}
             onLayoutDetected={(regions, { replace = false } = {}) => {
               if (!isCurrent()) return;
+              const refreshingAutomaticLayout =
+                automaticLayoutRegions.has(this.#layoutRegions) &&
+                automaticLayoutRegions.has(regions);
               if (
                 regions &&
-                (replace || (regions.length > 0 && !this.#layoutRegions.length))
+                (replace ||
+                  (regions.length > 0 &&
+                    (!this.#layoutRegions.length || refreshingAutomaticLayout)))
               ) {
                 this.#layoutRegions = regions;
-                this.#showLayoutOverlay = true;
+                if (!refreshingAutomaticLayout || replace)
+                  this.#showLayoutOverlay = true;
                 this.#renderLayoutOverlay();
                 // 同步将图片上方的悬停按钮置为激活态
                 if (this.#sourceType === "image")
                   this.#hoverDetector?.setLayoutState(
                     "active",
                     regions,
-                    true,
+                    this.#showLayoutOverlay,
                     this.#currentImageElement,
                     true
                   );

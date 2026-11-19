@@ -33,6 +33,7 @@ import { supportsServiceFeature } from "../providers/features";
 import { withBuiltinProvider } from "../builtin-plugins";
 import {
   getPluginPromptOptions,
+  pluginPromptSlug,
   selectedPluginPrompt,
   isPluginPromptSlug,
   imagePromptText,
@@ -148,6 +149,29 @@ export const PRESET_PROMPTS = [
     userPrompt,
     category: PROMPT_CATEGORY_VLM,
     systemPrompt: "",
+  })),
+  ...[
+    [
+      "vlm-image-translation",
+      "图片翻译",
+      'Translate all visible text into {{to}}. Return exactly {"format":"text","translation":{"text":"your complete translation","targetLanguage":"{{to}}","format":"text"}}. Omit original text and layout.',
+    ],
+    [
+      "vlm-image-bilingual",
+      "双语解析",
+      'Extract all visible original text in reading order and translate it into {{to}}. Return exactly {"format":"text","text":"the complete original text","translation":{"text":"the complete translation","targetLanguage":"{{to}}","format":"text"}}. Omit layout.',
+    ],
+  ].map(([slug, name, userPrompt]) => ({
+    slug,
+    name,
+    nameKey:
+      slug === "vlm-image-translation"
+        ? "preset_prompt_image_translation"
+        : "preset_prompt_image_bilingual",
+    userPrompt,
+    category: PROMPT_CATEGORY_VLM,
+    systemPrompt: "",
+    protocol: "image-json",
   })),
   {
     slug: PROMPT_SLUG_NOBATCH_TRANSLATION_CONCISE,
@@ -615,10 +639,49 @@ export function getVlmPromptOptions(prompts = [], api) {
   return [
     ...getPluginPromptOptions(api, "vlm"),
     ...getPromptOptions(prompts, PROMPT_CATEGORY_VLM),
-  ];
+  ].filter(
+    (prompt) =>
+      prompt.protocol !== "image-json" ||
+      Boolean(
+        api?.provider?.capabilities?.parseImage?.includesTranslation ||
+          api?.provider?.capabilities?.parseImage?.includesLayout
+      )
+  );
+}
+
+export function resolveVlmPromptSlug(slug, api) {
+  const provider = api?.provider;
+  const source = provider?.source;
+  if (
+    source?.serviceId !== "vision" ||
+    !["index-translate", "openai-compatible-bundle"].includes(source.pluginId)
+  )
+    return slug;
+  for (const id of ["image-translation", "image-bilingual"]) {
+    if (
+      slug === pluginPromptSlug(provider, "vlm", id) &&
+      !provider.defaultPrompts?.vlm?.some((prompt) => prompt.id === id)
+    )
+      return `vlm-${id}`;
+  }
+  return slug;
+}
+
+export function resolveVlmPromptDefinition(userPrompts = [], slug, api) {
+  slug = resolveVlmPromptSlug(slug, api);
+  if (
+    isPluginPromptSlug(slug) ||
+    (!slug && api?.provider?.implementation?.kind !== "native")
+  )
+    return selectedPluginPrompt(api, "vlm", slug);
+  const prompt = findPromptBySlug(userPrompts, slug);
+  return prompt?.category === PROMPT_CATEGORY_VLM
+    ? prompt
+    : findPromptBySlug([], DEFAULT_VLM_PROMPT_SLUG);
 }
 
 export function resolveVlmPrompt(userPrompts = [], slug, api) {
+  slug = resolveVlmPromptSlug(slug, api);
   if (isPluginPromptSlug(slug))
     return imagePromptText(selectedPluginPrompt(api, "vlm", slug));
   const prompt = findPromptBySlug(userPrompts, slug);
@@ -1347,6 +1410,7 @@ export function resolveApiPromptSettings(
       if (!prompt) continue;
       next[systemKey] =
         slot === "vlm" ? imagePromptText(prompt) : prompt.systemPrompt;
+      if (slot === "vlm") next.vlmProtocol = prompt.protocol;
       if (userKey) next[userKey] = prompt.userPrompt;
       if (
         (slot === "batch" && next.useBatchFetch) ||

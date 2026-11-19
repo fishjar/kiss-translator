@@ -89,6 +89,11 @@ import {
   localAiSettings,
   localAiHost,
 } from "./libs/localAiBackground";
+import { ORIGIN_RULE_START_ID } from "./providers/originRules";
+import {
+  installPluginOriginRules,
+  refreshPluginOriginRules,
+} from "./providers/originRulesBackground";
 import { installProviderRelay } from "./providers/background";
 import { installFileTranslationBackend } from "./fileTranslation/backend";
 import { restoreFileTranslationBridges } from "./fileTranslation/bridgeRecovery";
@@ -192,10 +197,7 @@ async function updateIcon(isActive, tabId) {
 
 // declarativeNetRequest 动态规则的起始 ID 段，避免 ID 冲突
 const CSP_RULE_START_ID = 1;
-const ORI_RULE_START_ID = 10000;
-// 获取扩展自身的请求发起方域名。
-// Chrome 使用扩展 ID，Firefox 使用 moz-extension UUID。
-const EXTENSION_INITIATOR_DOMAIN = new URL(browser.runtime.getURL("")).hostname;
+const ORI_RULE_START_ID = ORIGIN_RULE_START_ID;
 
 // 需要从 HTTP 响应头中移除的 CSP (Content-Security-Policy) 键名，用以允许加载第三方翻译接口脚本/发送翻译请求
 const CSP_REMOVE_HEADERS = [
@@ -575,6 +577,11 @@ async function addContextMenus(contextMenuType = 1) {
  * @param {Array<string>|string} params.orilist 需伪装 Origin 请求头的请求过滤列表
  */
 async function updateCspRules({ csplist, orilist }) {
+  if (orilist !== undefined)
+    await refreshPluginOriginRules().catch((error) =>
+      logger.child("background").warn("Origin rules", error)
+    );
+  if (csplist === undefined) return;
   try {
     // 1. 获取当前所有已注册的动态 DNR 规则
     const oldRules = await browser.declarativeNetRequest.getDynamicRules();
@@ -616,39 +623,6 @@ async function updateCspRules({ csplist, orilist }) {
         },
       }));
       rulesToAdd.push(...newCspRules);
-    }
-
-    // 3. 构造并处理 Origin 请求头重写伪装规则
-    if (orilist !== undefined) {
-      let processedOriList = orilist;
-      if (typeof processedOriList === "string") {
-        processedOriList = processedOriList
-          .split(/\n|,/)
-          .map((url) => url.trim())
-          .filter(Boolean);
-      }
-
-      // 获取所有属于 Origin 修改段的旧规则 ID，准备清理
-      const oldOriRuleIds = oldRules
-        .filter((rule) => rule.id >= ORI_RULE_START_ID)
-        .map((rule) => rule.id);
-      idsToRemove.push(...oldOriRuleIds);
-
-      // 将发往特定翻译源的 xmlhttprequest 请求的 Origin 修改为目标源域名，伪装成同源请求
-      const newOriRules = processedOriList.map((url, index) => ({
-        id: ORI_RULE_START_ID + index,
-        action: {
-          type: "modifyHeaders",
-          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
-        },
-        condition: {
-          urlFilter: url,
-          resourceTypes: ["xmlhttprequest"],
-          // 仅匹配由 Kiss Translator 扩展自身发起的请求。
-          initiatorDomains: [EXTENSION_INITIATOR_DOMAIN],
-        },
-      }));
-      rulesToAdd.push(...newOriRules);
     }
 
     // REVIEW: 批量更新 DNR 规则。在部分不支持 MV3 动态规则的旧浏览器（如旧版 Firefox）中可能会抛错，
@@ -1027,6 +1001,7 @@ async function handleStreamFetch(port, args) {
  * 监听 runtime.onConnect 连接事件。
  * 筛选流式专属端口名 PORT_STREAM_FETCH，监听 start 开始指令并启动 handleStreamFetch 异步流处理程序。
  */
+installPluginOriginRules();
 installProviderRelay();
 browser.runtime.onConnect.addListener((port) => {
   if (port.name === PORT_FETCH) handleFetchPort(port, fetchHandle);

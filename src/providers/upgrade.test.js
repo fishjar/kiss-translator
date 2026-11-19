@@ -40,6 +40,24 @@ test("copy rejects changed secret types and invalid new constraints and keeps in
   expect(api.pluginConfig.model).toBe("m");
 });
 
+test.each([
+  ["PP-OCRv5", { model: "PP-OCRv5" }, []],
+  ["unknown", {}, ["model"]],
+])(
+  "checks a saved model %s against the new select field",
+  (model, values, skipped) => {
+    const api = {
+      provider: { settings: [{ key: "model", type: "text" }] },
+      pluginConfig: { model },
+    };
+    expect(
+      copyCompatibleConfig(api, [
+        { key: "model", type: "select", options: [{ value: "PP-OCRv5" }] },
+      ])
+    ).toEqual({ values, skipped });
+  }
+);
+
 const manifest = {
   apiVersion: 1,
   id: "upgrade-test",
@@ -91,10 +109,12 @@ test("upgrades the snapshot and resources while preserving identity and every ho
   const api = oldApi();
   const original = JSON.stringify(api);
   const pack = newPack();
+  pack.manifest.apiVersion = 2;
   const result = upgradeServiceInstance(api, pack);
   expect(result).toEqual({
     ...api,
     provider: expect.objectContaining({
+      apiVersion: 2,
       code: pack.implementations.text,
       resources: pack.resources,
       source: expect.objectContaining({ version: "2.0.0" }),
@@ -150,7 +170,7 @@ test("incompatible host and stale or mismatched upgrade targets cannot change an
   expect(() =>
     upgradeServiceInstance(api, {
       ...pack,
-      manifest: { ...pack.manifest, minHostVersion: "999.0.0" },
+      manifest: { ...pack.manifest, apiVersion: 99 },
     })
   ).toThrow();
   for (const changes of [

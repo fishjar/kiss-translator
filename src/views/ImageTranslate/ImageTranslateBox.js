@@ -20,6 +20,11 @@ import {
 import { sendBgMsg } from "../../libs/msg";
 import { blobToDataUrl } from "../../libs/imageTranslate/imageReader";
 import { browser } from "../../libs/browser";
+import { recognitionFeature } from "../../fileTranslation/recognition";
+import {
+  automaticLayoutRegions,
+  isStaleAutomaticLayout,
+} from "../../libs/imageTranslate/layoutSelection";
 
 export default function ImageTranslateBox({
   showBox = false,
@@ -74,13 +79,25 @@ export default function ImageTranslateBox({
         nextScene.recognitionService?.capability !==
           scene.recognitionService?.capability ||
         nextScene.vlmPromptSlug !== scene.vlmPromptSlug ||
-        nextScene.fromLang !== scene.fromLang;
+        nextScene.fromLang !== scene.fromLang ||
+        nextScene.toLang !== scene.toLang;
 
       const isTranslationChanged =
-        nextScene.toLang !== scene.toLang ||
         nextScene.apiSlug !== scene.apiSlug ||
         nextScene.promptSlug !== scene.promptSlug;
 
+      if (
+        (isRecognitionChanged || isTranslationChanged) &&
+        currentTaskIdRef.current
+      ) {
+        sendBgMsg(MSG_IMAGE_TRANSLATE_CANCEL, {
+          taskId: currentTaskIdRef.current,
+        });
+        currentTaskIdRef.current = null;
+        setBusy(false);
+        onTaskStateChange?.({ busy: false, requestVersion });
+        setStage("");
+      }
       setScene(nextScene);
       updateSetting?.({ imageTranslateSetting: nextScene });
 
@@ -97,11 +114,21 @@ export default function ImageTranslateBox({
       } else if (isTranslationChanged) {
         // 翻译配置变更清空旧译文与单项错误
         setItems((prev) =>
-          prev.map((item) => ({ ...item, translation: "", error: undefined }))
+          prev.map((item) => ({
+            ...item,
+            translation: item.translationFromImage ? item.translation : "",
+            error: undefined,
+          }))
         );
       }
     },
-    [scene, updateSetting, onSettingResetLayout]
+    [
+      scene,
+      updateSetting,
+      onSettingResetLayout,
+      onTaskStateChange,
+      requestVersion,
+    ]
   );
 
   // 3. 任务执行状态
@@ -113,12 +140,43 @@ export default function ImageTranslateBox({
   const [error, setError] = useState("");
   const [items, setItems] = useState([]);
   const [viewMode, setViewMode] = useState("bilingual");
+  useEffect(() => {
+    if (
+      items.length &&
+      !items.some((item) => (item.original || item.text)?.trim())
+    )
+      setViewMode("target");
+  }, [items]);
 
   const currentTaskIdRef = useRef(null);
   const progressSequenceRef = useRef(0);
   const hasAutoTriggeredRef = useRef(false);
   const lastHandledVersionRef = useRef(null);
   const layoutRegionsRef = useRef(selectedRegions);
+  const recognitionService = scene.recognitionService;
+  const recognitionIncludesLayout = recognitionFeature(
+    setting.transApis?.find(
+      (api) => api.apiSlug === recognitionService?.apiSlug
+    ),
+    recognitionService?.capability
+  )?.includesLayout;
+  const rememberLayout = useCallback(
+    (regions, explicit = false) => {
+      const current = layoutRegionsRef.current;
+      if (explicit) {
+        layoutRegionsRef.current = regions;
+      } else if (!current || automaticLayoutRegions.has(current)) {
+        regions = [...regions];
+        automaticLayoutRegions.set(
+          regions,
+          recognitionIncludesLayout ? recognitionService : undefined
+        );
+        layoutRegionsRef.current = regions;
+      }
+      return regions;
+    },
+    [recognitionIncludesLayout, recognitionService]
+  );
   const lastActionRef = useRef("all");
   const taskStateRef = useRef();
   taskStateRef.current = { onTaskStateChange, requestVersion };
@@ -140,6 +198,18 @@ export default function ImageTranslateBox({
   useEffect(() => {
     layoutRegionsRef.current = selectedRegions;
   }, [selectedRegions, requestVersion, currentRegionsKey]);
+
+  useEffect(() => {
+    if (isStaleAutomaticLayout(layoutRegionsRef.current, recognitionService)) {
+      layoutRegionsRef.current = null;
+      onSettingResetLayout?.();
+    }
+  }, [
+    recognitionService,
+    selectedRegions,
+    requestVersion,
+    onSettingResetLayout,
+  ]);
 
   useEffect(() => {
     if (lastRegionsKeyRef.current !== currentRegionsKey) {
@@ -238,7 +308,9 @@ export default function ImageTranslateBox({
           dataUrl: isTranslateOnly ? undefined : dataUrl,
           items: isTranslateOnly ? items : undefined,
           selectedRegions:
-            finalAction === "layout"
+            finalAction === "layout" ||
+            (recognitionIncludesLayout &&
+              automaticLayoutRegions.has(layoutRegionsRef.current))
               ? undefined
               : (layoutRegionsRef.current ?? undefined),
           scene: activeScene,
@@ -254,10 +326,12 @@ export default function ImageTranslateBox({
             setRecognitionErrors(response.result.recognitionErrors);
           }
           if (response.result.layout?.regions) {
-            layoutRegionsRef.current = response.result.layout.regions;
-            onLayoutDetected?.(response.result.layout.regions, {
-              replace: finalAction === "layout",
-            });
+            const replace = finalAction === "layout";
+            const regions = rememberLayout(
+              response.result.layout.regions,
+              replace
+            );
+            onLayoutDetected?.(regions, { replace });
           }
           const resItems = response.result.items || [];
           if (finalAction === "translate") {
@@ -266,6 +340,8 @@ export default function ImageTranslateBox({
               prev.map((item, idx) => ({
                 ...item,
                 translation: resItems[idx]?.translation || "",
+                translationLanguage: resItems[idx]?.translationLanguage,
+                translationFromImage: resItems[idx]?.translationFromImage,
                 error: resItems[idx]?.error || undefined,
               }))
             );
@@ -273,8 +349,7 @@ export default function ImageTranslateBox({
             setItems(
               resItems.map((item) => ({
                 ...item,
-                translation: "", // 识别清空旧翻译
-                error: undefined,
+                translation: item.translation || "",
               }))
             );
           } else {
@@ -306,6 +381,8 @@ export default function ImageTranslateBox({
       imageDataUrl,
       imageBlob,
       onLayoutDetected,
+      rememberLayout,
+      recognitionIncludesLayout,
       onSettingResetLayout,
       i18n,
     ]
@@ -343,7 +420,7 @@ export default function ImageTranslateBox({
         const response = await sendBgMsg(MSG_IMAGE_TRANSLATE_EXECUTE, {
           taskId,
           action: "translate",
-          items: [{ ...targetItem, error: undefined }],
+          items: [{ ...targetItem, translation: "", error: undefined }],
           scene,
         });
 
@@ -431,8 +508,8 @@ export default function ImageTranslateBox({
           setItems(msg.args.items);
         }
         if (msg.args.layout?.regions) {
-          layoutRegionsRef.current = msg.args.layout.regions;
-          onLayoutDetected?.(msg.args.layout.regions);
+          const regions = rememberLayout(msg.args.layout.regions);
+          onLayoutDetected?.(regions);
         }
       }
     };
@@ -440,7 +517,7 @@ export default function ImageTranslateBox({
     return () => {
       browser?.runtime?.onMessage?.removeListener?.(handleMessage);
     };
-  }, [onLayoutDetected]);
+  }, [onLayoutDetected, rememberLayout]);
 
   // 7. 自动执行一键翻译与换图状态重置
   const lastSourceRef = useRef({ imageDataUrl, imageBlob });

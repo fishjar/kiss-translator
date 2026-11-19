@@ -11,6 +11,7 @@ jest.mock("./State", () => {
       context,
       connected: true,
       client: { request: mockRequest, session: { capabilities: ["doc"] } },
+      waitForSceneSave: mockWaitForPdfSceneSave,
       openSettings: jest.fn(),
       i18n: (_key, fallback) => fallback,
     }),
@@ -61,6 +62,7 @@ jest.mock("./PdfPage", () => {
     );
 });
 const mockRequest = jest.fn();
+const mockWaitForPdfSceneSave = jest.fn();
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 let root, container;
 const originalObserver = globalThis.ResizeObserver,
@@ -1256,4 +1258,179 @@ test("legacy resource repair requires manual refresh and preserves repaired resu
   expect(mockRequest.mock.calls[0][1].cacheMode).toBe("refresh");
   expect(ref.current.getBlocks()[0].translationRepairRequired).toBe(false);
   expect(ref.current.getBlocks()[0].bilingualVersion).toBe(1);
+});
+
+test("PDF keeps image translations when its fallback service changes", async () => {
+  const { context } = require("./State").useFileTranslation();
+  const { parsePdfDocument } = require("../../libs/pdf/pdfParser");
+  const { translateDocumentBlocks } = require("../../libs/document/markdown");
+  context.scenes.pdf = { parseMode: "fast", toLang: "zh-CN", apiSlug: "first" };
+  const visual = {
+    ...incrementalBlock(1),
+    id: "visual",
+    status: "done",
+    targetRaw: "图片译文",
+    visualResult: {
+      text: "source",
+      translation: "图片译文",
+      translationLanguage: "ZH_cn",
+      fingerprint: "same-image",
+    },
+  };
+  parsePdfDocument.mockResolvedValue({
+    complete: true,
+    blocks: [visual],
+    assets: [],
+  });
+  translateDocumentBlocks.mockClear();
+  const ref = createRef();
+  const file = new File(["pdf"], "visual.pdf");
+  await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+  await act(async () => ref.current.oneClickTranslate());
+  expect(
+    container
+      .querySelector('button[value="bilingual"]')
+      .getAttribute("aria-pressed")
+  ).toBe("true");
+  await act(async () => ref.current.translate());
+  expect(translateDocumentBlocks).not.toHaveBeenCalled();
+  context.scenes.pdf = { ...context.scenes.pdf, apiSlug: "second" };
+  await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+  await act(async () => ref.current.translate());
+  expect(translateDocumentBlocks).not.toHaveBeenCalled();
+  expect(parsePdfDocument).toHaveBeenCalledTimes(1);
+});
+
+test("changing visual settings releases a pending PDF translation for retry", async () => {
+  const test = await incrementalWorkspace();
+  const { context } = require("./State").useFileTranslation();
+  const file = new File(["pdf"], "retry.pdf");
+  await act(async () =>
+    root.render(<PdfWorkspace ref={test.ref} file={file} />)
+  );
+  let parse;
+  await act(async () => {
+    parse = test.ref.current.recognizeText();
+  });
+  await act(async () => {
+    test.finish(test.snapshot([incrementalBlock(1)], true));
+    await parse;
+  });
+  let finishOld;
+  mockRequest.mockImplementationOnce(
+    () => new Promise((resolve) => (finishOld = resolve))
+  );
+  let oldTranslation;
+  await act(async () => {
+    oldTranslation = test.ref.current.translate();
+  });
+  const oldSignal = mockRequest.mock.calls.at(-1)[2].signal;
+  context.scenes = {
+    ...context.scenes,
+    pdf: { ...context.scenes.pdf, vlmPromptSlug: "new-visual-prompt" },
+  };
+  await act(async () =>
+    root.render(<PdfWorkspace ref={test.ref} file={file} />)
+  );
+  expect(oldSignal.aborted).toBe(true);
+  mockRequest.mockClear();
+  await act(async () => test.ref.current.translate());
+  expect(mockRequest).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finishOld({ text: "late translation" });
+    await oldTranslation;
+  });
+});
+
+test("PDF recognition keeps results when the context catches up to the saved snapshot", async () => {
+  const { context } = require("./State").useFileTranslation();
+  const { parsePdfDocument } = require("../../libs/pdf/pdfParser");
+  const previousScene = context.scenes;
+  const previousSignatures = context.visualSignatures;
+  context.scenes = { pdf: { parseMode: "fast", toLang: "zh-CN" } };
+  context.visualSignatures = { pdf: "before-save" };
+  const saved = {
+    ...context,
+    scenes: { pdf: { parseMode: "fast", toLang: "ja" } },
+    visualSignatures: { pdf: "saved" },
+  };
+  mockWaitForPdfSceneSave.mockResolvedValueOnce(saved);
+  let finishRecognition;
+  parsePdfDocument.mockReturnValueOnce(
+    new Promise((resolve) => (finishRecognition = resolve))
+  );
+  const ref = createRef();
+  const file = new File(["pdf"], "saved.pdf");
+  try {
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    let running;
+    await act(async () => {
+      running = ref.current.oneClickTranslate();
+    });
+    const options = parsePdfDocument.mock.calls.at(-1)[1];
+    expect(options.toLang).toBe("ja");
+    expect(options.visualSignature).toContain("saved");
+    context.scenes = saved.scenes;
+    context.visualSignatures = saved.visualSignatures;
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    expect(options.signal.aborted).toBe(false);
+    await act(async () => {
+      finishRecognition({
+        complete: true,
+        assets: [],
+        blocks: [
+          {
+            ...incrementalBlock(1),
+            status: "done",
+            targetRaw: "訳文",
+            visualResult: { translation: "訳文", translationLanguage: "ja" },
+          },
+        ],
+      });
+      await running;
+    });
+    expect(ref.current.getBlocks()[0].targetRaw).toBe("訳文");
+    context.visualSignatures = { pdf: "later-edit" };
+    await act(async () => root.render(<PdfWorkspace ref={ref} file={file} />));
+    expect(ref.current.getBlocks()).toHaveLength(0);
+  } finally {
+    context.scenes = previousScene;
+    context.visualSignatures = previousSignatures;
+  }
+});
+
+test("Fast PDF parsing works with a structured prompt saved on an old host", async () => {
+  const { context } = require("./State").useFileTranslation();
+  const { parsePdfDocument } = require("../../libs/pdf/pdfParser");
+  const before = { scenes: context.scenes, prompts: context.prompts };
+  context.scenes = {
+    pdf: {
+      parseMode: "fast",
+      vlmPromptSlug: "visual",
+      recognitionService: { apiSlug: "vision", capability: "parseImage" },
+    },
+  };
+  context.prompts = [{ slug: "visual", protocol: "image-json" }];
+  parsePdfDocument.mockClear().mockResolvedValue({
+    complete: true,
+    blocks: [],
+    assets: [],
+  });
+  const ref = createRef();
+  try {
+    await act(async () =>
+      root.render(
+        <PdfWorkspace ref={ref} file={new File(["pdf"], "fast.pdf")} />
+      )
+    );
+    await act(async () => ref.current.recognizeText());
+    expect(parsePdfDocument).toHaveBeenCalledTimes(1);
+    const options = parsePdfDocument.mock.calls[0][1];
+    expect(options.mode).toBe("fast");
+    await expect(
+      options.beforeDocumentRecognition(options.recognitionService)
+    ).rejects.toThrow("请升级扩展");
+  } finally {
+    Object.assign(context, before);
+  }
 });

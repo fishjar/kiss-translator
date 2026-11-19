@@ -312,6 +312,7 @@ export const DEFAULT_FILE_TRANSLATE_SETTING = {
     promptSlug: "",
     vlmPromptSlug: "",
     recognitionService: null,
+    layoutApiSlug: "", // Empty disables independent layout analysis for file images.
     fontFamily: "default",
   },
   markdown: {

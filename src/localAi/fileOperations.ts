@@ -275,7 +275,7 @@ export async function recognizeFileImage(
 
   // 2. 传统 PaddleOCR 两阶段模型（带定位坐标框 poly）
   const group = OCR_GROUPS.find((item) => item.id === selectedId);
-  if (!group) throw new Error("请先在本地 AI 模型中心安装 OCR 检测和识别模型");
+  if (!group) throw new Error(`INVALID_MODEL: OCR 模型组合不存在：${selectedId}`);
   const det = getCatalogModel(group.detId)!;
   const rec = getCatalogModel(group.recId)!;
   const spec: OcrLoadSpec = {

@@ -32,6 +32,8 @@ jest.mock("./ruleEditorManager", () => ({
 }));
 
 jest.mock("../config", () => ({
+  GLOBAL_KEY: "*",
+  OPT_STYLE_ALL: ["style_none"],
   EVENT_KISS_INNER: "kiss-inner",
   EVENT_KISS_TRANSLATOR: "kiss-translator",
   MSG_HOVERNODE_TOGGLE: "hovernode-toggle",
@@ -88,7 +90,14 @@ jest.mock("./translator", () => ({
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
-      setTouchMode: jest.fn((mode) => mode),
+      setTouchMode: jest.fn(function (mode, direction) {
+        if (direction)
+          this.setting.mouseHoverSetting = {
+            ...this.setting.mouseHoverSetting,
+            touchDirection: direction,
+          };
+        return mode;
+      }),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -239,7 +248,14 @@ function setupMockConstructors() {
       stop: jest.fn(function stop() {
         this.rule.transOpen = "false";
       }),
-      setTouchMode: jest.fn((mode) => mode),
+      setTouchMode: jest.fn(function (mode, direction) {
+        if (direction)
+          this.setting.mouseHoverSetting = {
+            ...this.setting.mouseHoverSetting,
+            touchDirection: direction,
+          };
+        return mode;
+      }),
       rescan: jest.fn(),
       toggle: jest.fn(),
       enable: jest.fn(),
@@ -633,6 +649,27 @@ describe("TranslatorManager SPA lifecycle", () => {
         direction: "left",
       });
     });
+  });
+
+  test("explicit swipe direction survives runtime recreation and rejects invalid directions", () => {
+    const manager = createManager();
+    manager.start();
+    expect(
+      sendRuntimeMessage({
+        action: "touch-mode-set",
+        args: { mode: "swipe", direction: "left" },
+      }).touchTranslate
+    ).toMatchObject({ mode: "swipe", direction: "left" });
+    manager.restart();
+    expect(
+      sendRuntimeMessage({ action: "touch-state" }).touchTranslate
+    ).toMatchObject({ mode: "swipe", direction: "left" });
+    expect(
+      sendRuntimeMessage({
+        action: "touch-mode-set",
+        args: { mode: "swipe", direction: "invalid" },
+      }).touchTranslate.direction
+    ).toBe("left");
   });
 
   test("explicit touch mode changes survive runtime recreation", () => {
@@ -2181,5 +2218,150 @@ describe("TranslatorManager SPA lifecycle", () => {
         rule: expect.objectContaining(rule),
       })
     );
+  });
+
+  describe("security: external event and iframe message isolation", () => {
+    test("snapshots a changing action getter before dispatch", () => {
+      createManager().start();
+      let reads = 0;
+      const detail = {
+        get action() {
+          return ++reads === 1 ? "trans-toggle" : "trans-putrule";
+        },
+        args: { toLang: "fr", transStartHook: "args => args" },
+      };
+      window.dispatchEvent(new CustomEvent("kiss-translator", { detail }));
+      expect(reads).toBe(1);
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalledTimes(1);
+      expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+    });
+
+    test("ignores throwing getters without dispatching or broadcasting", () => {
+      createManager().start();
+      const detail = {
+        action: "trans-toggle",
+        get args() {
+          throw new Error("page getter");
+        },
+      };
+      expect(() =>
+        window.dispatchEvent(new CustomEvent("kiss-translator", { detail }))
+      ).not.toThrow();
+      expect(mockTranslatorInstances[0].toggle).not.toHaveBeenCalled();
+      expect(sendIframeMsg).not.toHaveBeenCalled();
+    });
+
+    test("snapshots enabled and strips internal routing fields", () => {
+      createManager().start();
+      let reads = 0;
+      const detail = {
+        action: "trans-toggle",
+        expectedDocumentToken: "attacker-token",
+        args: {
+          get enabled() {
+            return ++reads === 1;
+          },
+        },
+      };
+      window.dispatchEvent(new CustomEvent("kiss-translator", { detail }));
+      expect(reads).toBe(1);
+      expect(mockTranslatorInstances[0].enable).toHaveBeenCalledTimes(1);
+      expect(sendIframeMsg).toHaveBeenCalledWith("trans-toggle", {
+        enabled: true,
+      });
+    });
+
+    test("projects content panel updates and applies them in nested frames", () => {
+      createManager().start();
+      const patch = { toLang: "fr", isPlainText: true };
+      PopupManager.mock.calls[0][0].processActions({
+        action: "trans-putrule",
+        args: { ...patch, transStartHook: "args => args" },
+      });
+      expect(mockTranslatorInstances[0].updateRule).toHaveBeenCalledWith(
+        expect.objectContaining({ transStartHook: "args => args" })
+      );
+      expect(sendIframeMsg).toHaveBeenLastCalledWith("trans-putrule", patch);
+      createManager({ isIframe: true }).start();
+      sendIframeMsg.mockClear();
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: "https://other.invalid",
+          data: { action: "trans-putrule", args: patch },
+        })
+      );
+      expect(mockTranslatorInstances[1].updateRule).toHaveBeenCalledWith(patch);
+      expect(sendIframeMsg).toHaveBeenLastCalledWith("trans-putrule", patch);
+    });
+
+    test.each([
+      "transStartHook",
+      "transEndHook",
+      "injectJs",
+      "injectCss",
+      "reqHook",
+      "__proto__",
+    ])("rejects a mixed iframe patch containing %s", (field) => {
+      createManager({ isIframe: true }).start();
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: {
+            action: "trans-putrule",
+            args: { toLang: "fr", [field]: "payload" },
+          },
+        })
+      );
+      expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+      expect(sendIframeMsg).not.toHaveBeenCalled();
+    });
+
+    test("rejects trans-putrule from untrusted DOM kiss-translator CustomEvent", () => {
+      createManager().start();
+      const patch = {
+        transStartHook: "args => args",
+        injectJs: "document.title = 'audit'",
+      };
+      window.dispatchEvent(
+        new CustomEvent("kiss-translator", {
+          detail: { action: "trans-putrule", args: patch },
+        })
+      );
+      expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+    });
+
+    test("allows authorized UI action from untrusted DOM kiss-translator CustomEvent", () => {
+      createManager().start();
+      window.dispatchEvent(
+        new CustomEvent("kiss-translator", {
+          detail: { action: "trans-toggle" },
+        })
+      );
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalled();
+    });
+
+    test("rejects trans-putrule from cross-window iframe postMessage", () => {
+      createManager({ isIframe: true }).start();
+      const patch = { transStartHook: "args => args" };
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: "https://attacker.invalid",
+          source: window,
+          data: { action: "trans-putrule", args: patch },
+        })
+      );
+      expect(mockTranslatorInstances[0].updateRule).not.toHaveBeenCalled();
+    });
+
+    test("allows authorized sync action from iframe postMessage", () => {
+      createManager({ isIframe: true }).start();
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          origin: "https://trusted.local",
+          source: window,
+          data: { action: "trans-toggle" },
+        })
+      );
+      expect(mockTranslatorInstances[0].toggle).toHaveBeenCalled();
+    });
   });
 });

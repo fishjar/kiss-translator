@@ -1,3 +1,4 @@
+import { PRESET_PROMPTS, PROMPT_CATEGORY_VLM } from "../../config";
 /* eslint-disable testing-library/no-container, testing-library/no-node-access, testing-library/no-unnecessary-act */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -138,4 +139,44 @@ test("explicit recognition category is independent of translation capabilities",
     apis: [api("a", false)],
   });
   expect(options()).toEqual(["", "vlm prompt"]);
+});
+
+test("old hosts hide structured visual prompts while retaining source prompts", () => {
+  render({
+    category: PROMPT_CATEGORY_VLM,
+    structuredImageResults: false,
+    recognitionApi: {
+      provider: { capabilities: { parseImage: { includesTranslation: true } } },
+    },
+    prompts: [
+      { slug: "plain", name: "Source OCR", category: PROMPT_CATEGORY_VLM },
+      {
+        slug: "direct",
+        name: "Direct translation",
+        category: PROMPT_CATEGORY_VLM,
+        protocol: "image-json",
+      },
+    ],
+  });
+  expect(document.body.textContent).toContain("Source OCR");
+  expect(document.body.textContent).not.toContain("Direct translation");
+});
+
+test("a retired plugin image prompt selects the existing host preset", () => {
+  render({
+    category: PROMPT_CATEGORY_VLM,
+    prompts: PRESET_PROMPTS,
+    recognitionApi: {
+      provider: {
+        source: { pluginId: "index-translate", serviceId: "vision" },
+        capabilities: { parseImage: { includesTranslation: true } },
+      },
+    },
+    value: "plugin:index-translate:vision:vlm:image-bilingual",
+  });
+  expect(container.querySelector("select").value).toBe("vlm-image-bilingual");
+  expect(
+    options().filter((value) => value.includes("image-bilingual"))
+  ).toEqual(["vlm-image-bilingual"]);
+  expect(onChange).not.toHaveBeenCalled();
 });

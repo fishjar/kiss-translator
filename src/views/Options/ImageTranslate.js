@@ -24,7 +24,10 @@ import {
   GLOBLA_RULE,
 } from "../../config";
 import { DEFAULT_IMAGE_TRANSLATE_SETTING } from "../../config/setting";
-import { recognitionOptions } from "../../fileTranslation/recognition";
+import {
+  recognitionFeature,
+  recognitionOptions,
+} from "../../fileTranslation/recognition";
 import {
   supportsApiCapability,
   isApiConfigured,
@@ -155,6 +158,13 @@ export default function ImageTranslate() {
 
   const isVlmService =
     imageSetting.recognitionService?.capability === "parseImage";
+  const recognitionApi = transApis.find(
+    (api) => api.apiSlug === imageSetting.recognitionService?.apiSlug
+  );
+  const includesLayout = recognitionFeature(
+    recognitionApi,
+    imageSetting.recognitionService?.capability
+  )?.includesLayout;
 
   return (
     <Box>
@@ -191,7 +201,10 @@ export default function ImageTranslate() {
 
             <SettingsRow
               label={i18n("translation_service", "翻译服务")}
-              description={i18n("image_api_desc", "用于翻译识别后文字的服务")}
+              description={i18n(
+                "image_api_desc",
+                "翻译原文；图片解析已返回有效译文时自动跳过"
+              )}
             >
               <ServiceSelect
                 scene={imageSetting}
@@ -274,18 +287,15 @@ export default function ImageTranslate() {
 
             {isVlmService && (
               <SettingsRow
-                label={i18n("vlm_prompt", "视觉模型识别提示词")}
+                label={i18n("vlm_prompt", "视觉解析提示词")}
                 description={i18n(
                   "vlm_prompt_desc",
-                  "指定给 VLM 识别图像文本时的专用提示词"
+                  "选择原文识别、图片翻译或双语解析提示词"
                 )}
               >
                 <ScenePromptSelect
                   category={PROMPT_CATEGORY_VLM}
-                  recognitionApi={setting.transApis?.find(
-                    (api) =>
-                      api.apiSlug === imageSetting.recognitionService?.apiSlug
-                  )}
+                  recognitionApi={recognitionApi}
                   value={imageSetting.vlmPromptSlug || ""}
                   scene={{
                     ...imageSetting,
@@ -301,10 +311,14 @@ export default function ImageTranslate() {
 
             <SettingsRow
               label={i18n("layout_service", "界面分析服务 (可选)")}
-              description={i18n(
-                "image_layout_desc",
-                "默认整图识别。若启用布局服务，将先分块再按序识别"
-              )}
+              description={
+                includesLayout
+                  ? i18n("image_layout_included")
+                  : i18n(
+                      "image_layout_desc",
+                      "默认整图识别。若启用布局服务，将先分块再按序识别"
+                    )
+              }
             >
               <FormControl size="small" sx={{ minWidth: 220 }}>
                 <InputLabel shrink>
@@ -319,7 +333,7 @@ export default function ImageTranslate() {
                   }
                 >
                   <MenuItem value="">
-                    {i18n("layout_disabled", "不使用布局服务 (整图识别)")}
+                    {i18n("layout_disabled", "不调用独立界面分析服务")}
                   </MenuItem>
                   {layoutApis.map((api) => (
                     <MenuItem key={api.apiSlug} value={api.apiSlug}>

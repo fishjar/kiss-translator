@@ -1,5 +1,6 @@
 /* eslint-disable testing-library/no-unnecessary-act -- Tests drive native overlay events. */
 import { act } from "react";
+import { BUILTIN_RULES } from "../../config/rules";
 import { ImageHoverDetector } from "./imageHoverDetector";
 import { readImageAsBlob } from "./imageReader";
 import { downloadImageBlob } from "./downloadImage";
@@ -9,7 +10,7 @@ jest.mock("./downloadImage", () => ({ downloadImageBlob: jest.fn() }));
 jest.mock("../msg", () => ({ sendBgMsg: jest.fn() }));
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-describe("page image download", () => {
+describe("page image hover", () => {
   let detector;
   let image;
   let onOpenBox;
@@ -35,7 +36,6 @@ describe("page image download", () => {
     readImageAsBlob.mockResolvedValue({
       blob: new Blob(["png"], { type: "image/png" }),
     });
-    act(() => detector.resume(image));
   });
 
   afterEach(() => {
@@ -44,6 +44,7 @@ describe("page image download", () => {
   });
 
   test("downloads unscaled image pixels without opening translation", async () => {
+    act(() => detector.resume(image));
     await act(async () => download().click());
     expect(readImageAsBlob).toHaveBeenCalledWith(image, { maxEdge: Infinity });
     expect(downloadImageBlob).toHaveBeenCalledWith(expect.any(Blob));
@@ -53,6 +54,7 @@ describe("page image download", () => {
   test.each(["hide", "source change"])(
     "discards an old result after %s",
     async (change) => {
+      act(() => detector.resume(image));
       let finish;
       readImageAsBlob.mockReturnValueOnce(
         new Promise((resolve) => {
@@ -66,6 +68,36 @@ describe("page image download", () => {
       });
       await act(async () => finish({ blob: new Blob(["stale"]) }));
       expect(downloadImageBlob).not.toHaveBeenCalled();
+    }
+  );
+
+  test.each([
+    ["tweetPhoto", true],
+    ["card.layoutLarge.media", true],
+    ["unrelated", false],
+  ])(
+    "preserves transparent image rendering and hover eligibility in %s",
+    (testId, eligible) => {
+      const card = document.createElement("div");
+      card.dataset.testid = testId;
+      const style = document.createElement("style");
+      const rule = BUILTIN_RULES.find(({ pattern }) =>
+        pattern.includes("https://x.com/")
+      );
+      style.textContent = `img { opacity: 0; } ${rule.injectCss || ""}`;
+      document.head.appendChild(style);
+      document.body.appendChild(card);
+      card.appendChild(image);
+      try {
+        act(() =>
+          image.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }))
+        );
+        expect(getComputedStyle(image).opacity).toBe("0");
+        expect(Boolean(download())).toBe(eligible);
+      } finally {
+        style.remove();
+        card.replaceWith(image);
+      }
     }
   );
 });

@@ -30,6 +30,25 @@ function pack(changes = {}) {
   });
 }
 
+test("the package validates optional free tiers and loads old manifests", () => {
+  for (const value of [
+    "free",
+    "quota-limited",
+    "some-models",
+    "time-limited",
+  ]) {
+    expect(
+      readProviderPackage(pack({ freeTier: value })).manifest.freeTier
+    ).toBe(value);
+  }
+  for (const value of [true, "constructor", 1, null, []]) {
+    expect(() => readProviderPackage(pack({ freeTier: value }))).toThrow();
+  }
+  expect(
+    readProviderPackage(pack({ isFree: true })).manifest.freeTier
+  ).toBeUndefined();
+});
+
 test("valid package retains executable entries but refuses traversal, native code and missing entries", () => {
   const parsed = readProviderPackage(pack());
   expect(parsed.implementations.chat).toContain("exports.chat");

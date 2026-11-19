@@ -120,9 +120,10 @@ export const localHandlers = {
     };
   },
   async synthesizeSpeech(input, api, ctx) {
+    const { defaultLocalTtsVoice } = await import("../localAi/core/ttsVoices");
     const result = await request(api, ctx, "tts", "synthesize", {
       text: input.text,
-      voice: input.voice || api.voice || "",
+      voice: input.voice || api.voice || defaultLocalTtsVoice(api.modelRef),
       speed: input.speed ?? api.speed ?? 1,
     });
     const { audioToWavBlob } = await import("../localAi/core/recorder");

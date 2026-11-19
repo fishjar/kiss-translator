@@ -726,7 +726,7 @@ export function mergeAcrossPages(blocks, pages) {
         0.02 &&
       /^\|/.test(prior.markdown || "") &&
       /^\|/.test(block.markdown || "");
-    if (tableContinuation) {
+    if (tableContinuation && !prior.visualResult && !block.visualResult) {
       const rowOffset = Math.max(...prior.cells.map((c) => c.rowEnd)) - 1;
       prior.cells.push(
         ...block.cells
@@ -762,7 +762,7 @@ export function mergeAcrossPages(blocks, pages) {
       (/^[a-z]/.test(block.text.trim()) ||
         (/[\p{L}\p{N}][-\u00ad\u2010]$/u.test(prior.text.trimEnd()) &&
           /^[\p{Lu}\p{N}]/u.test(block.text.trimStart())));
-    if (can) {
+    if (can && !prior.visualResult && !block.visualResult) {
       const { offset, leading } = appendLine(prior, block.text);
       prior.textSources.push(
         ...block.textSources

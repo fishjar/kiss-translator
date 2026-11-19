@@ -91,8 +91,11 @@ const parseResponseHeaders = (responseHeaders) => {
   try {
     responseHeaders &&
       responseHeaders.split(/\r?\n/).forEach((line) => {
-        const [name, value] = line.split(":").map((item) => item.trim());
-        if (name && value) {
+        const idx = line.indexOf(":");
+        if (idx <= 0) return;
+        const name = line.slice(0, idx).trim();
+        const value = line.slice(idx + 1).trim();
+        if (/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(name) && value) {
           headers[name] = value;
         }
       });

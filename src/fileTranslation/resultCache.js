@@ -54,7 +54,10 @@ export async function cachedFileResult({
   if (enabled && generation !== null) {
     try {
       key = await inferenceCacheKey({
-        namespace: "file-interface-v1",
+        namespace:
+          capability === "parseImage"
+            ? "file-image-parse-v2"
+            : "file-interface-v1",
         version: INFERENCE_CACHE_VERSION,
         config: Object.fromEntries(
           Object.entries(api).filter(
@@ -83,7 +86,13 @@ export async function cachedFileResult({
   const result = await run();
   await validateFileService(api, capability, signal);
   validate?.(result);
-  if (key && (capability === "analyzeLayout" || result.text?.trim()))
+  if (
+    key &&
+    !result.warnings?.length &&
+    (capability === "analyzeLayout" ||
+      result.text?.trim() ||
+      result.translation?.text?.trim())
+  )
     await cache.put(key, result, generation, policy, signal);
   return result;
 }

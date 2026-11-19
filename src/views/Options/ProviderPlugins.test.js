@@ -62,6 +62,12 @@ jest.mock("../../providers/packageFingerprint", () => ({
   packageFingerprint: jest.fn(async () => "fingerprint"),
 }));
 jest.mock("../../components/ApiProviderIcon", () => () => null);
+jest.mock(
+  "react-markdown",
+  () =>
+    ({ children }) =>
+      children
+);
 
 const pack = (version = "1.0.0", id = "example-plugin") => ({
   id,
@@ -113,6 +119,47 @@ async function render() {
   );
 }
 
+test("plugin service table shows template image features without adopting instance features", async () => {
+  const current = pack();
+  current.manifest.freeTier = "free";
+  current.manifest.services[0].capabilities = {
+    parseImage: {
+      handler: "parseImage",
+      includesTranslation: true,
+    },
+  };
+  mockPackages = [current];
+  mockSetting.transApis = [
+    {
+      apiSlug: "old",
+      provider: {
+        source: { pluginId: current.id },
+        capabilities: { parseImage: { includesLayout: true } },
+      },
+    },
+  ];
+  const original = JSON.stringify(mockSetting);
+  await render();
+  expect(container.textContent).toContain("免费");
+  expect(
+    container.querySelector(".MuiChip-colorSuccess").parentElement.textContent
+  ).toContain("Example plugin · 1.0.0");
+  expect(container.textContent).not.toContain("附带译文");
+  await act(async () => {
+    Simulate.mouseOver(container.querySelector('table span[tabindex="0"]'));
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  });
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain(
+    "附带译文：支持"
+  );
+  expect(document.querySelector('[role="tooltip"]').textContent).toContain(
+    "附带布局：未声明支持"
+  );
+  expect(mockUpdateSetting).not.toHaveBeenCalled();
+  expect(JSON.stringify(mockSetting)).toBe(original);
+  mockSetting.transApis = [];
+});
+
 test.each([
   ["empty", [], [], true],
   ["official package", ["deepseek"], [], true],
@@ -157,8 +204,34 @@ test.each([
   }
 );
 
+test("an official update displays its free tier after the update badge before installation", async () => {
+  const old = pack("1.2.1", "openrouter");
+  mockPackages = [old];
+  const entry = {
+    id: old.id,
+    name: "OpenRouter",
+    version: "1.2.4",
+    apiVersion: 1,
+    capabilities: ["chat"],
+    freeTier: "some-models",
+  };
+  loadPluginDirectory.mockImplementation(async (kind) =>
+    kind === "official" ? { plugins: [entry] } : { items: [], total_count: 0 }
+  );
+
+  await render();
+
+  const title = container.querySelector(
+    "section .MuiChip-colorInfo"
+  ).parentElement;
+  expect(title.textContent).toContain(
+    "Example plugin · 1.2.1有更新 · 1.2.4部分模型免费"
+  );
+});
+
 test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
   const old = pack("1.2.1", "deepseek");
+  old.manifest.freeTier = "free";
   mockPackages = [old];
   const entry = {
     id: old.id,
@@ -193,6 +266,12 @@ test("old local examples merge into the official list and explicit updates retai
   await render();
   const sections = container.querySelectorAll("section");
   expect(sections[0].textContent).toContain("Example plugin");
+  const title = sections[0].querySelector(
+    ".MuiChip-colorSuccess"
+  ).parentElement;
+  expect(title.textContent).toContain(
+    "Example plugin · 1.2.1有更新 · 1.2.2免费"
+  );
   expect(sections[1].textContent).not.toContain("Example plugin");
   await act(async () =>
     [...sections[0].querySelectorAll("button")]
@@ -478,7 +557,7 @@ test("interface previews expand independently and copy declared templates withou
       "聚合翻译提示词",
       "词典提示词",
       "字幕提示词",
-      "图片识别提示词",
+      "视觉解析提示词",
     ]);
     const fields = [...preview.querySelectorAll("textarea")].filter(
       (item) => !item.getAttribute("aria-hidden")
@@ -605,12 +684,10 @@ test("updates use the normal confirmation", async () => {
 
 test("incompatible stored plugins show a warning and keep uninstall available", async () => {
   const plugin = pack();
-  plugin.manifest.minHostVersion = "999999.0.0";
+  plugin.manifest.apiVersion = 99;
   mockPackages = [plugin];
   await render();
-  expect(container.textContent).toContain(
-    "Requires KISS Translator 999999.0.0"
-  );
+  expect(container.textContent).toContain("Unsupported plugin API 99");
   const uninstall = [...container.querySelectorAll("button")].find(
     (button) => button.textContent === "卸载插件"
   );

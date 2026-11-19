@@ -173,6 +173,7 @@ describe("common iframe startup", () => {
   });
 
   afterEach(() => {
+    jest.restoreAllMocks();
     if (originalOptionsPage === undefined) {
       delete process.env.REACT_APP_OPTIONSPAGE;
     } else {
@@ -203,8 +204,9 @@ describe("common iframe startup", () => {
     expect(runSubtitle).not.toHaveBeenCalled();
   });
 
-  test("skips empty iframe before rule matching and manager startup", async () => {
+  test("skips an about:blank iframe with no translatable text", async () => {
     mockIsIframe = true;
+    jest.spyOn(document, "URL", "get").mockReturnValue("about:blank");
     document.body.innerHTML = `
       <script>const text = "ignored";</script>
       <style>.ignored { color: red; }</style>
@@ -216,6 +218,26 @@ describe("common iframe startup", () => {
     expect(matchRule).not.toHaveBeenCalled();
     expect(TranslatorManager).not.toHaveBeenCalled();
     expect(mockTranslatorManagerStart).not.toHaveBeenCalled();
+  });
+
+  test("starts an empty srcdoc iframe once its document is ready", async () => {
+    mockIsIframe = true;
+    jest.spyOn(document, "URL", "get").mockReturnValue("about:srcdoc");
+    setReadyState("loading");
+    const running = run();
+    await Promise.resolve();
+
+    expect(matchRule).not.toHaveBeenCalled();
+    expect(TranslatorManager).not.toHaveBeenCalled();
+
+    setReadyState("interactive");
+    document.dispatchEvent(new Event("DOMContentLoaded"));
+    await running;
+
+    expect(document.body.textContent).toBe("");
+    expect(matchRule).toHaveBeenCalledTimes(1);
+    expect(TranslatorManager).toHaveBeenCalledTimes(1);
+    expect(mockTranslatorManagerStart).toHaveBeenCalledTimes(1);
   });
 
   test("waits for DOMContentLoaded before skipping loading iframe", async () => {

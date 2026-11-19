@@ -1,4 +1,6 @@
-/** Plugin API 1 task contracts. Provider definitions and user instances are separate. */
+import type { SUPPORTED_SDK_VERSIONS } from "./sdk/version";
+
+/** Plugin API task contracts. Provider definitions and user instances are separate. */
 import type {
   DecisionState,
   ChoiceQuestion,
@@ -198,8 +200,33 @@ export interface CapabilityMap {
     };
   };
   parseImage: {
-    input: CapabilityMap["recognizeText"]["input"];
-    result: OcrResult;
+    input: CapabilityMap["recognizeText"]["input"] & {
+      protocol?: "image-json";
+      sourceLanguage?: string;
+      targetLanguage?: string;
+      glossary?: Record<string, string>;
+    };
+    result: {
+      text?: string;
+      format: "text" | "markdown";
+      items?: OcrBlock[];
+      warnings?: string[];
+      translation?: {
+        text: string;
+        targetLanguage: string;
+        format: "text" | "markdown";
+      };
+      layout?: {
+        regions: Array<{
+          id: string;
+          type: string;
+          poly: number[][];
+          order: number;
+          text?: string;
+          translation?: string;
+        }>;
+      };
+    };
   };
   evaluate: {
     input: { state: DecisionState; questions: ProviderDecisionQuestions };
@@ -219,6 +246,8 @@ export interface CapabilityDescriptor {
   batch?: { supported: boolean; maxItems?: number };
   outputModes?: Array<"complete" | "stream">;
   inputModalities?: Array<"text" | "image" | "audio">;
+  includesTranslation?: boolean;
+  includesLayout?: boolean;
   coordinates?: boolean;
   taskModes?: Array<"doc" | "table" | "formula">;
   timestamps?: boolean;
@@ -245,6 +274,8 @@ export interface Invocation<TResult> {
 export interface ProviderSetting {
   key: string;
   label: string;
+  helpText?: string;
+  helpTextI18n?: Record<string, string>;
   type: "text" | "password" | "number" | "boolean" | "select";
   defaultValue?: string | number | boolean;
   isSecret?: boolean;
@@ -283,7 +314,7 @@ export interface ServiceDefinition {
         descriptionI18n?: Record<string, string>;
         systemPrompt?: string;
         userPrompt?: string;
-        protocol?: "text" | "json" | "line" | "xml";
+        protocol?: "text" | "json" | "line" | "xml" | "image-json";
       }>
     >
   >;
@@ -293,21 +324,27 @@ export interface ServiceDefinition {
   }>;
 }
 export interface PluginCompatibility {
-  apiVersion: 1;
+  apiVersion: (typeof SUPPORTED_SDK_VERSIONS)[number];
   kind?: "provider";
-  minHostVersion?: string;
 }
 
 export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
-  apiVersion: 1;
+  /** Markdown introduction. The host displays up to 1,000 text code points, including any ellipsis. */
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  freeTier?: "free" | "quota-limited" | "some-models" | "time-limited";
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
   resources?: Array<{ id: string; path: string; mimeType: string }>;
-  permissions?: { network?: string[]; endpointFields?: string[] };
+  permissions?: {
+    network?: string[];
+    endpointFields?: string[];
+    originRewrite?: string[];
+  };
 }
 export interface DeclarativeCondition {
   $if: { $ref: string };
@@ -347,7 +384,6 @@ export type DeclarativeRules =
 export interface ProviderSnapshot
   extends ServiceDefinition,
     PluginCompatibility {
-  apiVersion: 1;
   source?: {
     pluginId: string;
     pluginName?: string;

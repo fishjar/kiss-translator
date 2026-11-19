@@ -126,7 +126,9 @@ export function validateDefaultPrompts(service) {
         (prompt.protocol !== undefined &&
           (slot === "batch"
             ? !["json", "line", "xml"].includes(prompt.protocol)
-            : slot !== "nobatch" || prompt.protocol !== "text"))
+            : slot === "vlm"
+              ? prompt.protocol !== "image-json"
+              : slot !== "nobatch" || prompt.protocol !== "text"))
       )
         throw providerError(
           "INVALID_MANIFEST",
@@ -206,6 +208,11 @@ export function withDefaultPromptInput(instance, capability, input) {
   if (["parseImage", "recognizeText", "analyzeLayout"].includes(capability))
     return {
       ...input,
+      ...(capability === "parseImage" && {
+        protocol:
+          input.protocol ??
+          (input.prompt === undefined ? prompt.protocol : undefined),
+      }),
       prompt:
         input.prompt ??
         [prompt.systemPrompt, prompt.userPrompt].filter(Boolean).join("\n\n"),

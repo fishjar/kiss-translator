@@ -5,6 +5,30 @@ jest.mock("../libs/speech", () => ({
 import { speak, stopSpeech } from "../libs/speech";
 import { speakNative } from "./system-speech";
 
+test.each([
+  [{}, "Saved voice"],
+  [{ voice: "Override voice" }, "Override voice"],
+  [{ voice: "" }, ""],
+])(
+  "system speech uses the saved voice unless overridden: %j",
+  async (input, voice) => {
+    speak.mockImplementation((_text, _lang, handlers) => {
+      handlers.onEnd("end");
+      return true;
+    });
+    await speakNative(
+      { text: "hello", ...input },
+      { voice: "Saved voice" },
+      { signal: new AbortController().signal }
+    );
+    expect(speak).toHaveBeenLastCalledWith(
+      "hello",
+      undefined,
+      expect.objectContaining({ voice })
+    );
+  }
+);
+
 test("cancelling an older system speech task does not globally stop a newer utterance", async () => {
   const callbacks = [];
   speak.mockImplementation((_text, _lang, callback) => {

@@ -6,7 +6,12 @@ import { textRegion } from "../../../libs/pdf/formulaGeometry";
 import nativeAbsoluteFormulas from "./fixtures/pdfNativeAbsoluteFormulas.json";
 import nativeDisplayFormulas from "./fixtures/pdfNativeDisplayFormulas.json";
 import nativeParagraph from "./fixtures/pdfNativeParagraph.json";
-import { parseDocumentMarkdown } from "../../../libs/document/markdown";
+import {
+  documentMarkdown,
+  parseDocumentMarkdown,
+  translateDocumentBlocks,
+} from "../../../libs/document/markdown";
+import { imageResultItems, normalizeImageResult } from "../../../providers/imageResult";
 import nativeFormulaText from "./fixtures/pdfNativeFormulaText.json";
 import { renderPdfRegion } from "../../../libs/pdf/pdfDocument";
 
@@ -422,7 +427,7 @@ it("rebuilds old paragraph results but retains successful inference and layout c
   const recognize = vi.fn(async () => ({ text: "x^2" }));
   const options = config(recognize);
   const first = await parsePdfDocument(pdf, options);
-  const previous = { ...first, recognitionKey: first.recognitionKey.replace("formula-v9", "formula-v7"),
+  const previous = { ...first, recognitionKey: first.recognitionKey.replace("formula-v10", "formula-v7"),
     pageBlocks: [[{ markdown: "broken old paragraph" }]],
     assets: [{ name: "page-1-native-glyph-old.png", url: "blob:old", blob: new Blob(["old crop"]) }] };
   const next = await parsePdfDocument(pdf, { ...options, previous });
@@ -505,7 +510,7 @@ it("repairs old text geometry without repeating successful inference or page res
   const first = await parsePdfDocument(pdf, options);
   const getTextContent = vi.fn(async () => content);
   const page = { getTextContent, getViewport: () => ({ transform: [1, 0, 0, -1, 0, 792], width: 612, height: 792, rotation: 0 }) };
-  const legacy = { ...first, pages: [{ ...raw, textGeometryVersion: 0 }], recognitionKey: first.recognitionKey.replace("formula-v9", "formula-v7") };
+  const legacy = { ...first, pages: [{ ...raw, textGeometryVersion: 0 }], recognitionKey: first.recognitionKey.replace("formula-v10", "formula-v7") };
   const fixed = await parsePdfDocument({ numPages: 1, getPage: async () => page }, { ...options, previous: legacy });
   expect(getTextContent).toHaveBeenCalledOnce();
   expect(recognize).toHaveBeenCalledTimes(2);
@@ -573,7 +578,7 @@ it("removes four unmatched absolute-value fragments using real native text and d
   expect(first.blocks.map((block: any) => block.raw).join("\n")).toContain("(5)");
   expect(updates.every((snapshot) => !snapshot.blocks.some((block: any) => block.raw.trim() === "∣"))).toBe(true);
   expect(recognize).toHaveBeenCalledTimes(2);
-  const legacy = { ...first, recognitionKey: first.recognitionKey.replace("formula-v9", "formula-v7") };
+  const legacy = { ...first, recognitionKey: first.recognitionKey.replace("formula-v10", "formula-v7") };
   const rebuilt = await parsePdfDocument(pdf, { ...options, previous: legacy });
   expect(rebuilt.ir.blocks.filter((block: any) => block.text?.trim() === "∣")).toEqual([]);
   expect(recognize).toHaveBeenCalledTimes(2);
@@ -605,4 +610,77 @@ it("keeps a complete formula fallback without unmatched native fragments", async
   expect(result.ir.blocks.filter((block: any) => block.text?.trim() === "∣")).toEqual([]);
   expect(result.blocks.filter((block: any) => block.raw.includes("原文区域回退"))).toHaveLength(2);
   expect(result.warnings).toHaveLength(2);
+});
+
+it("preserves a structured bilingual region without splitting or repeating recognition", async () => {
+  const recognize = vi.fn(async () => ({ format: "markdown", text: "One\n\nTwo", translation: { text: "一段完整译文", targetLanguage: "zh-CN", format: "markdown" },
+    imageSize: { width: 100, height: 50 }, items: [{ text: "One\n\nTwo", translation: "一段完整译文", translationLanguage: "zh-CN", translationFromImage: true, poly: null }] }));
+  const options = config(recognize, [{ id: "scan", type: "paragraph", bbox: [20, 30, 220, 130], enabled: true }]);
+  options.previous.pages[0].spans = [];
+  const parsed = await parsePdfDocument(pdf, { ...options, visualSignature: "s1" });
+  expect(recognize).toHaveBeenCalledTimes(1);
+  expect(recognize.mock.calls[0][3]).toMatchObject({ kind: "pdf", taskMode: "doc" });
+  expect(parsed.blocks).toHaveLength(1);
+  expect(parsed.blocks[0]).toMatchObject({ status: "done", targetRaw: "一段完整译文", visualResult: { text: "One\n\nTwo" } });
+  await parsePdfDocument(pdf, { ...options, visualSignature: "s1", previous: parsed });
+  expect(recognize).toHaveBeenCalledTimes(1);
+  await parsePdfDocument(pdf, { ...options, visualSignature: "s2", previous: parsed });
+  expect(recognize).toHaveBeenCalledTimes(2);
+});
+
+it("retains an original crop for translation-only children beside recognized originals", async () => {
+  const recognize = vi.fn(async () => ({ format: "text", text: "Original", imageSize: { width: 100, height: 50 },
+    layout: { regions: [] }, items: [
+      { id: "source", text: "Original", translation: "原文译文", translationLanguage: "zh-CN", regionPoly: [[0,0],[50,0],[50,50],[0,50]] },
+      { id: "target", text: "", translation: "仅译文", translationLanguage: "zh-CN", regionPoly: [[50,0],[100,0],[100,50],[50,50]] },
+    ] }));
+  const options = config(recognize, [{ id: "scan", type: "paragraph", bbox: [20, 30, 220, 130], enabled: true }]);
+  options.previous.pages[0].spans = [];
+  const parsed = await parsePdfDocument(pdf, options);
+  expect(parsed.assets).toHaveLength(1);
+  expect(parsed.blocks[1].raw).toContain("assets/page-1-scan-visual-source.png");
+  expect(parsed.blocks[1].targetRaw).toBe("仅译文");
+  expect(parsed.blocks[1].fragments[0].bbox).toEqual([120, 30, 220, 130]);
+});
+
+it("retains and translates the full PDF source beside a coordinate-only layout", async () => {
+  const size = { width: 100, height: 50 };
+  const result = normalizeImageResult(
+    {
+      format: "markdown",
+      text: "First paragraph\n\nSecond paragraph",
+      layout: {
+        regions: [{
+          id: "r",
+          type: "paragraph",
+          order: 0,
+          poly: [[0, 0], [100, 0], [100, 50], [0, 50]],
+        }],
+      },
+    },
+    { imageSize: size }
+  );
+  const recognize = vi.fn(async () => ({
+    ...result,
+    imageSize: size,
+    items: imageResultItems(result),
+  }));
+  const options = config(recognize, [
+    { id: "scan", type: "paragraph", bbox: [20, 30, 220, 130], enabled: true },
+  ]);
+  options.previous.pages[0].spans = [];
+  const parsed = await parsePdfDocument(pdf, options);
+  expect(documentMarkdown(parsed.blocks)).toBe("First paragraph\n\nSecond paragraph");
+  const translate = vi.fn(async (text) => text.replace("paragraph", "段"));
+  await translateDocumentBlocks(parsed.blocks, translate);
+  expect(translate).toHaveBeenCalledTimes(2);
+  expect(documentMarkdown(parsed.blocks, "target")).toBe("First 段\n\nSecond 段");
+});
+
+it("never falls back to full-page recognition when all existing PDF regions are excluded", async () => {
+  const recognize = vi.fn();
+  const options = config(recognize, [{ id: "scan", type: "paragraph", bbox: [0, 0, 600, 800], enabled: false }]);
+  options.previous.pages[0].spans = [];
+  await parsePdfDocument(pdf, options);
+  expect(recognize).not.toHaveBeenCalled();
 });

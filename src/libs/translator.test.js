@@ -3270,37 +3270,43 @@ describe("Translator rule styles", () => {
       expect(node.contains(fake)).toBe(true);
     });
 
-    test("restores by swiping over translation text", async () => {
-      const translator = createTranslator(
-        { transOpen: "false" },
-        { preInit: false }
-      );
-      const node = document.getElementById("target");
-      translator.setTouchMode("tap");
-      tap(node);
-      await flushAsync();
-      await flushAsync();
-      translator.setTouchMode("swipe");
-      await flushAsync();
-      const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
-      for (const [type, x] of [
-        ["pointerdown", 100],
-        ["pointerup", 180],
-      ]) {
-        const event = new MouseEvent(type, {
-          bubbles: true,
-          composed: true,
-          clientX: x,
-          clientY: 100,
-        });
-        Object.defineProperties(event, {
-          pointerType: { value: "touch" },
-          pointerId: { value: 1 },
-        });
-        inner.dispatchEvent(event);
+    test.each(["left", "right"])(
+      "restores by swiping %s over translation text",
+      async (direction) => {
+        const translator = createTranslator(
+          { transOpen: "false" },
+          { preInit: false }
+        );
+        const node = document.getElementById("target");
+        translator.setTouchMode("tap");
+        tap(node);
+        await flushAsync();
+        await flushAsync();
+        translator.setTouchMode("swipe", direction);
+        expect(translator.setting.mouseHoverSetting.touchDirection).toBe(
+          direction
+        );
+        await flushAsync();
+        const inner = node.querySelector(`.${Translator.KISS_CLASS.inner}`);
+        for (const [type, x] of [
+          ["pointerdown", 100],
+          ["pointerup", direction === "left" ? 20 : 180],
+        ]) {
+          const event = new MouseEvent(type, {
+            bubbles: true,
+            composed: true,
+            clientX: x,
+            clientY: 100,
+          });
+          Object.defineProperties(event, {
+            pointerType: { value: "touch" },
+            pointerId: { value: 1 },
+          });
+          inner.dispatchEvent(event);
+        }
+        expect(node.textContent).toBe("Hello touch paragraph");
       }
-      expect(node.textContent).toBe("Hello touch paragraph");
-    });
+    );
 
     test("plain text preprocessing remains safe while swipe mode is active", async () => {
       document.getElementById("root").innerHTML = "<pre></pre>";
@@ -11281,6 +11287,91 @@ describe("Translator rule styles", () => {
       // 恢复后：真实命中被替换为译文，其余文本原样
       const inner = document.querySelector(`.${Translator.KISS_CLASS.inner}`);
       expect(inner.textContent).toBe("YX finish line x");
+    });
+  });
+
+  describe("trusted hook compatibility", () => {
+    test("updateRule preserves trusted script updates", () => {
+      const translator = createTranslator({ transOpen: "false" });
+      translator.updateRule({
+        transStartHook: "args => args",
+        transEndHook: "args => args",
+        injectJs: "document.title = 'injected'",
+        toLang: "fr",
+      });
+      expect(translator.rule.transStartHook).toBe("args => args");
+      expect(translator.rule.transEndHook).toBe("args => args");
+      expect(translator.rule.injectJs).toBe("document.title = 'injected'");
+      expect(translator.rule.toLang).toBe("fr");
+    });
+
+    test("trusted runtime hook receives the existing service configuration", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Victim article text for audit</p></main>';
+      const hookScript = `args => {
+        document.documentElement.setAttribute('data-audit-key', args.apiSetting.key || 'redacted');
+        return args;
+      }`;
+      const translator = createTranslator(
+        { transOpen: "false" },
+        {
+          preInit: false,
+          transApis: [
+            {
+              ...createApiSetting(DEFAULT_API_SETTING.apiSlug),
+              key: "SECRET_API_KEY_123",
+            },
+          ],
+        }
+      );
+      translator.updateRule({ transStartHook: hookScript });
+      translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(document.documentElement.getAttribute("data-audit-key")).toBe(
+        "SECRET_API_KEY_123"
+      );
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({ key: "SECRET_API_KEY_123" }),
+        })
+      );
+    });
+
+    test("hook switching services retains the destination service key", async () => {
+      document.body.innerHTML =
+        '<main id="root"><p>Sample article for translation</p></main>';
+      const translator = createTranslator(
+        {
+          transOpen: "false",
+          apiSlug: DEFAULT_API_SETTING.apiSlug,
+          transStartHook:
+            "args => ({ ...args, apiSetting: args.apisMap.get('service-b') })",
+        },
+        {
+          preInit: false,
+          transApis: [
+            { ...createApiSetting(DEFAULT_API_SETTING.apiSlug), key: "KEY_A" },
+            {
+              ...createApiSetting("service-b"),
+              key: "KEY_B",
+              url: "https://b.invalid/translate",
+            },
+          ],
+        }
+      );
+      translator.enable();
+      await flushAsync();
+      await flushAsync();
+      expect(apiTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiSetting: expect.objectContaining({
+            apiSlug: "service-b",
+            key: "KEY_B",
+            url: "https://b.invalid/translate",
+          }),
+        })
+      );
     });
   });
 });

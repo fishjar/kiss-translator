@@ -143,6 +143,139 @@ test("queued scene writes retain order and never replay into a new session", asy
   ).toHaveLength(1);
 });
 
+test("visual recognition can wait for its latest queued scene write", async () => {
+  const client = makeClient(),
+    first = deferred(),
+    second = deferred();
+  client.session = { sessionId: "visual", extensionVersion: "2.2.5" };
+  client.connect.mockResolvedValue(client.session);
+  const saved = {
+    scenes: { image: { toLang: "ja", termsList: ["names"] } },
+    visualSignatures: { image: "saved-fingerprint" },
+    styles: [],
+  };
+  client.request
+    .mockResolvedValueOnce({ scenes: { image: {} }, styles: [] })
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(second.promise)
+    .mockResolvedValueOnce(saved);
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  const startRecognition = jest.fn();
+  let ready;
+  await act(async () => {
+    value.patchScene("image", { toLang: "ja" });
+    ready = value.waitForSceneSave("image").then(startRecognition);
+    value.patchScene("image", { termsList: ["names"] });
+  });
+  expect(startRecognition).not.toHaveBeenCalled();
+  await act(async () => first.resolve({}));
+  expect(startRecognition).not.toHaveBeenCalled();
+  await act(async () => {
+    second.resolve({});
+    await ready;
+  });
+  expect(startRecognition).toHaveBeenCalledWith(saved);
+  expect(startRecognition).toHaveBeenCalledTimes(1);
+});
+
+test("a failed visual scene write prevents recognition", async () => {
+  const client = makeClient();
+  client.session = { sessionId: "visual" };
+  client.connect.mockResolvedValue(client.session);
+  client.request.mockImplementation(async (method) => {
+    if (method === "patchScene") throw new Error("术语保存失败");
+    return { scenes: { image: {} }, styles: [] };
+  });
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  await act(async () => {
+    value.patchScene("image", { termsList: ["names"] });
+    await expect(value.waitForSceneSave("image")).rejects.toThrow(
+      "术语保存失败"
+    );
+  });
+  expect(value.context.scenes.image.termsList).toBeUndefined();
+});
+
+test("canceling recognition during a scene write stops its snapshot request", async () => {
+  const client = makeClient();
+  const write = deferred();
+  const abort = new AbortController();
+  client.session = { sessionId: "visual" };
+  client.connect.mockResolvedValue(client.session);
+  client.request
+    .mockResolvedValueOnce({ scenes: { pdf: {} }, styles: [] })
+    .mockReturnValueOnce(write.promise);
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  await act(async () => {
+    value.patchScene("pdf", { toLang: "ja" });
+    const ready = value.waitForSceneSave("pdf", abort.signal);
+    abort.abort();
+    write.resolve({});
+    await expect(ready).rejects.toMatchObject({ name: "AbortError" });
+  });
+  expect(client.request.mock.calls.map(([method]) => method)).toEqual([
+    "getContext",
+    "patchScene",
+  ]);
+});
+
+test("ignores an older context response and preserves another scene's pending edit", async () => {
+  const client = makeClient();
+  const stale = deferred();
+  const unrelatedWrite = deferred();
+  const original = { scenes: { image: {}, pdf: {} }, styles: [] };
+  const saved = { ...original, visualSignatures: { image: "saved" } };
+  client.session = { sessionId: "visual" };
+  client.connect.mockResolvedValue(client.session);
+  client.request
+    .mockResolvedValueOnce(original)
+    .mockReturnValueOnce(stale.promise)
+    .mockReturnValueOnce(unrelatedWrite.promise)
+    .mockResolvedValueOnce(saved);
+  getFileClient.mockReturnValue(client);
+  await act(async () =>
+    root.render(
+      <FileTranslationProvider>
+        <Content />
+      </FileTranslationProvider>
+    )
+  );
+  let earlier;
+  await act(async () => {
+    earlier = value.waitForSceneSave("image");
+    value.patchScene("pdf", { toLang: "ja" });
+  });
+  await act(async () => {
+    await expect(value.waitForSceneSave("image")).resolves.toEqual(saved);
+    stale.resolve(original);
+    await expect(earlier).resolves.toEqual(saved);
+  });
+  expect(value.context.visualSignatures.image).toBe("saved");
+  expect(value.context.scenes.pdf.toLang).toBe("ja");
+  await act(async () => unrelatedWrite.resolve({}));
+});
+
 test("connected language follows extension changes and survives disconnect", async () => {
   const client = makeClient();
   const context = {

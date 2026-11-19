@@ -109,7 +109,7 @@ test("plain ZIP addresses retain source and archive normalization never searches
 
 test.each([
   [{ kind: "page" }, "UNSUPPORTED_PLUGIN_KIND"],
-  [{ minHostVersion: "999999.0.0" }, "HOST_VERSION_UNSUPPORTED"],
+  [{ apiVersion: 99 }, "SDK_VERSION_UNSUPPORTED"],
 ])(
   "URL installs and pinned GitHub restoration enforce compatibility: %j",
   async (requirements, code) => {

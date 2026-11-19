@@ -3,24 +3,21 @@
  * @description 图片翻译核心流水线：整合布局分析 (analyzeLayout)、文字识别 (OCR/VLM) 与文本翻译。
  */
 
-import { browser } from "../libs/browser";
 import { startLogTask } from "../libs/diagnostics/task";
 import { logger } from "../libs/log";
-import { createAssetStore } from "../providers/transport";
-import { cachedFileResult } from "./resultCache";
-import { normalizeSettings } from "../localAi/core/settings";
 import {
-  supportedApiFeature,
   supportsApiCapability,
   isApiConfigured,
 } from "../config/serviceSelection";
-import { hasCompleteCoordinates } from "./recognition";
-import { invokeBackgroundPlugin } from "../providers/backgroundInvocation";
-import { createNativeRegistry } from "../builtin-plugins/runtime";
-import { fileError } from "./protocol";
 import { prepareImage } from "../localAi/core/inputLimits";
 import { executeFileTranslation } from "../libs/fileTranslationService";
-import { resolveVlmPrompt } from "../config/prompt";
+import {
+  imageResultItems,
+  hasReusableImageTranslation,
+} from "../providers/imageResult";
+import { getInputPolicy, invokeImageProvider } from "./imageProvider";
+import { buildImageParseInput } from "./imageParsing";
+import { recognitionFeature } from "./recognition";
 import { getSettingWithDefault } from "../libs/storage";
 
 async function cropRegionBlob(sourceBlob, [left, top, right, bottom]) {
@@ -53,95 +50,7 @@ async function cropRegionBlob(sourceBlob, [left, top, right, bottom]) {
   }
 }
 
-export async function getInputPolicy() {
-  try {
-    const stored = await browser.storage.local.get("kiss-ai-settings");
-    return normalizeSettings(stored?.["kiss-ai-settings"]);
-  } catch {
-    return normalizeSettings();
-  }
-}
-
-/**
- * 调用底层图像类服务提供者 (analyzeLayout / recognizeText / parseImage)
- */
-export async function invokeImageProvider(
-  api,
-  capability,
-  prepared,
-  signal,
-  extra = {}
-) {
-  const assets = createAssetStore();
-  try {
-    const { cacheMode, onProgress, requireCoordinates, ...extraInput } = extra;
-    const input = {
-      ...extraInput,
-      ...(api.apiType === "LocalAI" && cacheMode && { cacheMode }),
-      image: assets.put(prepared.blob),
-      imageSize: prepared.size,
-    };
-    return await cachedFileResult({
-      api,
-      capability,
-      policy: await getInputPolicy(),
-      cacheMode,
-      signal,
-      onProgress,
-      validate: (result) => {
-        if (capability === "analyzeLayout") return;
-        if (
-          !result.text?.trim() &&
-          !result.items?.some((item) => item.text?.trim())
-        )
-          throw fileError("INVALID_RESPONSE", "识别返回空结果");
-        if (
-          (requireCoordinates ??
-            supportedApiFeature(api, capability)?.coordinates) &&
-          !hasCompleteCoordinates(result.items || [])
-        )
-          throw fileError(
-            "INVALID_RESPONSE",
-            "识别服务未返回完整有效的文字坐标"
-          );
-      },
-      input: { ...extraInput, image: prepared.blob, imageSize: prepared.size },
-      run: async () => {
-        const call =
-          api.provider && api.provider.implementation?.kind !== "native"
-            ? invokeBackgroundPlugin(api, capability, input, { signal, assets })
-            : createNativeRegistry(() => api, { assets }).invoke(
-                api.apiSlug,
-                capability,
-                input,
-                { signal }
-              );
-        const events = (async () => {
-          const iterator = call.events[Symbol.asyncIterator]();
-          for (;;) {
-            const next = await iterator.next();
-            if (next.done) break;
-            const status = next.value.message;
-            if (status === "CACHE_HIT" || status === "INFERENCE_START")
-              onProgress?.({
-                type: status === "CACHE_HIT" ? "cache-hit" : "inference",
-              });
-          }
-        })();
-        events.catch(() => {});
-        try {
-          const result = await call.result;
-          await events;
-          return result;
-        } finally {
-          call.cancel();
-        }
-      },
-    });
-  } finally {
-    assets.clear();
-  }
-}
+export { getInputPolicy, invokeImageProvider } from "./imageProvider";
 
 /**
  * 执行图像文字识别（可选结合布局分析）
@@ -151,6 +60,7 @@ export async function executeImageRecognition({
   recognitionService,
   layoutApiSlug,
   vlmPromptSlug,
+  scene,
   selectedRegions = null,
   signal,
   onProgress,
@@ -172,6 +82,8 @@ export async function executeImageRecognition({
   if (!recApi || recApi.isDisabled) {
     throw new Error("所选文本识别服务不存在或已禁用");
   }
+  const capability = recognitionService.capability;
+  const includesLayout = recognitionFeature(recApi, capability)?.includesLayout;
 
   const policy = await getInputPolicy();
   const prepared = await prepareImage(imageBlob, policy, signal);
@@ -193,8 +105,8 @@ export async function executeImageRecognition({
           })),
       }
     : null;
-  // 1. 若配置了布局服务，先分析版面
-  if (layoutApiSlug && !layoutResult) {
+  // 显式选区已在上面处理。整图解析服务可直接返回识别结果及其版面。
+  if (layoutApiSlug && !layoutResult && !includesLayout) {
     const layoutApi = apis.find((a) => a.apiSlug === layoutApiSlug);
     if (
       layoutApi &&
@@ -237,17 +149,13 @@ export async function executeImageRecognition({
   }
 
   // 2. 文字识别 (OCR 或 VLM)
-  const capability = recognitionService.capability;
-  let prompt;
-  if (capability === "parseImage") {
-    const slug = vlmPromptSlug || recApi.vlmPromptSlug || "";
-    if (slug) prompt = resolveVlmPrompt(setting.prompts, slug, recApi);
-    else if (
-      recApi.apiType !== "LocalAI" &&
-      (!recApi.provider || recApi.provider.implementation?.kind === "native")
-    )
-      prompt = resolveVlmPrompt(setting.prompts, "");
-  }
+  const { prompt, ...imageInput } = await buildImageParseInput({
+    api: recApi,
+    capability,
+    setting,
+    promptSlug: vlmPromptSlug,
+    scene,
+  });
 
   // 空选区表示用户不识别任何区域，不应退回整图识别。
   const noSelection =
@@ -310,7 +218,7 @@ export async function executeImageRecognition({
       items: rawItems.map((item) => ({
         ...item,
         original: item.text,
-        translation: "",
+        translation: item.translation || "",
       })),
       recognitionErrors: [...recognitionErrors],
       ...(current === 0 && progressLayout ? { layout: progressLayout } : {}),
@@ -338,26 +246,50 @@ export async function executeImageRecognition({
           cropPrepared,
           signal,
           {
+            ...imageInput,
             prompt,
             onProgress,
             requireCoordinates: false,
           }
         );
         if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-        const cropText =
-          cropResult.text?.trim() ||
-          (cropResult.items || [])
-            .map((item) => item.text?.trim())
-            .filter(Boolean)
-            .join("\n");
-        if (cropText) {
+        const extended =
+          imageInput.protocol === "image-json" ||
+          cropResult.translation ||
+          cropResult.layout;
+        const cropItems = extended
+          ? imageResultItems(cropResult, imageInput.targetLanguage)
+          : [
+              {
+                text:
+                  cropResult.text?.trim() ||
+                  (cropResult.items || [])
+                    .map((i) => i.text || "")
+                    .filter(Boolean)
+                    .join("\n"),
+              },
+            ];
+        for (const item of cropItems) {
+          if (!item.text?.trim() && !item.translation?.trim() && !item.error)
+            continue;
+          const offsetPoly = (poly) =>
+            poly?.map(([x, y]) => [
+              (left + x * ((right - left) / cropPrepared.size.width)) * sx,
+              (top + y * ((bottom - top) / cropPrepared.size.height)) * sy,
+            ]);
           rawItems.push({
-            text: cropText,
-            poly: region.polygon.map(([x, y]) => [x * sx, y * sy]),
-            type: region.type,
+            ...item,
+            poly: extended
+              ? null
+              : region.polygon.map(([x, y]) => [x * sx, y * sy]),
+            regionPoly: offsetPoly(item.regionPoly),
+            type: item.type || region.type,
             order: region.order,
+            id: item.id ? `${region.order}:${item.id}` : undefined,
           });
         }
+        for (const warning of cropResult.warnings || [])
+          recognitionErrors.push({ order: region.order, error: warning });
       } catch (cropErr) {
         if (signal?.aborted) throw cropErr;
         firstRegionError ||= cropErr;
@@ -383,23 +315,33 @@ export async function executeImageRecognition({
       prepared,
       signal,
       {
+        ...imageInput,
         prompt,
         onProgress,
       }
     );
 
+    const extended =
+      imageInput.protocol === "image-json" ||
+      recognized.translation ||
+      recognized.layout;
     rawItems = (
-      recognized.items?.length
-        ? recognized.items
-        : (recognized.text || "")
-            .split(/\r?\n/)
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((text) => ({ text, poly: null }))
+      extended
+        ? imageResultItems(recognized, imageInput.targetLanguage)
+        : recognized.items?.length
+          ? recognized.items
+          : (recognized.text || "")
+              .split(/\r?\n/)
+              .map((text) => text.trim())
+              .filter(Boolean)
+              .map((text) => ({ text, poly: null }))
     ).map((item) => ({
       ...item,
       poly: item.poly?.map(([x, y]) => [x * sx, y * sy]) || null,
+      regionPoly: item.regionPoly?.map(([x, y]) => [x * sx, y * sy]),
     }));
+    for (const warning of recognized.warnings || [])
+      recognitionErrors.push({ order: 0, error: warning });
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     reportRecognition(1);
   }
@@ -414,6 +356,49 @@ export async function executeImageRecognition({
 
   const effectiveLayout =
     sourceLayout ||
+    (recognized.layout?.regions?.length
+      ? {
+          regions: recognized.layout.regions.map((r) => {
+            const polygon = r.poly.map(([x, y]) => [x * sx, y * sy]);
+            return {
+              id: r.id,
+              type: r.type,
+              order: r.order,
+              polygon,
+              bbox: polygon.reduce(
+                ([l, t, right, b], [x, y]) => [
+                  Math.min(l, x),
+                  Math.min(t, y),
+                  Math.max(right, x),
+                  Math.max(b, y),
+                ],
+                [Infinity, Infinity, -Infinity, -Infinity]
+              ),
+            };
+          }),
+        }
+      : null) ||
+    (rawItems.some((i) => i.regionPoly?.length)
+      ? {
+          regions: rawItems
+            .filter((i) => i.regionPoly?.length)
+            .map((i) => ({
+              id: i.id,
+              type: i.type,
+              order: i.order,
+              polygon: i.regionPoly,
+              bbox: i.regionPoly.reduce(
+                ([l, t, r, b], [x, y]) => [
+                  Math.min(l, x),
+                  Math.min(t, y),
+                  Math.max(r, x),
+                  Math.max(b, y),
+                ],
+                [Infinity, Infinity, -Infinity, -Infinity]
+              ),
+            })),
+        }
+      : null) ||
     (rawItems.some((i) => i.poly?.length >= 3)
       ? {
           regions: rawItems
@@ -438,7 +423,9 @@ export async function executeImageRecognition({
   return {
     text: finalResult.text || "",
     recognitionErrors,
-    items: (finalResult.items || []).filter((item) => item.text?.trim()),
+    items: (finalResult.items || []).filter(
+      (item) => item.text?.trim() || item.translation?.trim() || item.error
+    ),
     imageSize: prepared.original,
     layout: Array.isArray(selectedRegions)
       ? { imageSize: prepared.original, regions: selectedRegions }
@@ -472,11 +459,16 @@ export async function executeItemsTranslation({
   for (const item of items) {
     if (signal?.aborted) throw new DOMException("已取消", "AbortError");
     const sourceText = item.text || item.original || "";
+    if (hasReusableImageTranslation(item, scene.toLang)) {
+      translatedItems.push({ ...item, original: sourceText, error: undefined });
+      continue;
+    }
     if (!sourceText.trim()) {
       translatedItems.push({
         ...item,
         original: sourceText,
         translation: "",
+        error: "No original text is available for fallback translation.",
       });
       continue;
     }
@@ -507,6 +499,9 @@ export async function executeItemsTranslation({
         ...item,
         original: sourceText,
         translation: trText || "",
+        translationLanguage: scene.toLang,
+        translationFromImage: false,
+        error: undefined,
       });
     } catch (err) {
       if (signal?.aborted) throw err;
@@ -544,7 +539,7 @@ export async function executeImageLayout({
       !a.isDisabled &&
       isApiConfigured(a) &&
       supportsApiCapability(a, "analyzeLayout") &&
-      (layoutApiSlug ? a.apiSlug === layoutApiSlug : true)
+      a.apiSlug === layoutApiSlug
   );
 
   if (!layoutApi) {
@@ -665,6 +660,7 @@ async function executeImagePipelineInternal({
     recognitionService: scene.recognitionService,
     layoutApiSlug: action === "recognize" ? null : scene.layoutApiSlug,
     vlmPromptSlug: scene.vlmPromptSlug,
+    scene,
     selectedRegions,
     signal,
     onProgress,
@@ -676,7 +672,7 @@ async function executeImagePipelineInternal({
   const baseItems = rawItems.map((item) => ({
     ...item,
     original: item.text,
-    translation: "",
+    translation: item.translation || "",
   }));
   const originalText = baseItems.map((item) => item.original).join("\n\n");
 
@@ -684,7 +680,10 @@ async function executeImagePipelineInternal({
     return {
       items: baseItems,
       originalText,
-      translatedText: "",
+      translatedText: baseItems
+        .map((item) => item.translation)
+        .filter(Boolean)
+        .join("\n\n"),
       recognitionErrors: recognized.recognitionErrors,
       layout: recognized.layout,
     };

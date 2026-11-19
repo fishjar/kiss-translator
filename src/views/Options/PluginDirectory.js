@@ -10,9 +10,13 @@ import {
 } from "@mui/material";
 import { useI18n } from "../../hooks/I18n";
 import { useProviderI18n } from "../../hooks/ProviderI18n";
+import ApiProviderIcon from "../../components/ApiProviderIcon";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
+import PluginDescription from "./PluginDescription";
+import PluginFreeBadge from "./PluginFreeBadge";
 import {
   COMMUNITY_PAGE_SIZE,
+  communityPluginIconUrl,
   loadCommunityPluginMetadata,
   loadPluginDirectory,
   pluginDirectoryCacheKey,
@@ -55,6 +59,11 @@ function PluginCapabilityChips({ capabilities, i18n }) {
   );
 }
 
+function previewImageSrc(url, refreshVersion) {
+  // A new request also bypasses a cached error response for the same image.
+  return url && refreshVersion ? `${url}?kt-refresh=${refreshVersion}` : url;
+}
+
 function CommunityPluginCard({
   repo,
   busy,
@@ -86,6 +95,15 @@ function CommunityPluginCard({
   return (
     <Box sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 2 }}>
       <Stack direction="row" alignItems="center" spacing={2}>
+        <ApiProviderIcon
+          apiType="Plugin"
+          previewSrc={previewImageSrc(
+            communityPluginIconUrl(fullName, metadata?.icon),
+            refreshVersion
+          )}
+          size={24}
+          imageSize={22}
+        />
         <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
           <Link
             href={repo.html_url}
@@ -98,20 +116,13 @@ function CommunityPluginCard({
               : fullName}
           </Link>
           {metadata && ` · ${metadata.version}`}
+          <PluginFreeBadge freeTier={metadata?.freeTier} />
         </Typography>
         <Button disabled={busy} onClick={() => onInstall(repo.html_url)}>
           {i18n("plugin_download_and_install")}
         </Button>
       </Stack>
-      {description && (
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ overflowWrap: "anywhere" }}
-        >
-          {description}
-        </Typography>
-      )}
+      <PluginDescription description={description} />
       {metadata === null && (
         <Typography component="p" variant="caption" color="text.secondary">
           {i18n("plugin_directory_metadata_failed")}
@@ -136,6 +147,7 @@ export default function PluginDirectory({
   const i18n = useI18n();
   const providerText = useProviderI18n();
   const [official, setOfficial] = useState(() => initial("official"));
+  const [officialRefreshVersion, setOfficialRefreshVersion] = useState(0);
   const [community, setCommunity] = useState(() => initial("community"));
   const [communityReady, setCommunityReady] = useState(false);
   const [communityRefresh, setCommunityRefresh] = useState({ version: 0 });
@@ -153,8 +165,10 @@ export default function PluginDirectory({
     try {
       const data = await loadPluginDirectory(kind, { force, page: nextPage });
       if (!alive.current) return;
-      if (kind === "official") setOfficial(data);
-      else {
+      if (kind === "official") {
+        setOfficial(data);
+        if (force) setOfficialRefreshVersion(Date.now());
+      } else {
         setCommunity((previous) =>
           nextPage === 1
             ? data
@@ -171,12 +185,12 @@ export default function PluginDirectory({
               }
         );
         if (force)
-          setCommunityRefresh(({ version }) => ({
-            version: version + 1,
+          setCommunityRefresh({
+            version: Date.now(),
             repos: new Set(
               data.items.map((repo) => repo.full_name.toLowerCase())
             ),
-          }));
+          });
         setPage(nextPage);
       }
     } catch (error) {
@@ -247,8 +261,18 @@ export default function PluginDirectory({
               sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 2 }}
             >
               <Stack direction="row" alignItems="center" spacing={2}>
+                <ApiProviderIcon
+                  apiType="Plugin"
+                  previewSrc={previewImageSrc(
+                    entry.iconUrl,
+                    officialRefreshVersion
+                  )}
+                  size={24}
+                  imageSize={22}
+                />
                 <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
                   {providerText(entry.name, entry.nameI18n)} · {entry.version}
+                  <PluginFreeBadge freeTier={entry.freeTier} />
                 </Typography>
                 <Button
                   disabled={busy || !!pluginCompatibilityError(entry)}
@@ -262,9 +286,12 @@ export default function PluginDirectory({
                   {pluginCompatibilityError(entry).message}
                 </Alert>
               )}
-              <Typography variant="body2" color="text.secondary">
-                {providerText(entry.description || "", entry.descriptionI18n)}
-              </Typography>
+              <PluginDescription
+                description={providerText(
+                  entry.description || "",
+                  entry.descriptionI18n
+                )}
+              />
               <PluginCapabilityChips
                 capabilities={entry.capabilities}
                 i18n={i18n}

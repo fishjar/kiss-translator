@@ -33,6 +33,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Alert,
   Button,
+  CircularProgress,
   Checkbox,
   FormControlLabel,
   Box,
@@ -40,6 +41,7 @@ import {
   MenuItem,
   Stack,
   TextField,
+  Typography,
 } from "@mui/material";
 import { useSetting } from "../../hooks/Setting";
 import { usePromptList } from "../../hooks/Prompt";
@@ -282,6 +284,12 @@ export default function PluginInstanceFields({
   return (
     <Stack spacing={3} useFlexGap>
       <Stack className="kt-service-card kt-service-configuration" spacing={2}>
+        {Boolean(draft.provider?.permissions?.originRewrite?.length) && (
+          <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+            {i18n("plugin_origin_rewrite", "Origin 重写域名")}:{" "}
+            {draft.provider.permissions.originRewrite.join("、")}
+          </Typography>
+        )}
         <ServiceFormHeader
           api={draft}
           onChange={(name, value) =>
@@ -488,6 +496,16 @@ export default function PluginInstanceFields({
         actions={
           <>
             <Button
+              aria-busy={Boolean(call)}
+              startIcon={
+                call ? (
+                  <CircularProgress
+                    size={16}
+                    color="inherit"
+                    aria-label={i18n("plugin_test_running")}
+                  />
+                ) : undefined
+              }
               disabled={
                 Boolean(call) ||
                 quickBusy ||
@@ -496,7 +514,7 @@ export default function PluginInstanceFields({
               }
               onClick={test}
             >
-              {i18n("plugin_run_test")}
+              {i18n(call ? "plugin_test_running" : "plugin_run_test")}
             </Button>
             <Button disabled={!call} onClick={() => call?.cancel()}>
               {i18n("cancel")}
@@ -650,6 +668,7 @@ export function ProviderSettings({
         key={field.key}
         size="small"
         label={providerText(field.label, field.labelI18n)}
+        helperText={providerText(field.helpText, field.helpTextI18n)}
         required={field.required}
         select={field.type === "select"}
         type={field.type === "number" ? "number" : "text"}

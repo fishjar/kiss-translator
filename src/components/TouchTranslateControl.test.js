@@ -1,3 +1,4 @@
+import { ThemeProvider, createTheme } from "@mui/material/styles";
 jest.mock("../hooks/Setting", () => ({
   SettingProvider: ({ children }) => children,
 }));
@@ -41,7 +42,7 @@ describe("touch mode controls", () => {
     dispatch = jest.fn(({ args }) => ({
       touchTranslate: {
         mode: args?.mode || "off",
-        direction: "left",
+        direction: args?.direction || "left",
         supported: true,
       },
     }));
@@ -74,16 +75,68 @@ describe("touch mode controls", () => {
       args: undefined,
     });
     expect(mockSave).not.toHaveBeenCalled();
-    await select("swipe");
+    await select("swipe-left");
     expect(dispatch).toHaveBeenLastCalledWith({
       action: MSG_TOUCH_TRANSLATE_MODE_SET,
-      args: { mode: "swipe" },
+      args: { mode: "swipe", direction: "left" },
     });
-    expect(mockSave).toHaveBeenCalledWith({ touchMode: "swipe" });
+    expect(mockSave).toHaveBeenCalledWith({
+      touchMode: "swipe",
+      touchDirection: "left",
+    });
     expect(container.textContent).toContain("touch_left");
     await select("off");
     expect(mockSave).toHaveBeenCalledTimes(2);
     expect(mockSave).toHaveBeenLastCalledWith({ touchMode: "off" });
+  });
+
+  test("switches both swipe directions and rejects an unconfirmed direction", async () => {
+    await render();
+    await select("swipe-right");
+    expect(mockSave).toHaveBeenLastCalledWith({
+      touchMode: "swipe",
+      touchDirection: "right",
+    });
+    expect(container.querySelector('[role="combobox"]').textContent).toBe(
+      "touch_right"
+    );
+    await select("swipe-left");
+    expect(mockSave).toHaveBeenLastCalledWith({
+      touchMode: "swipe",
+      touchDirection: "left",
+    });
+    expect(container.querySelector('[role="combobox"]').textContent).toBe(
+      "touch_left"
+    );
+    mockSave.mockClear();
+    dispatch.mockReturnValue({
+      touchTranslate: { mode: "swipe", direction: "left", supported: true },
+    });
+    await select("swipe-right");
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(container.querySelector('[role="alert"]').textContent).toBe(
+      "touch_failed"
+    );
+  });
+
+  test("compact control overrides the filled theme minimum height", async () => {
+    const theme = createTheme({
+      components: {
+        MuiTextField: { defaultProps: { variant: "filled" } },
+        MuiFilledInput: { styleOverrides: { root: { minHeight: 48 } } },
+      },
+    });
+    await act(async () =>
+      root.render(
+        <ThemeProvider theme={theme}>
+          <TouchTranslateControl processActions={dispatch} compact />
+        </ThemeProvider>
+      )
+    );
+    const input = container.querySelector(".MuiFilledInput-root");
+    expect(getComputedStyle(input).minHeight).toBe("40px");
+    expect(getComputedStyle(input).height).toBe("40px");
+    expect(container.querySelector("label")).toBeNull();
   });
 
   test("opens the menu in the document body when no theme root exists", async () => {
@@ -137,6 +190,11 @@ describe("touch mode controls", () => {
       root.render(<TouchTranslateStatus processActions={dispatch} />);
     });
     expect(container.querySelector('[role="status"]')).not.toBeNull();
+    expect(container.querySelector("button").getAttribute("aria-label")).toBe(
+      "touch_exit"
+    );
+    expect(container.querySelector("button").textContent).toBe("");
+
     await act(async () => {
       container.querySelector("button").click();
     });
@@ -164,7 +222,7 @@ describe("touch mode controls", () => {
     await render();
     await select("tap");
     dispatch.mockRejectedValue(new Error("No receiver"));
-    await select("swipe");
+    await select("swipe-left");
     expect(container.querySelector('[role="combobox"]').textContent).toBe(
       "touch_tap"
     );
@@ -204,7 +262,7 @@ describe("touch mode controls", () => {
   test("keeps the applied mode and reports a persistence failure", async () => {
     mockSave.mockRejectedValueOnce(new Error("Storage unavailable"));
     await render();
-    await select("swipe");
+    await select("swipe-left");
     expect(container.querySelector('[role="combobox"]').textContent).toBe(
       "touch_left"
     );

@@ -4,6 +4,46 @@
  */
 
 export const FILE_TRANSLATE_I18N = {
+  file_visual_upgrade_required: {
+    zh: "请升级扩展后使用结构化视觉解析",
+    en: "Update the extension to use structured visual parsing",
+    zh_TW: "請升級擴充功能後使用結構化視覺解析",
+    ja: "構造化された画像解析には拡張機能を更新してください",
+    ko: "구조화된 이미지 분석을 사용하려면 확장 프로그램을 업데이트하세요",
+    tr: "Yapılandırılmış görsel ayrıştırma için uzantıyı güncelleyin",
+    vi: "Cập nhật tiện ích để dùng phân tích hình ảnh có cấu trúc",
+    ru: "Обновите расширение для структурированного анализа изображений",
+  },
+  image_original_unavailable: {
+    zh: "未返回原文",
+    en: "Original text not returned",
+    zh_TW: "未返回原文",
+    ja: "原文が返されていません",
+    ko: "원문이 반환되지 않았습니다",
+    tr: "Kaynak metin döndürülmedi",
+    vi: "Không có văn bản gốc được trả về",
+    ru: "Исходный текст не получен",
+  },
+  image_no_original_fallback: {
+    zh: "没有原文，无法补译",
+    en: "Cannot translate missing content without original text",
+    zh_TW: "沒有原文，無法補譯",
+    ja: "原文がないため補完翻訳できません",
+    ko: "원문이 없어 누락된 번역을 보완할 수 없습니다",
+    tr: "Kaynak metin olmadan eksik çeviri tamamlanamaz",
+    vi: "Không thể dịch bổ sung khi không có văn bản gốc",
+    ru: "Нельзя дополнить перевод без исходного текста",
+  },
+  layout_disabled: {
+    zh: "不调用独立界面分析服务",
+    en: "Do not call a separate layout service",
+    zh_TW: "不呼叫獨立版面分析服務",
+    ja: "独立したレイアウト解析を使用しない",
+    ko: "별도의 레이아웃 서비스를 호출하지 않음",
+    tr: "Ayrı düzen hizmetini çağırma",
+    vi: "Không gọi dịch vụ bố cục riêng",
+    ru: "Не вызывать отдельный сервис анализа макета",
+  },
   file_translation_page_title: {
     zh: "文件翻译 - 免费在线 PDF、EPUB、Markdown、图片双语对照翻译 | KISS Translator",
     en: "File Translation - Free Online Bilingual Translation for PDF, EPUB, Markdown & Images | KISS Translator",

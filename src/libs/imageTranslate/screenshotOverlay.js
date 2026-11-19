@@ -4,6 +4,7 @@ import { logger } from "../log";
  * @description 网页视口截图固化、全屏蒙版与可交互框选层（支持多重取消、选区保留、版面分析与线框点选）。
  */
 
+import { automaticLayoutRegions } from "./layoutSelection";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { flushSync } from "react-dom";
@@ -121,12 +122,7 @@ export class ScreenshotOverlay {
       );
       if (match) return match;
     }
-    return apis.find(
-      (a) =>
-        !a.isDisabled &&
-        isApiConfigured(a) &&
-        supportsApiCapability(a, "analyzeLayout")
-    );
+    return undefined;
   }
 
   async start({
@@ -721,6 +717,7 @@ export class ScreenshotOverlay {
 
   #toggleRegion(index) {
     if (!this.#layoutRegions[index] || this.#busy) return;
+    automaticLayoutRegions.delete(this.#layoutRegions);
     this.#layoutRegions[index] = {
       ...this.#layoutRegions[index],
       enabled: this.#layoutRegions[index].enabled === false,

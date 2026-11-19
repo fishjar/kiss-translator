@@ -7,6 +7,7 @@ import { refreshStorageKeys } from "../libs/storageRefresh";
 import { syncData } from "../libs/sync";
 import { kissLog } from "../libs/log";
 import { publishStorageWrite } from "../libs/storageEvents";
+import { findStorageState } from "../libs/storageState";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -136,6 +137,62 @@ describe("useStorage shared state lifecycle", () => {
 
   afterEach(() => {
     for (const host of hosts) host.unmount();
+  });
+
+  test("keeps equal data and nested API references on focus, but adopts changed data", async () => {
+    const initial = { transApis: [{ apiSlug: "example", model: "first" }] };
+    persisted.set(storageKey, initial);
+    const host = await mountHost();
+    const before = host.result.data;
+    const state = findStorageState(storageKey);
+    const revision = state.revision;
+    persisted.set(storageKey, cloneStorageValue(initial));
+
+    act(() => window.dispatchEvent(new Event("focus")));
+    await flushEffects();
+
+    expect(storage.getObj).toHaveBeenCalledTimes(2);
+    expect(host.result.data).toBe(before);
+    expect(host.result.data.transApis[0]).toBe(before.transApis[0]);
+    expect(state.revision).toBe(revision);
+
+    persisted.set(storageKey, {
+      transApis: [{ apiSlug: "example", model: "second" }],
+    });
+    act(() => window.dispatchEvent(new Event("focus")));
+    await flushEffects();
+
+    expect(host.result.data).toEqual(persisted.get(storageKey));
+    expect(host.result.data).not.toBe(before);
+    expect(state.revision).toBe(revision + 1);
+  });
+
+  test("finishes initial loading when stored data equals the default", async () => {
+    persisted.set(storageKey, cloneStorageValue(DEFAULT_VALUE));
+    const host = await mountHost();
+
+    expect(host.result.data).toBe(DEFAULT_VALUE);
+    expect(findStorageState(storageKey).revision).toBe(0);
+  });
+
+  test("finishes recovery when a successful reload returns equal data", async () => {
+    const host = await mountHost();
+    const before = host.result.data;
+    const error = new Error("Read failed");
+    storage.getObj.mockRejectedValueOnce(error);
+    await act(async () => {
+      await expect(refreshStorageKeys([storageKey])).rejects.toBe(error);
+    });
+    expect(host.result.isRecovering).toBe(true);
+
+    persisted.set(storageKey, cloneStorageValue(before));
+    await act(async () => {
+      await host.result.reload();
+    });
+
+    expect(host.result.data).toBe(before);
+    expect(host.result.isRecovering).toBe(false);
+    expect(host.result.isLoading).toBe(false);
   });
 
   test.each([false, true])(

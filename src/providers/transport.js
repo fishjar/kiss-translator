@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { providerError } from "./capabilities";
 import { projectInstanceConfig } from "./instances";
 import { createSSEParser } from "./sdk/stream";
@@ -104,12 +105,12 @@ export function createTransportBroker(
     check();
     if (request.responseAudio !== undefined) {
       if (
-        instance.provider.apiVersion !== 1 ||
+        !supportsSdkVersion(instance.provider.apiVersion) ||
         request.responseType !== "asset"
       )
         throw providerError(
           "INVALID_REQUEST",
-          "Audio conversion requires plugin API 1 and an asset response."
+          "Audio conversion requires a supported plugin API and an asset response."
         );
       validateResponseAudio(request.responseAudio);
     }

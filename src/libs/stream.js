@@ -555,8 +555,12 @@ export function createRealtimeStreamParser() {
       const pipeMatch = trimmed.match(/^(\d+)\s*\|\s*(.*)/);
       if (pipeMatch) {
         const id = parseInt(pipeMatch[1], 10);
-        const text = pipeMatch[2].trim().replace(/<br\s*\/?>/gi, "\n");
         const isComplete = i < lines.length - 1;
+        let text = pipeMatch[2].trim();
+        // A split break tag must not be emitted literally and later rewritten
+        // into a newline: native streaming consumers require stable prefixes.
+        if (!isComplete) text = text.replace(/<(?:b(?:r\s*\/?)?)?$/i, "");
+        text = text.replace(/<br\s*\/?>/gi, "\n");
         results.push({ id, partialText: text, isComplete });
       }
     }

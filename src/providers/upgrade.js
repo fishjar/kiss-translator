@@ -21,7 +21,15 @@ export function copyCompatibleConfig(api, fields) {
     );
     const value = api.pluginConfig?.[field.key];
     if (!previous || value === undefined) continue;
-    if (previous.type !== field.type || secret(previous) !== secret(field)) {
+    const modelBecameSelect =
+      field.key === (api.provider.modelField || "model") &&
+      previous.type === "text" &&
+      field.type === "select" &&
+      !secret(field);
+    if (
+      (previous.type !== field.type && !modelBecameSelect) ||
+      secret(previous) !== secret(field)
+    ) {
       skipped.push(field.key);
       continue;
     }

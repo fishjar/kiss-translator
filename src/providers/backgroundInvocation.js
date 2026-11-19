@@ -54,6 +54,13 @@ export function invokeBackgroundPlugin(
         invalidated,
         (async () => {
           if (ctx.signal.aborted) throw ctx.signal.reason;
+          if (instance.provider.permissions?.originRewrite?.length) {
+            const { ensurePluginOriginRules } = await import(
+              "./originRulesBackground"
+            );
+            await ensurePluginOriginRules(instance);
+            if (ctx.signal.aborted) throw ctx.signal.reason;
+          }
           if (globalThis.chrome?.offscreen?.createDocument) {
             await localAiHost({ action: "ensure" });
             if (stopped) return;

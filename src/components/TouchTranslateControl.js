@@ -1,7 +1,8 @@
 import { supportsTouch } from "../libs/touchCapability";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
@@ -35,7 +36,9 @@ function useTouchState(processActions) {
           throw new Error("Missing touch translation state");
         if (
           action === MSG_TOUCH_TRANSLATE_MODE_SET &&
-          result.touchTranslate.mode !== args.mode
+          (result.touchTranslate.mode !== args.mode ||
+            (args.direction &&
+              result.touchTranslate.direction !== args.direction))
         )
           throw new Error("Page rejected touch mode");
         setState(result.touchTranslate);
@@ -61,16 +64,22 @@ function useTouchState(processActions) {
     document.addEventListener(EVENT_KISS_INNER, update);
     return () => document.removeEventListener(EVENT_KISS_INNER, update);
   }, [dispatch]);
-  const change = async (mode) => {
+  const change = async (mode, direction) => {
     if (pendingRef.current) return;
     pendingRef.current = true;
     setPending(true);
     setSaveFailed(false);
     try {
-      const result = await dispatch(MSG_TOUCH_TRANSLATE_MODE_SET, { mode });
+      const result = await dispatch(MSG_TOUCH_TRANSLATE_MODE_SET, {
+        mode,
+        ...(direction ? { direction } : {}),
+      });
       if (result?.mode === mode) {
         try {
-          await updateMouseHoverSetting({ touchMode: mode });
+          await updateMouseHoverSetting({
+            touchMode: mode,
+            ...(direction ? { touchDirection: direction } : {}),
+          });
         } catch {
           setSaveFailed(true);
         }
@@ -83,7 +92,11 @@ function useTouchState(processActions) {
   return { state, failed, saveFailed, pending, change };
 }
 
-function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
+function ConnectedTouchControl({
+  processActions,
+  inlineFeedback = false,
+  compact = false,
+}) {
   const fieldRef = useRef(null);
   const navigateMenu = useMemo(
     () => createMenuKeyDownHandler({ shadowOnly: true, disableListWrap: true }),
@@ -94,10 +107,56 @@ function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
     useTouchState(processActions);
   if (!state || (!state.supported && state.mode === "off")) return null;
   return (
-    <Stack spacing={1} sx={{ p: 1 }} data-kiss-touch-ui>
+    <Stack
+      spacing={compact ? 0 : 1}
+      sx={compact ? { display: "contents" } : { p: 1 }}
+      data-kiss-touch-ui
+    >
       <TextField
         ref={fieldRef}
+        sx={
+          compact
+            ? {
+                minWidth: 0,
+                "& .MuiSelect-select": {
+                  py: 0,
+                  pl: 1,
+                  pr: "24px !important",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+                "& fieldset": { border: 0 },
+              }
+            : undefined
+        }
+        InputProps={
+          compact
+            ? {
+                sx: {
+                  height: 40,
+                  minHeight: 40,
+                  boxSizing: "border-box",
+                  borderRadius: "12px",
+                  background: "var(--kt-sf2)",
+                  fontSize: 12,
+                },
+              }
+            : undefined
+        }
         SelectProps={{
+          inputProps: {
+            "aria-label": i18n("touch_paragraph"),
+            title: i18n(
+              state.mode === "off"
+                ? "touch_off"
+                : state.mode === "tap"
+                  ? "touch_tap"
+                  : state.direction === "left"
+                    ? "touch_left"
+                    : "touch_right"
+            ),
+          },
           MenuProps: {
             "data-kiss-touch-ui": true,
             // Keep styles in the shadow tree, outside the draggable transform.
@@ -115,25 +174,42 @@ function ConnectedTouchControl({ processActions, inlineFeedback = false }) {
         select
         size="small"
         fullWidth
-        label={i18n("touch_paragraph")}
-        value={state.mode}
+        label={compact ? undefined : i18n("touch_paragraph")}
+        value={
+          state.mode === "swipe"
+            ? `swipe-${state.direction === "left" ? "left" : "right"}`
+            : state.mode
+        }
         disabled={
           pending ||
           ((!state.supported || state.blocked) && state.mode === "off")
         }
-        onChange={(event) => change(event.target.value)}
+        onChange={(event) => {
+          const [mode, direction] = event.target.value.split("-");
+          change(mode, direction);
+        }}
       >
         <MenuItem value="off">{i18n("touch_off")}</MenuItem>
         <MenuItem value="tap" disabled={!state.supported || state.blocked}>
           {i18n("touch_tap")}
         </MenuItem>
-        <MenuItem value="swipe" disabled={!state.supported || state.blocked}>
-          {i18n(state.direction === "left" ? "touch_left" : "touch_right")}
-        </MenuItem>
+        {["right", "left"].map((direction) => (
+          <MenuItem
+            key={direction}
+            value={`swipe-${direction}`}
+            disabled={!state.supported || state.blocked}
+          >
+            {i18n(direction === "left" ? "touch_left" : "touch_right")}
+          </MenuItem>
+        ))}
       </TextField>
       {(failed || saveFailed || !state.supported || state.blocked) &&
         (inlineFeedback ? (
-          <span role="status" className="kt-popup-action-error">
+          <span
+            role="status"
+            className="kt-popup-action-error"
+            style={compact ? { gridColumn: "1 / -1" } : undefined}
+          >
             {i18n(
               saveFailed
                 ? "touch_save_failed"
@@ -181,13 +257,15 @@ function Status({ processActions }) {
         zIndex: 2147483647,
         left: "50%",
         transform: "translateX(-50%)",
-        p: 1,
+        py: "2px",
+        px: 1,
+        fontSize: 12,
         borderRadius: 3,
         maxWidth: "calc(100vw - 24px)",
         width: "max-content",
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1}>
+      <Stack direction="row" alignItems="center" spacing={0.5}>
         <span>
           {i18n(
             state.mode === "off"
@@ -199,9 +277,15 @@ function Status({ processActions }) {
                   : "touch_right"
           )}
         </span>
-        <Button disabled={pending} onClick={() => change("off")}>
-          {i18n("touch_exit")}
-        </Button>
+        <IconButton
+          aria-label={i18n("touch_exit")}
+          title={i18n("touch_exit")}
+          sx={{ width: 28, height: 28, p: "4px", flexShrink: 0 }}
+          disabled={pending}
+          onClick={() => change("off")}
+        >
+          <CloseRoundedIcon sx={{ fontSize: 18 }} />
+        </IconButton>
       </Stack>
       {failed && <Alert severity="error">{i18n("touch_failed")}</Alert>}
       {saveFailed && (

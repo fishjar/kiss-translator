@@ -12,6 +12,7 @@ import { InputTranslator } from "./inputTranslate";
 import { TransboxManager } from "./tranbox";
 import { shortcutRegister } from "./shortcut";
 import { sendIframeMsg, sendTopMsg } from "./iframe";
+import { frameRulePatch, readPageMessage } from "./pageMessages";
 import {
   EVENT_KISS_INNER,
   EVENT_KISS_TRANSLATOR,
@@ -799,17 +800,33 @@ export default class TranslatorManager {
 
   /**
    * 处理同窗口 CustomEvent 通信。
+   * 网页公开接口只接收固定动作及其必要参数。
    */
   #handleWindowMessage(event) {
-    logger.child("translator-manager").debug("handle window message:", event);
-    this.#processActions(event.detail);
+    this.#handlePageMessage(event, false);
   }
 
   /**
    * 处理 iframe 或页面内 postMessage 通信。
+   * 跨窗口消息始终不可信，只同步 UI 状态和有限的面板规则字段。
    */
   #handleInnerMessage(event) {
-    this.#processActions(event.data);
+    this.#handlePageMessage(event, true);
+  }
+
+  #handlePageMessage(event, isFrame) {
+    let message;
+    try {
+      message = readPageMessage(
+        isFrame ? event.data : event.detail,
+        isFrame,
+        this.#setting
+      );
+    } catch (_error) {
+      // Page-owned getters and proxies may throw while being read.
+      return;
+    }
+    if (message) this.#processActions(message);
   }
 
   /**
@@ -1017,12 +1034,18 @@ export default class TranslatorManager {
     if (action === MSG_TOUCH_TRANSLATE_MODE_SET) {
       if (
         (!this._ruleEditorManager?.session || args?.mode === "off") &&
-        ["off", "tap", "swipe"].includes(args?.mode)
+        ["off", "tap", "swipe"].includes(args?.mode) &&
+        (args.direction === undefined ||
+          ["left", "right"].includes(args.direction))
       ) {
-        this.#touchMode = this._translator?.setTouchMode(args.mode) || "off";
+        this.#touchMode =
+          (args.direction === undefined
+            ? this._translator?.setTouchMode(args.mode)
+            : this._translator?.setTouchMode(args.mode, args.direction)) ||
+          "off";
         // Saved modes also start in child frames, which have no status bar.
         // Relay off even for extension commands so their controls can stop them.
-        if (args.mode === "off") sendIframeMsg(action, args);
+        if (args.mode === "off") sendIframeMsg(action, { mode: "off" });
       }
       const touchTranslate = this.#getTouchState();
       this.#notifyTouchState();
@@ -1082,7 +1105,13 @@ export default class TranslatorManager {
       action !== MSG_POPUP_TOGGLE &&
       action !== MSG_TRANS_GETRULE
     ) {
-      sendIframeMsg(action, args);
+      if (action === MSG_TRANS_PUTRULE) {
+        const patch = frameRulePatch(args, this.#setting, true);
+        if (patch) sendIframeMsg(action, patch);
+      } else {
+        const message = readPageMessage({ action, args }, true, this.#setting);
+        if (message) sendIframeMsg(message.action, message.args);
+      }
     }
 
     logger.child("translator-manager").debug("process action:", action, args);

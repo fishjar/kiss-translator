@@ -2,6 +2,7 @@ import { webcrypto, createHash } from "crypto";
 import { zipSync, strToU8 } from "fflate";
 import {
   OFFICIAL_BASE,
+  communityPluginIconUrl,
   validateOfficialDirectory,
   validateCommunityDirectory,
   loadCommunityPluginMetadata,
@@ -50,11 +51,31 @@ const catalog = {
   ],
 };
 
+test("official catalog preserves free tiers and rejects invalid values", () => {
+  for (const freeTier of [
+    "free",
+    "quota-limited",
+    "some-models",
+    "time-limited",
+  ]) {
+    const data = {
+      ...catalog,
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier })),
+    };
+    expect(validateOfficialDirectory(data).plugins[0].freeTier).toBe(freeTier);
+  }
+  expect(() =>
+    validateOfficialDirectory({
+      ...catalog,
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier: "yes" })),
+    })
+  ).toThrow();
+});
+
 test("catalog preserves unsupported declarations for explanation, while installation refuses before download", async () => {
   const entry = {
     ...catalog.plugins[0],
     kind: "page",
-    minHostVersion: "999999.0.0",
   };
   expect(
     validateOfficialDirectory({ schemaVersion: 1, plugins: [entry] }).plugins[0]
@@ -67,7 +88,7 @@ test("catalog preserves unsupported declarations for explanation, while installa
 });
 
 test("unsupported integer API versions remain visible but cannot be downloaded", async () => {
-  const entry = { ...catalog.plugins[0], apiVersion: 2 };
+  const entry = { ...catalog.plugins[0], apiVersion: 3 };
   const directory = {
     schemaVersion: 1,
     plugins: [
@@ -126,6 +147,27 @@ test("official directory accepts only the configured origin, exact paths and uni
       plugins: [catalog.plugins[0], catalog.plugins[0]],
     })
   ).toThrow();
+});
+
+test("official preview icons are optional and bound to the exact plugin version", () => {
+  const entry = catalog.plugins[0];
+  const iconUrl = `${OFFICIAL_BASE}${entry.id}/${entry.version}.icon.png`;
+  const validate = (url) =>
+    validateOfficialDirectory({
+      schemaVersion: 1,
+      plugins: [{ ...entry, iconUrl: url }],
+    }).plugins[0];
+  expect(validate(iconUrl)).toEqual({ ...entry, iconUrl });
+  for (const invalid of [
+    "https://example.invalid/logo.png",
+    iconUrl.replace(entry.id, "other-plugin"),
+    iconUrl.replace(entry.version, "2.0.0"),
+    `${iconUrl}?refresh`,
+    iconUrl.replace(".png", ".svg"),
+    null,
+  ]) {
+    expect(validate(invalid)).toEqual(entry);
+  }
 });
 
 test.each(catalog.plugins)(
@@ -236,6 +278,7 @@ test("community metadata reads one default-branch manifest and caches only its d
       description: "Plugin description",
       nameI18n: { en: "Localized plugin", zh: { invalid: true } },
       descriptionI18n: { en: "Localized description" },
+      icon: "assets/logo.png",
       services: [
         ...manifest.services,
         {
@@ -254,6 +297,7 @@ test("community metadata reads one default-branch manifest and caches only its d
     description: "Plugin description",
     nameI18n: { en: "Localized plugin" },
     descriptionI18n: { en: "Localized description" },
+    icon: "assets/logo.png",
     capabilities: ["chat", "translate"],
   };
   await expect(
@@ -281,6 +325,23 @@ test("community metadata reads one default-branch manifest and caches only its d
     loadCommunityPluginMetadata("author/..", { fetchImpl })
   ).resolves.toBeNull();
   expect(fetchImpl).toHaveBeenCalledTimes(1);
+});
+
+test("community preview resolves only a raster path within the repository", () => {
+  expect(communityPluginIconUrl("author/plugin", "assets/My Logo.webp")).toBe(
+    "https://raw.githubusercontent.com/author/plugin/HEAD/assets/My%20Logo.webp"
+  );
+  for (const icon of [
+    undefined,
+    "https://example.invalid/logo.png",
+    "/logo.png",
+    "../logo.png",
+    "assets/../logo.png",
+    "assets\\logo.png",
+    "assets/logo.svg",
+  ]) {
+    expect(communityPluginIconUrl("author/plugin", icon)).toBeUndefined();
+  }
 });
 
 test("community metadata uses an hour cache and revalidates on manual refresh after one minute", async () => {
