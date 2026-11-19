@@ -272,6 +272,8 @@ export interface Invocation<TResult> {
 export interface ProviderSetting {
   key: string;
   label: string;
+  helpText?: string;
+  helpTextI18n?: Record<string, string>;
   type: "text" | "password" | "number" | "boolean" | "select";
   defaultValue?: string | number | boolean;
   isSecret?: boolean;
@@ -329,7 +331,7 @@ export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
-  isFree?: boolean;
+  freeTier?: "free" | "quota-limited" | "some-models" | "time-limited";
   apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];

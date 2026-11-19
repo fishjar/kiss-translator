@@ -673,7 +673,7 @@ export default function ProviderPlugins() {
                     pack.manifest.version,
                     entries
                   )}
-                  <PluginFreeBadge isFree={pack.manifest.isFree} />
+                  <PluginFreeBadge freeTier={pack.manifest.freeTier} />
                 </Typography>
                 {directoryStatus(
                   pack.id,

@@ -1,6 +1,7 @@
 import { downloadProviderPackage } from "./package";
 import { providerError } from "./capabilities";
 import { capabilityLabelKeys } from "./capabilityLabels";
+import { isFreeTier } from "./freeTier";
 import { validateCapabilities } from "./instances";
 import { SDK_VERSION } from "./sdk/version";
 
@@ -140,7 +141,7 @@ export function validateOfficialDirectory(data) {
       !Number.isSafeInteger(entry.apiVersion) ||
       entry.apiVersion < 1 ||
       typeof entry.name !== "string" ||
-      (entry.isFree !== undefined && typeof entry.isFree !== "boolean") ||
+      (entry.freeTier !== undefined && !isFreeTier(entry.freeTier)) ||
       !/^[a-f0-9]{64}$/.test(entry.sha256) ||
       entry.downloadUrl !==
         `${OFFICIAL_BASE}${entry.id}/${entry.version}.zip` ||
@@ -228,7 +229,7 @@ function communityPluginSummary(data, capabilities) {
     description: typeof data.description === "string" ? data.description : "",
     nameI18n: directoryTranslations(data.nameI18n),
     descriptionI18n: directoryTranslations(data.descriptionI18n),
-    ...(typeof data.isFree === "boolean" && { isFree: data.isFree }),
+    ...(isFreeTier(data.freeTier) && { freeTier: data.freeTier }),
     capabilities: [
       ...new Set(
         capabilities.filter(

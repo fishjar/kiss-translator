@@ -82,7 +82,17 @@ export function mergeSettingFields(shared = [], settings = []) {
       !field?.key ||
       !/^[A-Za-z_$][\w$]*$/.test(field.key) ||
       forbidden.has(field.key) ||
-      !["text", "password", "number", "boolean", "select"].includes(field.type)
+      !["text", "password", "number", "boolean", "select"].includes(
+        field.type
+      ) ||
+      (field.helpText !== undefined && typeof field.helpText !== "string") ||
+      (field.helpTextI18n !== undefined &&
+        (!field.helpTextI18n ||
+          typeof field.helpTextI18n !== "object" ||
+          Array.isArray(field.helpTextI18n) ||
+          Object.values(field.helpTextI18n).some(
+            (text) => typeof text !== "string"
+          )))
     ) {
       throw providerError("INVALID_MANIFEST", "Invalid setting field.");
     }

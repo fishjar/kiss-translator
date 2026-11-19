@@ -668,6 +668,7 @@ export function ProviderSettings({
         key={field.key}
         size="small"
         label={providerText(field.label, field.labelI18n)}
+        helperText={providerText(field.helpText, field.helpTextI18n)}
         required={field.required}
         select={field.type === "select"}
         type={field.type === "number" ? "number" : "text"}

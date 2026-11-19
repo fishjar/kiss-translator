@@ -115,7 +115,7 @@ async function render() {
 
 test("plugin service table shows template image features without adopting instance features", async () => {
   const current = pack();
-  current.manifest.isFree = true;
+  current.manifest.freeTier = "free";
   current.manifest.services[0].capabilities = {
     parseImage: {
       handler: "parseImage",
@@ -200,7 +200,7 @@ test.each([
 
 test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
   const old = pack("1.2.1", "deepseek");
-  old.manifest.isFree = true;
+  old.manifest.freeTier = "free";
   mockPackages = [old];
   const entry = {
     id: old.id,

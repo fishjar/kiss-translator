@@ -50,18 +50,23 @@ const catalog = {
   ],
 };
 
-test("official catalog preserves boolean free declarations and rejects invalid types", () => {
-  for (const isFree of [true, false]) {
+test("official catalog preserves free tiers and rejects invalid values", () => {
+  for (const freeTier of [
+    "free",
+    "quota-limited",
+    "some-models",
+    "time-limited",
+  ]) {
     const data = {
       ...catalog,
-      plugins: catalog.plugins.map((p) => ({ ...p, isFree })),
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier })),
     };
-    expect(validateOfficialDirectory(data).plugins[0].isFree).toBe(isFree);
+    expect(validateOfficialDirectory(data).plugins[0].freeTier).toBe(freeTier);
   }
   expect(() =>
     validateOfficialDirectory({
       ...catalog,
-      plugins: catalog.plugins.map((p) => ({ ...p, isFree: "yes" })),
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier: "yes" })),
     })
   ).toThrow();
 });

@@ -1,6 +1,7 @@
 import { supportsSdkVersion } from "./sdk/version";
 import { unzipSync, strFromU8 } from "fflate";
 import { providerError } from "./capabilities";
+import { isFreeTier } from "./freeTier";
 import { validateDefaultPrompts } from "./defaultPrompts";
 import { validateDeclarativeRules } from "./declarativeRules";
 import {
@@ -145,7 +146,7 @@ function parseProviderFiles(files) {
     !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
-    (manifest.isFree !== undefined && typeof manifest.isFree !== "boolean") ||
+    (manifest.freeTier !== undefined && !isFreeTier(manifest.freeTier)) ||
     !Array.isArray(manifest.services) ||
     !manifest.services.length ||
     (manifest.resources !== undefined &&
