@@ -62,7 +62,12 @@ jest.mock("../../providers/packageFingerprint", () => ({
   packageFingerprint: jest.fn(async () => "fingerprint"),
 }));
 jest.mock("../../components/ApiProviderIcon", () => () => null);
-jest.mock("react-markdown", () => ({ children }) => children);
+jest.mock(
+  "react-markdown",
+  () =>
+    ({ children }) =>
+      children
+);
 
 const pack = (version = "1.0.0", id = "example-plugin") => ({
   id,
