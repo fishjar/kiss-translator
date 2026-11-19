@@ -22,7 +22,8 @@ export class YouTubeCaptionBridgeClient {
     this.onMessage = (event) => {
       const data = event.data;
       if (
-        event.source !== pageWindow() ||
+        // Safari + Tampermonkey delivers same-window messages with a null source.
+        (event.source !== pageWindow() && event.source !== null) ||
         event.origin !== window.location.origin ||
         data?.protocol !== YOUTUBE_CAPTION_PROTOCOL
       )

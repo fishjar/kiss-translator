@@ -12,10 +12,10 @@ let originalFetch, originalPost, originalObserver, observed, posts;
 const flush = async () => {
   for (let i = 0; i < 15; i++) await Promise.resolve();
 };
-const request = async (action, extra = {}) => {
+const request = async (action, extra = {}, source = window) => {
   window.dispatchEvent(
     new MessageEvent("message", {
-      source: window,
+      source,
       origin: window.location.origin,
       data: {
         protocol: "kiss-youtube-captions-v1",
@@ -256,4 +256,10 @@ test("production-compiled installer still answers requests once serialized into 
     expect.objectContaining({ requestId: "serialized" }),
     window.location.origin
   );
+});
+
+test("answers requests whose source is null (Safari userscript managers)", async () => {
+  installYoutubeBridge();
+  const response = await request("snapshot", {}, null);
+  expect(response).toMatchObject({ type: "response", requestId: "snapshot" });
 });
