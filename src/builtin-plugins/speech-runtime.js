@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "../providers/sdk/version";
 import { createProviderRegistry } from "../providers/registry";
 import { providerError } from "../providers/capabilities";
 import { OPT_TRANS_SYSTEM_TTS } from "../config/apiConstants";
@@ -11,7 +12,7 @@ export function invokeBackgroundSpeech(instance, capability, input, options) {
         instance.apiType !== OPT_TRANS_SYSTEM_TTS ||
         instance.provider?.source?.external ||
         (instance.provider &&
-          (instance.provider.apiVersion !== 1 ||
+          (!supportsSdkVersion(instance.provider.apiVersion) ||
             instance.provider.implementation.kind !== "native" ||
             instance.provider.implementation.entry !== OPT_TRANS_SYSTEM_TTS))
       )

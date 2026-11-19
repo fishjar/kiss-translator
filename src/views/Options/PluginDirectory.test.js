@@ -96,7 +96,7 @@ test("official and community sections are stacked; opening only loads metadata",
   expect(installCommunity).toHaveBeenCalledWith(repo.html_url);
 });
 
-test.each([{ kind: "page" }, { minHostVersion: "999999.0.0" }])(
+test.each([{ kind: "page" }, { apiVersion: 99 }])(
   "incompatible catalog entries remain visible but cannot be installed: %j",
   async (requirements) => {
     loadPluginDirectory.mockImplementation(async (kind) =>

@@ -1406,6 +1406,16 @@ export const PROVIDER_PLUGINS_I18N = {
     vi: "Khám phá, cài đặt và quản lý plugin chính thức và cộng đồng",
     ru: "Поиск, установка и управление официальными и сторонними плагинами",
   },
+  provider_plugins_current_api: {
+    zh: "当前插件 API",
+    en: "Current plugin API",
+    zh_TW: "目前的外掛 API",
+    ja: "現在のプラグイン API",
+    ko: "현재 플러그인 API",
+    tr: "Güncel eklenti API sürümü",
+    vi: "API plugin hiện tại",
+    ru: "Текущий API плагинов",
+  },
   quick_translation_test: {
     zh: "快捷翻译测试",
     en: "Quick translation test",

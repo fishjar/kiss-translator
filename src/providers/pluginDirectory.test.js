@@ -75,7 +75,6 @@ test("catalog preserves unsupported declarations for explanation, while installa
   const entry = {
     ...catalog.plugins[0],
     kind: "page",
-    minHostVersion: "999999.0.0",
   };
   expect(
     validateOfficialDirectory({ schemaVersion: 1, plugins: [entry] }).plugins[0]
@@ -88,7 +87,7 @@ test("catalog preserves unsupported declarations for explanation, while installa
 });
 
 test("unsupported integer API versions remain visible but cannot be downloaded", async () => {
-  const entry = { ...catalog.plugins[0], apiVersion: 2 };
+  const entry = { ...catalog.plugins[0], apiVersion: 3 };
   const directory = {
     schemaVersion: 1,
     plugins: [

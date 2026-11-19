@@ -4,6 +4,7 @@ import { logger } from "../log";
  * @description 网页图片悬停检测器：负责悬停识别合格 <img>并在图片外上方展示操作条，支持布局分析、线框点选与按需翻译。
  */
 
+import { automaticLayoutRegions } from "./layoutSelection";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import DualActionButton from "../../views/ImageTranslate/DualActionButton";
@@ -374,6 +375,7 @@ export class ImageHoverDetector {
 
   #toggleRegion(index) {
     if (!this.#layoutRegions[index]) return;
+    automaticLayoutRegions.delete(this.#layoutRegions);
     this.#layoutRegions[index] = {
       ...this.#layoutRegions[index],
       enabled: this.#layoutRegions[index].enabled === false,

@@ -3,12 +3,8 @@ import { providerError } from "./capabilities";
 import { capabilityLabelKeys } from "./capabilityLabels";
 import { isFreeTier } from "./freeTier";
 import { validateCapabilities } from "./instances";
-import { SDK_VERSION } from "./sdk/version";
 
-import {
-  assertPluginCompatibility,
-  validatePluginCompatibilityFields,
-} from "./compatibility";
+import { assertPluginCompatibility } from "./compatibility";
 
 export const OFFICIAL_REPOSITORY =
   "https://github.com/fishjar/kiss-translator-plugins";
@@ -154,10 +150,6 @@ export function validateOfficialDirectory(data) {
       );
     if (entry.kind !== undefined && typeof entry.kind !== "string")
       throw providerError("INVALID_PACKAGE", "Invalid plugin kind.");
-    validatePluginCompatibilityFields({
-      apiVersion: SDK_VERSION,
-      minHostVersion: entry.minHostVersion,
-    });
     ids.add(entry.id);
   }
   return data;

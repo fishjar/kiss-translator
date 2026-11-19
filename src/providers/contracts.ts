@@ -1,4 +1,6 @@
-/** Plugin API 1 task contracts. Provider definitions and user instances are separate. */
+import type { SUPPORTED_SDK_VERSIONS } from "./sdk/version";
+
+/** Plugin API task contracts. Provider definitions and user instances are separate. */
 import type {
   DecisionState,
   ChoiceQuestion,
@@ -322,9 +324,8 @@ export interface ServiceDefinition {
   }>;
 }
 export interface PluginCompatibility {
-  apiVersion: 1;
+  apiVersion: (typeof SUPPORTED_SDK_VERSIONS)[number];
   kind?: "provider";
-  minHostVersion?: string;
 }
 
 export interface PluginManifest extends PluginCompatibility {
@@ -332,7 +333,6 @@ export interface PluginManifest extends PluginCompatibility {
   name: string;
   version: string;
   freeTier?: "free" | "quota-limited" | "some-models" | "time-limited";
-  apiVersion: 1;
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
   icon?: string;
@@ -381,7 +381,6 @@ export type DeclarativeRules =
 export interface ProviderSnapshot
   extends ServiceDefinition,
     PluginCompatibility {
-  apiVersion: 1;
   source?: {
     pluginId: string;
     pluginName?: string;

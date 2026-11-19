@@ -55,7 +55,7 @@ test("network summary includes every effective service scope and deduplicates sh
 test("stored plugins requiring a newer host can still display network metadata", () => {
   const summary = summarizePackageNetwork(
     packageDefinitions({
-      manifest: { ...manifest, minHostVersion: "999999.0.0" },
+      manifest: { ...manifest, apiVersion: 99 },
     })
   );
   expect(summary.origins).toEqual(["https://example.invalid"]);

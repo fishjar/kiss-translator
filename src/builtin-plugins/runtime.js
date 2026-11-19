@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "../providers/sdk/version";
 import { builtinPlugins } from "./index";
 import { createProviderRegistry } from "../providers/registry";
 import { providerError } from "../providers/capabilities";
@@ -251,7 +252,7 @@ export function createNativeRegistry(
     resolveInstance: async (id) => {
       const api = await resolveInstance(id);
       const definition = definitions.get(api?.apiType);
-      if (api?.provider && api.provider.apiVersion !== 1)
+      if (api?.provider && !supportsSdkVersion(api.provider.apiVersion))
         throw providerError(
           "SDK_VERSION_UNSUPPORTED",
           "Unsupported native snapshot version."

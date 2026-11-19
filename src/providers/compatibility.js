@@ -1,24 +1,7 @@
-import packageInfo from "../../package.json";
 import { providerError } from "./capabilities";
 import { supportsSdkVersion } from "./sdk/version";
 
-const versionParts = (value) => {
-  if (typeof value !== "string" || !/^\d+\.\d+\.\d+$/.test(value))
-    throw providerError(
-      "INVALID_MANIFEST",
-      "minHostVersion must be a three-part version."
-    );
-  const parts = value.split(".").map(Number);
-  if (!parts.every(Number.isSafeInteger))
-    throw providerError(
-      "INVALID_MANIFEST",
-      "Version components exceed safe integers."
-    );
-  return parts;
-};
-
-// Validate the contract without rewriting package contents.
-export function validatePluginCompatibilityFields(definition) {
+export function assertPluginCompatibility(definition) {
   if (
     Object.hasOwn(definition, "manifestVersion") ||
     Object.hasOwn(definition, "rulesVersion")
@@ -42,27 +25,6 @@ export function validatePluginCompatibilityFields(definition) {
       "UNSUPPORTED_PLUGIN_KIND",
       `Unsupported plugin kind: ${String(definition.kind)}`
     );
-  if (definition.minHostVersion !== undefined)
-    versionParts(definition.minHostVersion);
-}
-
-export function assertPluginCompatibility(
-  definition,
-  currentVersion = packageInfo.version
-) {
-  validatePluginCompatibilityFields(definition);
-  if (definition.minHostVersion === undefined) return;
-  const required = versionParts(definition.minHostVersion);
-  const current = versionParts(currentVersion);
-  const diff =
-    current
-      .map((part, index) => part - required[index])
-      .find((part) => part !== 0) || 0;
-  if (diff < 0)
-    throw providerError(
-      "HOST_VERSION_UNSUPPORTED",
-      `Requires KISS Translator ${definition.minHostVersion}; current version is ${currentVersion}.`
-    );
 }
 
 export function pluginCompatibilityError(definition) {
@@ -80,8 +42,5 @@ export function pluginCompatibilityFields(definition) {
       apiVersion: definition.apiVersion,
     }),
     ...(definition.kind !== undefined && { kind: definition.kind }),
-    ...(definition.minHostVersion !== undefined && {
-      minHostVersion: definition.minHostVersion,
-    }),
   };
 }

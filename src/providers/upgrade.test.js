@@ -91,10 +91,12 @@ test("upgrades the snapshot and resources while preserving identity and every ho
   const api = oldApi();
   const original = JSON.stringify(api);
   const pack = newPack();
+  pack.manifest.apiVersion = 2;
   const result = upgradeServiceInstance(api, pack);
   expect(result).toEqual({
     ...api,
     provider: expect.objectContaining({
+      apiVersion: 2,
       code: pack.implementations.text,
       resources: pack.resources,
       source: expect.objectContaining({ version: "2.0.0" }),
@@ -150,7 +152,7 @@ test("incompatible host and stale or mismatched upgrade targets cannot change an
   expect(() =>
     upgradeServiceInstance(api, {
       ...pack,
-      manifest: { ...pack.manifest, minHostVersion: "999.0.0" },
+      manifest: { ...pack.manifest, apiVersion: 99 },
     })
   ).toThrow();
   for (const changes of [

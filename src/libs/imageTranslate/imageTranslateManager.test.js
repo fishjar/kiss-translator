@@ -5,6 +5,7 @@
 
 import { act } from "react";
 import { APP_CONSTS } from "../../config/app";
+import { automaticLayoutRegions } from "./layoutSelection";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;
@@ -120,6 +121,11 @@ describe("ImageTranslateManager", () => {
     const boxProps = () =>
       require("../../views/ImageTranslate").mock.calls.slice(-1)[0][0];
     const firstProps = boxProps();
+    const automatic = regions.map((region) => ({ ...region }));
+    automaticLayoutRegions.add(automatic);
+    act(() => firstProps.onLayoutDetected(automatic));
+    act(() => callbacks.onLayoutChange(automatic, false));
+    expect(boxProps().selectedRegions).toBeNull();
     act(() => firstProps.onLayoutDetected(regions, { replace: true }));
     expect(mockSetScreenshotLayout).toHaveBeenLastCalledWith(regions, true);
     act(() => boxProps().onSettingResetLayout());
@@ -309,6 +315,21 @@ describe("ImageTranslateManager", () => {
       expect(
         document.querySelectorAll("polygon")[1].getAttribute("stroke-dasharray")
       ).toBe("4 3");
+    });
+
+    test("keeps detected regions automatic when reopening the same image", async () => {
+      await open("menu");
+      act(() => boxProps().onSettingResetLayout());
+      const automatic = regions.map((region) => ({ ...region }));
+      automaticLayoutRegions.add(automatic);
+      act(() => boxProps().onLayoutDetected(automatic));
+      act(() => manager.closeBox());
+      act(() => hover());
+      await open("menu");
+
+      const reopened = boxProps().selectedRegions;
+      expect(reopened).toBe(automatic);
+      expect(automaticLayoutRegions.has(reopened)).toBe(true);
     });
 
     test("preserves layout on OCR changes and invalidates it on layout service changes", async () => {

@@ -1,4 +1,3 @@
-import { supportsSdkVersion } from "./sdk/version";
 import { unzipSync, strFromU8 } from "fflate";
 import { providerError } from "./capabilities";
 import { isFreeTier } from "./freeTier";
@@ -143,7 +142,6 @@ function parseProviderFiles(files) {
   if (
     Object.hasOwn(manifest, "manifestVersion") ||
     Object.hasOwn(manifest, "rulesVersion") ||
-    !supportsSdkVersion(manifest.apiVersion) ||
     !/^[a-z][a-z0-9-]{1,100}$/.test(manifest.id) ||
     !/^\d+\.\d+\.\d+$/.test(manifest.version) ||
     (manifest.freeTier !== undefined && !isFreeTier(manifest.freeTier)) ||

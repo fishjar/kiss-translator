@@ -1,4 +1,3 @@
-import { supportsSdkVersion } from "./sdk/version";
 import {
   PROVIDER_CAPABILITIES,
   providerError,
@@ -166,7 +165,6 @@ export function createServiceInstance(
   if (
     Object.hasOwn(manifest, "manifestVersion") ||
     Object.hasOwn(manifest, "rulesVersion") ||
-    !supportsSdkVersion(manifest.apiVersion) ||
     !apiSlug
   ) {
     throw providerError(
