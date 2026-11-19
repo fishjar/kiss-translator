@@ -117,7 +117,7 @@ export function previewServiceUpdate(api, manifest, service) {
   const before = api.provider;
   const previousFields = before.settings || [];
   const fields = mergeSettingFields(manifest.sharedSettings, service.settings);
-  const skipped = copyCompatibleConfig(api, fields).skipped;
+  const skipped = copyCompatibleConfig(api, fields, service).skipped;
   // Removed fields are not copied either, and should be explained before creation.
   for (const field of previousFields)
     if (

@@ -293,6 +293,7 @@ export interface ServiceDefinition {
   capabilities: Partial<Record<Capability, CapabilityDescriptor>>;
   settings?: ProviderSetting[];
   modelField?: string;
+  allowCustomModel?: boolean;
   defaultPrompts?: Partial<
     Record<
       | "batch"
@@ -419,7 +420,12 @@ export interface ProviderPackageIndex extends PluginCompatibility {
   services: Array<
     Pick<
       ServiceDefinition,
-      "id" | "name" | "capabilities" | "modelField" | "models"
+      | "id"
+      | "name"
+      | "capabilities"
+      | "modelField"
+      | "models"
+      | "allowCustomModel"
     >
   >;
 }

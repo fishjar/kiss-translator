@@ -12,7 +12,7 @@ const clone = (value) => JSON.parse(JSON.stringify(value));
 const secret = (field) => field.isSecret === true || field.type === "password";
 
 /** Copy only compatible values. Changed enum/range constraints require the new default or user input. */
-export function copyCompatibleConfig(api, fields) {
+export function copyCompatibleConfig(api, fields, service) {
   const values = {};
   const skipped = [];
   for (const field of fields) {
@@ -26,17 +26,26 @@ export function copyCompatibleConfig(api, fields) {
       previous.type === "text" &&
       field.type === "select" &&
       !secret(field);
+    const modelBecameFixed =
+      service?.allowCustomModel === false &&
+      field.key === (service.modelField || "model") &&
+      previous.type === "select" &&
+      field.type === "text";
     if (
-      (previous.type !== field.type && !modelBecameSelect) ||
+      (previous.type !== field.type &&
+        !modelBecameSelect &&
+        !modelBecameFixed) ||
       secret(previous) !== secret(field)
     ) {
       skipped.push(field.key);
       continue;
     }
     try {
-      values[field.key] = validateConfig([field], { [field.key]: value })[
-        field.key
-      ];
+      values[field.key] = validateConfig(
+        [field],
+        { [field.key]: value },
+        service
+      )[field.key];
     } catch {
       skipped.push(field.key);
     }
@@ -71,7 +80,8 @@ export function upgradeServiceInstance(api, pack) {
   const service = pack.manifest.services.find((item) => item.id === serviceId);
   const copied = copyCompatibleConfig(
     api,
-    mergeSettingFields(pack.manifest.sharedSettings, service.settings)
+    mergeSettingFields(pack.manifest.sharedSettings, service.settings),
+    service
   );
   const next = createServiceInstance(
     pack.manifest,

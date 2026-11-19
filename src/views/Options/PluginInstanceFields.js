@@ -616,14 +616,16 @@ export function ProviderSettings({
       return (
         <Autocomplete
           key={field.key}
-          freeSolo
+          freeSolo={service?.allowCustomModel !== false}
+          disableClearable={service?.allowCustomModel === false}
           forcePopupIcon
           size="small"
           options={(service?.models || []).map((model) => model.id)}
           value={values[field.key] || ""}
           onChange={(_, value) => onChange(field.key, value || "")}
           onInputChange={(_, value, reason) => {
-            if (reason === "input") onChange(field.key, value);
+            if (reason === "input" && service?.allowCustomModel !== false)
+              onChange(field.key, value);
           }}
           renderOption={(props, id) => {
             const model = service?.models?.find((item) => item.id === id);
