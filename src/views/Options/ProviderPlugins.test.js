@@ -198,6 +198,31 @@ test.each([
   }
 );
 
+test("an official update displays its free tier after the update badge before installation", async () => {
+  const old = pack("1.2.1", "openrouter");
+  mockPackages = [old];
+  const entry = {
+    id: old.id,
+    name: "OpenRouter",
+    version: "1.2.4",
+    apiVersion: 1,
+    capabilities: ["chat"],
+    freeTier: "some-models",
+  };
+  loadPluginDirectory.mockImplementation(async (kind) =>
+    kind === "official" ? { plugins: [entry] } : { items: [], total_count: 0 }
+  );
+
+  await render();
+
+  const title = container.querySelector(
+    "section .MuiChip-colorInfo"
+  ).parentElement;
+  expect(title.textContent).toContain(
+    "Example plugin · 1.2.1有更新 · 1.2.4部分模型免费"
+  );
+});
+
 test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
   const old = pack("1.2.1", "deepseek");
   old.manifest.freeTier = "free";
