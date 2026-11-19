@@ -122,7 +122,7 @@ describe("ImageTranslateManager", () => {
       require("../../views/ImageTranslate").mock.calls.slice(-1)[0][0];
     const firstProps = boxProps();
     const automatic = regions.map((region) => ({ ...region }));
-    automaticLayoutRegions.add(automatic);
+    automaticLayoutRegions.set(automatic);
     act(() => firstProps.onLayoutDetected(automatic));
     act(() => callbacks.onLayoutChange(automatic, false));
     expect(boxProps().selectedRegions).toBeNull();
@@ -317,11 +317,21 @@ describe("ImageTranslateManager", () => {
       ).toBe("4 3");
     });
 
-    test("keeps detected regions automatic when reopening the same image", async () => {
+    test("reuses automatic regions on reopen until the recognition service changes", async () => {
+      const recognitionService = { apiSlug: "doc", capability: "parseImage" };
+      act(() =>
+        manager.updateSetting({
+          ...setting,
+          imageTranslateSetting: {
+            ...setting.imageTranslateSetting,
+            recognitionService,
+          },
+        })
+      );
       await open("menu");
       act(() => boxProps().onSettingResetLayout());
       const automatic = regions.map((region) => ({ ...region }));
-      automaticLayoutRegions.add(automatic);
+      automaticLayoutRegions.set(automatic, recognitionService);
       act(() => boxProps().onLayoutDetected(automatic));
       act(() => manager.closeBox());
       act(() => hover());
@@ -330,6 +340,21 @@ describe("ImageTranslateManager", () => {
       const reopened = boxProps().selectedRegions;
       expect(reopened).toBe(automatic);
       expect(automaticLayoutRegions.has(reopened)).toBe(true);
+
+      act(() => manager.closeBox());
+      act(() =>
+        manager.updateSetting({
+          ...setting,
+          imageTranslateSetting: {
+            ...setting.imageTranslateSetting,
+            recognitionService: { apiSlug: "ocr", capability: "recognizeText" },
+          },
+        })
+      );
+      act(() => hover());
+      expect(document.querySelectorAll("polygon")).toHaveLength(0);
+      await open("translate");
+      expect(boxProps().selectedRegions).toBeNull();
     });
 
     test("preserves layout on OCR changes and invalidates it on layout service changes", async () => {

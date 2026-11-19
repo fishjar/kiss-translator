@@ -21,7 +21,10 @@ import { sendBgMsg } from "../../libs/msg";
 import { blobToDataUrl } from "../../libs/imageTranslate/imageReader";
 import { browser } from "../../libs/browser";
 import { recognitionFeature } from "../../fileTranslation/recognition";
-import { automaticLayoutRegions } from "../../libs/imageTranslate/layoutSelection";
+import {
+  automaticLayoutRegions,
+  isStaleAutomaticLayout,
+} from "../../libs/imageTranslate/layoutSelection";
 
 export default function ImageTranslateBox({
   showBox = false,
@@ -150,23 +153,30 @@ export default function ImageTranslateBox({
   const hasAutoTriggeredRef = useRef(false);
   const lastHandledVersionRef = useRef(null);
   const layoutRegionsRef = useRef(selectedRegions);
+  const recognitionService = scene.recognitionService;
   const recognitionIncludesLayout = recognitionFeature(
     setting.transApis?.find(
-      (api) => api.apiSlug === scene.recognitionService?.apiSlug
+      (api) => api.apiSlug === recognitionService?.apiSlug
     ),
-    scene.recognitionService?.capability
+    recognitionService?.capability
   )?.includesLayout;
-  const rememberLayout = useCallback((regions, explicit = false) => {
-    const current = layoutRegionsRef.current;
-    if (explicit) {
-      layoutRegionsRef.current = regions;
-    } else if (!current || automaticLayoutRegions.has(current)) {
-      regions = [...regions];
-      automaticLayoutRegions.add(regions);
-      layoutRegionsRef.current = regions;
-    }
-    return regions;
-  }, []);
+  const rememberLayout = useCallback(
+    (regions, explicit = false) => {
+      const current = layoutRegionsRef.current;
+      if (explicit) {
+        layoutRegionsRef.current = regions;
+      } else if (!current || automaticLayoutRegions.has(current)) {
+        regions = [...regions];
+        automaticLayoutRegions.set(
+          regions,
+          recognitionIncludesLayout ? recognitionService : undefined
+        );
+        layoutRegionsRef.current = regions;
+      }
+      return regions;
+    },
+    [recognitionIncludesLayout, recognitionService]
+  );
   const lastActionRef = useRef("all");
   const taskStateRef = useRef();
   taskStateRef.current = { onTaskStateChange, requestVersion };
@@ -189,29 +199,15 @@ export default function ImageTranslateBox({
     layoutRegionsRef.current = selectedRegions;
   }, [selectedRegions, requestVersion, currentRegionsKey]);
 
-  const recognitionApiSlug = scene.recognitionService?.apiSlug;
-  const recognitionCapability = scene.recognitionService?.capability;
-  const previousRecognition = useRef(null);
   useEffect(() => {
-    const previous = previousRecognition.current;
-    previousRecognition.current = {
-      apiSlug: recognitionApiSlug,
-      capability: recognitionCapability,
-      includesLayout: recognitionIncludesLayout,
-    };
-    if (
-      previous?.includesLayout &&
-      (previous.apiSlug !== recognitionApiSlug ||
-        previous.capability !== recognitionCapability) &&
-      automaticLayoutRegions.has(layoutRegionsRef.current)
-    ) {
+    if (isStaleAutomaticLayout(layoutRegionsRef.current, recognitionService)) {
       layoutRegionsRef.current = null;
       onSettingResetLayout?.();
     }
   }, [
-    recognitionApiSlug,
-    recognitionCapability,
-    recognitionIncludesLayout,
+    recognitionService,
+    selectedRegions,
+    requestVersion,
     onSettingResetLayout,
   ]);
 

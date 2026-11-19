@@ -435,7 +435,7 @@ describe("ScreenshotOverlay", () => {
 
   test("preserves the automatic layout on visibility changes until a region is selected", () => {
     const automatic = regions.map((region) => ({ ...region }));
-    automaticLayoutRegions.add(automatic);
+    automaticLayoutRegions.set(automatic);
     act(() => overlay.setLayoutState(automatic));
     act(() => button("layout").click());
     act(() => button("layout").click());
