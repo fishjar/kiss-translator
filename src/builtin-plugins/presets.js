@@ -32,6 +32,7 @@ import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
+  OPT_TRANS_RAPID_MLX,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
@@ -204,6 +205,11 @@ export const NATIVE_PRESET_OVERRIDES = {
   },
   [OPT_TRANS_CLOUDFLAREAI]: {
     url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
+  },
+  [OPT_TRANS_RAPID_MLX]: {
+    url: "http://127.0.0.1:8000/v1/chat/completions",
+    modelListUrl: "http://127.0.0.1:8000/v1/models",
+    ...defaultAiApiOpts,
   },
   [OPT_TRANS_OLLAMA]: {
     url: "http://localhost:11434/v1/chat/completions",

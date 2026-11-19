@@ -239,3 +239,38 @@ describe("modelList", () => {
     });
   });
 });
+
+describe("Rapid-MLX model discovery", () => {
+  test.each([undefined, "", "   ", " secret "])(
+    "allows optional API keys: %s",
+    (key) => {
+      const request = createModelListRequest({
+        apiType: "Rapid-MLX",
+        modelListUrl: " http://127.0.0.1:8000/v1/models ",
+        key,
+      });
+      expect(request.input).toBe("http://127.0.0.1:8000/v1/models");
+      expect(request.init.method).toBe("GET");
+      expect(request.init.headers?.Authorization).toBe(
+        key?.trim() ? "Bearer secret" : undefined
+      );
+      expect(
+        parseModelListResponse({
+          data: [{ id: "mlx-community/Qwen3.5-4B-MLX-4bit" }],
+        })
+      ).toEqual(["mlx-community/Qwen3.5-4B-MLX-4bit"]);
+    }
+  );
+  test("still requires a URL and preserves cloud key requirements", () => {
+    expect(
+      createModelListRequest({ apiType: "Rapid-MLX", key: "" })
+    ).toBeNull();
+    expect(
+      createModelListRequest({
+        apiType: OPT_TRANS_OPENAI,
+        modelListUrl: "https://api.openai.com/v1/models",
+        key: "",
+      })
+    ).toBeNull();
+  });
+});

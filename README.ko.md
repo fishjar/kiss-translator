@@ -43,7 +43,7 @@
 
 ### 서비스 설정과 인터페이스 플러그인
 
-- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
+- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, Rapid-MLX, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
 - **기능별 자유로운 서비스 할당**: 텍스트 번역, 사전 검색, 자막 분할, OCR 문자 인식, 음성 합성 등 기능별로 독립된 서비스와 모델 파라미터를 설정할 수 있습니다. 모델 사양에 따라 일괄 배치 번역, 스트리밍 출력, 대화 문맥 기억, AI 전문 용어집, 추론(Reasoning) 설정을 지원합니다.
 - **인터페이스 플러그인 생태계**: 공식 및 외부 플러그인을 별도 목록에서 선택하고 클릭하여 온라인으로 설치할 수 있습니다. ZIP, 로컬 폴더, GitHub 저장소 루트 URL, HTTPS 링크로 가져올 수도 있습니다. 요청은 선언된 네트워크 범위로 제한되며 수동 업데이트와 저장된 서비스 인스턴스 업그레이드를 지원합니다.
 - **개방형 커스텀 프로토콜**: 비표준 API도 플러그인을 통해 연동할 수 있습니다. 자세한 내용은 [플러그인 개발 가이드(중국어)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md), [OpenAI 호환 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md), [DeepSeek 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)를 참고하세요.
@@ -143,6 +143,7 @@
 
 - **접속 정보 확인**: 프로토콜, API 주소 URL, API 키, 모델명이 일치하는지 다시 확인하세요. 서비스나 모델이 일괄 배치 요청이나 스트리밍을 지원하지 않는 경우 해당 옵션을 끄세요.
 - **Ollama 로컬 서비스**: 내장 Ollama 어댑터는 OpenAI 호환 프로토콜을 사용합니다(`/api/chat` 네이티브 프로토콜 아님). 로컬 서버 구동 상태 및 CORS 설정(예: 환경변수 `OLLAMA_ORIGINS=*` 설정)을 확인하세요. 자세한 내용은 [Ollama 연결 문제 #174](https://github.com/fishjar/kiss-translator/issues/174)를 참고하세요.
+- **Rapid-MLX 로컬 서비스**: Apple Silicon에서 추론을 실행하며 API 키는 비워 둘 수 있습니다. [Rapid-MLX 및 확장 프로그램 CORS 설정](docs/rapid-mlx.md)을 참고하세요.
 - **외부 플러그인 서비스**: 테스트 전에 **인터페이스 플러그인** 메뉴에서 권한이 승인되었는지 확인하세요. 프로토콜이나 요청 본문을 수정하려면 플러그인 선언 규칙 또는 소스 코드를 수정하고 인스턴스를 업그레이드하세요.
 
 ### 설정에서 로컬 AI, 파일 번역, 플러그인 메뉴가 보이지 않는 이유는 무엇인가요?

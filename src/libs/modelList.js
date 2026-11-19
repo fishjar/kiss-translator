@@ -2,6 +2,7 @@ import {
   ANTHROPIC_API_VERSION,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_GEMINI,
+  OPT_TRANS_RAPID_MLX,
 } from "../config/api";
 
 // 模型列表 URL 中可显式放置该占位符；存在占位符时不会额外注入 Authorization 头。
@@ -186,9 +187,13 @@ export function createModelListRequest({ apiType, modelListUrl, key }) {
   const trimmedUrl = (modelListUrl || "").trim();
   const trimmedKey = (key || "").trim();
 
-  // 用户没有同时配置模型列表 URL 和 Key 时，不发起网络请求。
-  if (!trimmedUrl || !trimmedKey) {
+  // Rapid-MLX 默认无需 Key；其他服务保留现有鉴权要求。
+  if (!trimmedUrl || (!trimmedKey && apiType !== OPT_TRANS_RAPID_MLX)) {
     return null;
+  }
+
+  if (!trimmedKey) {
+    return { input: trimmedUrl, init: { method: "GET" } };
   }
 
   // 显式占位符优先，允许用户自行决定 key 位于 path、query 或其他自定义位置。

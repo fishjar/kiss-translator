@@ -8,6 +8,7 @@ import {
   OPT_TRANS_BUILTINAI,
   GEMINI_INTERACTIONS_URL,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_RAPID_MLX,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_GEMINI,
   OPT_TRANS_GEMINI_2,
@@ -898,6 +899,37 @@ describe("Apis model list", () => {
   afterEach(() => {
     jest.clearAllMocks();
     document.body.innerHTML = "";
+  });
+
+  test("loads Rapid-MLX models on focus without an API key", async () => {
+    const model = "mlx-community/Qwen3.5-4B-MLX-4bit";
+    fetchModelCatalog.mockResolvedValue({
+      models: [model],
+      thinkingCapabilities: {},
+    });
+    const view = await renderApis(
+      createApi({
+        apiSlug: OPT_TRANS_RAPID_MLX,
+        apiType: OPT_TRANS_RAPID_MLX,
+        key: "",
+        model: "",
+        modelListUrl: "http://127.0.0.1:8000/v1/models",
+      })
+    );
+    const input = getInput(view.container, "model");
+    await act(async () => {
+      Simulate.focus(input);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(fetchModelCatalog).toHaveBeenCalledWith({
+      apiType: OPT_TRANS_RAPID_MLX,
+      modelListUrl: "http://127.0.0.1:8000/v1/models",
+      key: "",
+      httpTimeout: 30,
+    });
+    expect(input.getAttribute("data-options")).toContain(model);
+    view.unmount();
   });
 
   test("loads model list once when model input is focused", async () => {

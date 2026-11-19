@@ -77,6 +77,7 @@ import {
   useApiItem,
 } from "../../hooks/Api";
 import { useConfirm } from "../../hooks/Confirm";
+import { OPT_TRANS_RAPID_MLX } from "../../config/apiConstants";
 import { fetchModelCatalog } from "../../libs/modelList";
 import Box from "@mui/material/Box";
 import ReusableAutocomplete from "./ReusableAutocomplete";
@@ -772,7 +773,7 @@ function LegacyApiFields({
     const requestKey = `${apiSlug}|${modelListUrl}|${key}`;
     if (
       !modelListUrl?.trim() ||
-      !key?.trim() ||
+      (!key?.trim() && apiType !== OPT_TRANS_RAPID_MLX) ||
       requestedModelListKeyRef.current === requestKey ||
       modelListStatus === "loading"
     ) {

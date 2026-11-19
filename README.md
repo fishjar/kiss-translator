@@ -43,7 +43,7 @@
 
 ### 服务配置与接口插件
 
-- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
+- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、Rapid-MLX、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
 - **按能力自由选用**：按文本翻译、词典查词、字幕断句、OCR 识别、语音合成等能力独立配置服务与模型参数；根据模型能力无缝支持批量聚合翻译、流式输出、上下文记忆对话、AI 专业术语及思考链（Reasoning）配置。
 - **接口插件体系**：官方与外部插件分列表展示，点击联网安装；也可通过 ZIP、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入。请求受声明的网络范围限制，支持手动更新及配置实例升级。
 - **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 和 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
@@ -143,6 +143,7 @@
 
 - **核对连接信息**：请仔细核对接口协议、API 地址、API Key 及模型名称是否匹配。若服务或模型不支持批量聚合或流式传输，请关闭对应开关。
 - **Ollama 本地服务**：内置的 Ollama 适配使用 OpenAI 兼容协议（请确保路径正确，非 `/api/chat` 原生协议）；本机调用时需注意服务启动状态与跨域配置（如设置环境变量 `OLLAMA_ORIGINS=*`），详情参考 [Ollama 连接问题 #174](https://github.com/fishjar/kiss-translator/issues/174)。
+- **Rapid-MLX 本地服务**：在 Apple Silicon 上运行推理，API Key 可留空。详见 [Rapid-MLX 配置与扩展跨域设置](docs/rapid-mlx.md)。
 - **外部插件服务**：请先在「接口插件」页面完成插件授权，再进行服务测试。若需调整协议或请求体，请在插件声明式规则或源码中调整并升级实例。
 
 ### 为什么在设置中找不到本地 AI、文件翻译或接口插件入口？

@@ -29,6 +29,7 @@ import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
+  OPT_TRANS_RAPID_MLX,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
@@ -47,6 +48,7 @@ import { genVolcengine } from "./volcengine";
 import { genGemini, genGemini2 } from "./gemini";
 import { genClaude } from "./claude";
 import { genCloudflareAI } from "./cloudflare";
+import { genRapidMlx } from "./rapid-mlx";
 import { genOllama } from "./ollama";
 import { genOpenRouter, genOrcaRouter, genRequesty } from "./routers";
 import { buildSystemRoleMessages, compactMessages } from "./messages";
@@ -124,6 +126,7 @@ const genReqFuncs = {
   [OPT_TRANS_CLAUDE]: genClaude,
   [OPT_TRANS_CLOUDFLAREAI]: genCloudflareAI,
   [OPT_TRANS_OLLAMA]: genOllama,
+  [OPT_TRANS_RAPID_MLX]: genRapidMlx,
   [OPT_TRANS_OPENROUTER]: genOpenRouter,
   [OPT_TRANS_ORCAROUTER]: genOrcaRouter,
   [OPT_TRANS_REQUESTY]: genRequesty,

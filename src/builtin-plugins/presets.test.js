@@ -6,6 +6,7 @@ import {
   OPT_TRANS_LOCALAI,
   OPT_TRANS_QWENMT,
   OPT_TRANS_OPENAI,
+  OPT_TRANS_RAPID_MLX,
   OPT_LANGS_TO,
   OPT_LANGS_FROM,
   OPT_LANGS_MAP,
@@ -48,13 +49,15 @@ const previousModelDefaults = {
 };
 
 test("compiled presets preserve unrelated approved defaults while enabling streaming by default", () => {
-  expect(DEFAULT_API_LIST).toHaveLength(baseline.presetCount);
+  expect(DEFAULT_API_LIST).toHaveLength(baseline.presetCount + 1);
   expect(
     createHash("sha256")
       .update(
         JSON.stringify(
           // New terminology defaults are asserted separately from the historical hash.
-          DEFAULT_API_LIST.map(({ terms, termsList, ...api }) => ({
+          DEFAULT_API_LIST.filter(
+            (api) => api.apiType !== OPT_TRANS_RAPID_MLX
+          ).map(({ terms, termsList, ...api }) => ({
             ...api,
             ...previousModelDefaults[api.apiType],
             ...previousPlacetagDefaults[api.apiType],
@@ -147,13 +150,19 @@ test("public SDK dictionary and native language aliases preserve every previous 
       names: [...OPT_LANGS_MAP],
     },
     to: Object.fromEntries(
-      Object.entries(OPT_LANGS_TO_SPEC).map(([id, table]) => [id, [...table]])
+      Object.entries(OPT_LANGS_TO_SPEC)
+        .filter(([id]) => id !== OPT_TRANS_RAPID_MLX)
+        .map(([id, table]) => [id, [...table]])
     ),
     from: Object.fromEntries(
-      Object.entries(OPT_LANGS_FROM_SPEC).map(([id, table]) => [id, [...table]])
+      Object.entries(OPT_LANGS_FROM_SPEC)
+        .filter(([id]) => id !== OPT_TRANS_RAPID_MLX)
+        .map(([id, table]) => [id, [...table]])
     ),
     codes: Object.fromEntries(
-      Object.entries(OPT_LANGS_TO_CODE).map(([id, table]) => [id, [...table]])
+      Object.entries(OPT_LANGS_TO_CODE)
+        .filter(([id]) => id !== OPT_TRANS_RAPID_MLX)
+        .map(([id, table]) => [id, [...table]])
     ),
   };
   expect(

@@ -13,6 +13,7 @@ import {
   OPT_TRANS_GEMINI_2,
   OPT_TRANS_CLAUDE,
   OPT_TRANS_OLLAMA,
+  OPT_TRANS_RAPID_MLX,
   OPT_TRANS_OPENROUTER,
   OPT_TRANS_ORCAROUTER,
   OPT_TRANS_REQUESTY,
@@ -41,6 +42,7 @@ export function parseNativeDictionaryResponse(res, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RAPID_MLX:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content || "";
     case OPT_TRANS_GEMINI:
@@ -72,6 +74,7 @@ export function parseNativeSummaryResponse(res, apiType) {
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RAPID_MLX:
     case OPT_TRANS_OLLAMA:
       return res?.choices?.[0]?.message?.content?.trim() || "";
     case OPT_TRANS_GEMINI:
@@ -115,6 +118,7 @@ export async function parseNativeSubtitleResponse(
     case OPT_TRANS_OPENROUTER:
     case OPT_TRANS_ORCAROUTER:
     case OPT_TRANS_REQUESTY:
+    case OPT_TRANS_RAPID_MLX:
     case OPT_TRANS_OLLAMA:
       return parseSTRes(
         res?.choices?.[0]?.message?.content ?? "",

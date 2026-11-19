@@ -43,7 +43,7 @@
 
 ### サービス設定と API プラグイン
 
-- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
+- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、Rapid-MLX、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
 - **能力に応じた柔軟な選択**：テキスト翻訳、辞書検索、字幕区切り、OCR 文字認識、音声合成などの機能ごとにサービスとモデルパラメータを個別に設定可能。一括バッチ翻訳、ストリーミング出力、コンテキスト対話記憶、AI 用語集、思考プロセス（Reasoning）設定をサポート。
 - **API プラグインエコシステム**：公式・外部プラグインを別々のリストから選び、クリックしてオンラインでインストールできます。ZIP、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからの導入にも対応。通信先は宣言された範囲に制限され、手動更新と保存済みサービスインスタンスのアップグレードを提供します。
 - **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)、[DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) を参照してください。
@@ -143,6 +143,7 @@
 
 - **設定内容の確認**：プロトコル、API エンドポイント、API キー、モデル名が正しいかご確認ください。サービスやモデルが一括バッチ送信やストリーミングに対応していない場合は、該当オプションを無効にしてください。
 - **Ollama ローカルサービス**：内蔵の Ollama アダプターは OpenAI 互換プロトコルを使用します（`/api/chat` ネイティブプロトコルではありません）。ローカルサーバーの起動状態や CORS 設定（環境変数 `OLLAMA_ORIGINS=*` の指定など）をご確認ください。詳細は [Ollama 接続問題 #174](https://github.com/fishjar/kiss-translator/issues/174) を参照してください。
+- **Rapid-MLX ローカルサービス**：Apple Silicon で推論を実行でき、API キーは省略可能です。[Rapid-MLX の設定と拡張機能の CORS 設定](docs/rapid-mlx.md)を参照してください。
 - **外部プラグインサービス**：テスト前に「API プラグイン」画面で権限が承認されているか確認してください。プロトコルやリクエスト内容を変更する場合は、プラグインの定義やソースコードを修正してインスタンスを更新してください。
 
 ### 設定画面にローカル AI、ファイル翻訳、プラグインが表示されないのはなぜですか？

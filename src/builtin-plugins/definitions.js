@@ -202,6 +202,12 @@ const contracts = {
     stream: false,
     usesMessages: false,
   },
+  "Rapid-MLX": {
+    names: textCapabilities,
+    batch: true,
+    stream: true,
+    usesMessages: true,
+  },
   Ollama: {
     names: textCapabilities,
     batch: true,

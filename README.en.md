@@ -43,7 +43,7 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 ### Service Configuration & Provider Plugins
 
-- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
+- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, Rapid-MLX, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
 - **Select by capability**: Independently configure services and model parameters for text translation, dictionary lookup, subtitle segmentation, OCR recognition, or speech synthesis; supports batch aggregation, streaming responses, multi-turn conversation memory, AI glossaries, and reasoning settings based on model capabilities.
 - **Provider plugin ecosystem**: Browse separate official and external plugin lists and click to install online, or import ZIP archives, local folders, GitHub repository root URLs, or HTTPS links. Requests are restricted to declared network scopes; package updates and saved instance upgrades are manual.
 - **Open custom protocols**: Connect any non-standard API via plugins. See the [plugin development guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md), [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md), and [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
@@ -143,6 +143,7 @@ Rules take effect according to the following hierarchy:
 
 - **Verify connection info**: Double-check the protocol, API endpoint URL, API key, and model name. If the service or model does not support batch requests or streaming, turn those options off.
 - **Ollama local service**: The built-in Ollama adapter uses the OpenAI-compatible endpoint (ensure the path is correct, not the native `/api/chat` protocol); ensure the service is running and configure CORS (e.g. set environment variable `OLLAMA_ORIGINS=*`), see [Ollama connection troubleshooting #174](https://github.com/fishjar/kiss-translator/issues/174).
+- **Rapid-MLX local service**: Run inference on Apple Silicon with an optional API key. See [Rapid-MLX setup and extension CORS configuration](docs/rapid-mlx.md).
 - **External plugin services**: Grant permission in the **Provider plugins** page before testing. To modify protocols or payloads, adjust the plugin declarative rules or source code and upgrade the service instance.
 
 ### Why can't I find Local AI, File Translation, or Provider Plugins in settings?

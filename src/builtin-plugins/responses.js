@@ -32,6 +32,7 @@ import {
   OPT_TRANS_CLAUDE,
   OPT_TRANS_CLOUDFLAREAI,
   OPT_TRANS_OLLAMA,
+  OPT_TRANS_RAPID_MLX,
   OPT_TRANS_CUSTOMIZE,
 } from "../config";
 import { decodeHTMLTranslationText, decodeHTMLEntities } from "../libs/html";
@@ -287,5 +288,6 @@ export const nativeResponseParsers = {
   [OPT_TRANS_CLAUDE]: parseClaudeResponse,
   [OPT_TRANS_CLOUDFLAREAI]: parseCloudflareaiResponse,
   [OPT_TRANS_OLLAMA]: parseOllamaResponse,
+  [OPT_TRANS_RAPID_MLX]: parseOllamaResponse,
   [OPT_TRANS_CUSTOMIZE]: parseCustomizeResponse,
 };
