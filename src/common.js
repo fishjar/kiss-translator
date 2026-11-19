@@ -234,11 +234,6 @@ function hasIframeTranslatableText() {
   return Boolean(walker.nextNode());
 }
 
-async function waitForIframeTranslatableText() {
-  await waitForDocumentReady();
-  return hasIframeTranslatableText();
-}
-
 /**
  * 前端翻译器的核心运行总入口。
  * @param {boolean} isUserscript 是否作为油猴 Userscript 脚本模式运行 (false 代表作为浏览器 Extension 运行)
@@ -293,9 +288,12 @@ export async function run(isUserscript = false) {
       blacklistStartupRecovery.cancel();
     }
 
-    // 5.1. iframe 空内容拦截：默认允许 iframe 翻译，但空 iframe 不继续挂载后续脚本
-    if (isIframe && !(await waitForIframeTranslatableText())) {
-      return;
+    // srcdoc 可能在文档就绪后才填充内容，需要先启动以接收翻译指令并监听 DOM。
+    if (isIframe) {
+      await waitForDocumentReady();
+      if (document.URL !== "about:srcdoc" && !hasIframeTranslatableText()) {
+        return;
+      }
     }
 
     // 6. 细粒度划词/输入框/鼠标悬停组件的专属黑名单拦截，若命中则单独禁用该交互组件
