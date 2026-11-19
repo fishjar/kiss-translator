@@ -163,6 +163,20 @@ describe("resolveApiIconPresentation", () => {
 });
 
 describe("ApiProviderIcon", () => {
+  test("uses the generic icon after a directory preview fails to load", () => {
+    const previewSrc =
+      "https://raw.githubusercontent.com/author/plugin/HEAD/logo.png";
+    const view = renderIcon({ apiType: "Plugin", previewSrc });
+    const image = view.container.querySelector("img");
+    expect(image.getAttribute("src")).toBe(previewSrc);
+    expect(image.crossOrigin).toBe("anonymous");
+
+    act(() => image.dispatchEvent(new Event("error")));
+    expect(view.container.querySelector("img")).toBeNull();
+    expect(view.container.querySelector("svg")).not.toBeNull();
+    view.unmount();
+  });
+
   test("shows provider artwork on the hosted userscript options page", () => {
     mockIsGm = true;
     mockIsOptions = true;

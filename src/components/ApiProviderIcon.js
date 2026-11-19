@@ -115,6 +115,7 @@ export function getApiIconSrc(
 export default function ApiProviderIcon({
   apiType,
   provider,
+  previewSrc,
   label = "",
   size = 22,
   imageSize = 14,
@@ -124,6 +125,7 @@ export default function ApiProviderIcon({
   sx = {},
 }) {
   const [pluginIcon, setPluginIcon] = useState("");
+  const [failedPreviewSrc, setFailedPreviewSrc] = useState("");
   const [packageRevision, setPackageRevision] = useState(0);
   const pluginId = provider?.source?.external && provider.source.pluginId;
   const pluginVersion = provider?.source?.version;
@@ -168,7 +170,8 @@ export default function ApiProviderIcon({
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [pluginId, pluginVersion, packageRevision]);
-  const src = pluginIcon || getApiIconSrc(apiType);
+  const preview = !pluginIcon && previewSrc && previewSrc !== failedPreviewSrc;
+  const src = pluginIcon || (preview ? previewSrc : getApiIconSrc(apiType));
   const presentation = resolveApiIconPresentation(apiType, { lightSurface });
 
   return (
@@ -190,10 +193,14 @@ export default function ApiProviderIcon({
       {src ? (
         <Box
           component="img"
+          key={src}
           src={src}
           alt={label}
+          crossOrigin={preview ? "anonymous" : undefined}
+          referrerPolicy={preview ? "no-referrer" : undefined}
           onError={() => {
             if (pluginIcon) setPluginIcon("");
+            if (preview) setFailedPreviewSrc(previewSrc);
           }}
           sx={(theme) => {
             const imagePresentation = resolveApiIconPresentation(apiType, {

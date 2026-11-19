@@ -22,6 +22,7 @@ import {
 import { packageFingerprint } from "../../providers/packageFingerprint";
 import { packageServiceCatalog } from "../../providers/packageCatalog";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
+import PluginDescription from "./PluginDescription";
 import PluginUpdatePreview from "./PluginUpdatePreview";
 import { previewPackageUpdate } from "../../providers/updatePreview";
 import {
@@ -713,12 +714,13 @@ export default function ProviderPlugins() {
                     {pluginCompatibilityError(pack.manifest).message}
                   </Alert>
                 )}
-                <Typography>
-                  {providerText(
+                <PluginDescription
+                  variant="body1"
+                  description={providerText(
                     pack.manifest.description || "",
                     pack.manifest.descriptionI18n
                   )}
-                </Typography>
+                />
                 <Stack
                   useFlexGap
                   spacing={1}
