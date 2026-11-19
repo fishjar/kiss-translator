@@ -8,8 +8,8 @@ import { assertPluginCompatibility } from "./compatibility";
 
 export const OFFICIAL_REPOSITORY =
   "https://github.com/fishjar/kiss-translator-plugins";
-export const OFFICIAL_BASE =
-  "https://raw.githubusercontent.com/fishjar/kiss-translator-plugins/dist/";
+const RAW_GITHUB = "https://raw.githubusercontent.com/";
+export const OFFICIAL_BASE = `${RAW_GITHUB}fishjar/kiss-translator-plugins/dist/`;
 export const COMMUNITY_PAGE_SIZE = 10;
 const COMMUNITY_RESULT_LIMIT = 1000;
 const PREFIX = "kiss-plugin-directory-v1:";
@@ -128,7 +128,7 @@ export function validateOfficialDirectory(data) {
       "Unsupported official plugin directory."
     );
   const ids = new Set();
-  for (const entry of data.plugins) {
+  const plugins = data.plugins.map((entry) => {
     if (
       !entry ||
       !/^[a-z][a-z0-9-]{1,100}$/.test(entry.id) ||
@@ -151,8 +151,19 @@ export function validateOfficialDirectory(data) {
     if (entry.kind !== undefined && typeof entry.kind !== "string")
       throw providerError("INVALID_PACKAGE", "Invalid plugin kind.");
     ids.add(entry.id);
-  }
-  return data;
+    const { iconUrl, ...plugin } = entry;
+    if (Object.hasOwn(entry, "iconUrl")) {
+      const iconBase = `${OFFICIAL_BASE}${entry.id}/${entry.version}.icon.`;
+      if (
+        !["png", "jpg", "jpeg", "webp"].some(
+          (ext) => iconUrl === iconBase + ext
+        )
+      )
+        return plugin;
+    }
+    return entry;
+  });
+  return { ...data, plugins };
 }
 
 function isRepositoryName(name) {
@@ -206,6 +217,24 @@ function directoryTranslations(value) {
   );
 }
 
+export function communityPluginIconUrl(fullName, icon) {
+  if (
+    !isRepositoryName(fullName) ||
+    typeof icon !== "string" ||
+    !/\.(?:png|jpe?g|webp)$/i.test(icon) ||
+    /[\\:\p{Cc}]/u.test(icon)
+  )
+    return;
+  const parts = icon.split("/");
+  if (parts.some((part) => !part || part === "." || part === "..")) return;
+  try {
+    return `${RAW_GITHUB}${fullName}/HEAD/${parts.map(encodeURIComponent).join("/")}`;
+  } catch {
+    // An invalid Unicode path should not hide the rest of the plugin metadata.
+    return;
+  }
+}
+
 function communityPluginSummary(data, capabilities) {
   if (
     typeof data?.name !== "string" ||
@@ -221,6 +250,7 @@ function communityPluginSummary(data, capabilities) {
     description: typeof data.description === "string" ? data.description : "",
     nameI18n: directoryTranslations(data.nameI18n),
     descriptionI18n: directoryTranslations(data.descriptionI18n),
+    ...(typeof data.icon === "string" && { icon: data.icon }),
     ...(isFreeTier(data.freeTier) && { freeTier: data.freeTier }),
     capabilities: [
       ...new Set(
@@ -268,7 +298,7 @@ export async function loadCommunityPluginMetadata(
   }
   if (inflight.has(key)) return inflight.get(key);
   const request = (async () => {
-    const url = `https://raw.githubusercontent.com/${fullName}/HEAD/manifest.json`;
+    const url = `${RAW_GITHUB}${fullName}/HEAD/manifest.json`;
     const data = await fetchDirectoryJson(url, fetchImpl, { revalidate: force })
       .then(summarizeCommunityManifest)
       .catch(() => null);

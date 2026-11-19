@@ -332,6 +332,9 @@ export interface PluginManifest extends PluginCompatibility {
   id: string;
   name: string;
   version: string;
+  /** Markdown introduction. The host displays up to 1,000 text code points, including any ellipsis. */
+  description?: string;
+  descriptionI18n?: Record<string, string>;
   freeTier?: "free" | "quota-limited" | "some-models" | "time-limited";
   services: ServiceDefinition[];
   sharedSettings?: ProviderSetting[];
