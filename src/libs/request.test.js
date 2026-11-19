@@ -215,4 +215,38 @@ describe("fetchGM", () => {
       statusText: "OK",
     });
   });
+
+  test("keeps header values that contain colons and skips invalid names", async () => {
+    let requestDetails;
+    global.GM = {
+      xmlHttpRequest: jest.fn((details) => {
+        requestDetails = details;
+        return { abort: jest.fn() };
+      }),
+    };
+
+    const request = fetchGM("https://example.test");
+    requestDetails.onload.call({
+      response: "",
+      responseHeaders: [
+        "HTTP/1.1 200 OK",
+        "location: https://example.test/a:b",
+        "date: Tue, 17 Nov 2026 10:20:30 GMT",
+        "content-type: text/plain",
+        "muidb=ABC123; expires=Tue, 14-Dec-2027 01:39:32 GMT; path=/",
+        "",
+      ].join("\r\n"),
+      status: 200,
+      statusText: "OK",
+    });
+
+    const res = await request;
+    expect(res.headers).toEqual({
+      location: "https://example.test/a:b",
+      date: "Tue, 17 Nov 2026 10:20:30 GMT",
+      "content-type": "text/plain",
+    });
+    // A Set-Cookie continuation line must not become an invalid header name.
+    expect(() => new Headers(res.headers)).not.toThrow();
+  });
 });
