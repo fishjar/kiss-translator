@@ -518,9 +518,39 @@ describe("visual parsing prompt settings", () => {
     PROMPT_CATEGORY_VLM,
     getVlmPromptOptions,
     resolveVlmPrompt,
+    resolveVlmPromptDefinition,
+    resolveVlmPromptSlug,
     migrateSettingToV5,
     removePromptReferences,
   } = require("./prompt");
+  test.each(["index-translate", "openai-compatible-bundle"])(
+    "keeps existing structured vision selections for %s",
+    (pluginId) => {
+      const api = {
+        provider: {
+          source: { pluginId, serviceId: "vision" },
+          capabilities: { parseImage: { includesTranslation: true } },
+          implementation: { kind: "script" },
+          defaultPrompts: {
+            vlm: [{ id: "plain-text", userPrompt: "Extract source only" }],
+          },
+        },
+      };
+      for (const id of ["image-translation", "image-bilingual"]) {
+        const saved = `plugin:${pluginId}:vision:vlm:${id}`;
+        const canonical = `vlm-${id}`;
+        expect(resolveVlmPromptSlug(saved, api)).toBe(canonical);
+        expect(resolveVlmPromptDefinition([], saved, api)).toMatchObject({
+          slug: canonical,
+          protocol: "image-json",
+        });
+        expect(resolveVlmPrompt([], saved, api)).toBe(
+          resolveVlmPrompt([], canonical, api)
+        );
+      }
+      expect(resolveVlmPromptDefinition([], "", api).protocol).toBeUndefined();
+    }
+  );
   test("uses the generic default and accepts only visual templates", () => {
     expect(getVlmPromptOptions(PRESET_PROMPTS).length).toBe(6);
     expect(resolveVlmPrompt([], "missing")).toContain("Markdown");

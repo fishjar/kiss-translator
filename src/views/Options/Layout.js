@@ -1,3 +1,4 @@
+import { SDK_VERSION } from "../../providers/sdk/version";
 import { logger } from "../../libs/log";
 import { isGm } from "../../libs/client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -288,10 +289,9 @@ export default function Layout() {
       ],
       "/plugins": [
         i18n("provider_plugins", "接口插件"),
-        i18n(
-          "provider_plugins_description",
-          "管理外部插件包、安装来源和模板更新"
-        ),
+        `${i18n("provider_plugins_description")} · ${i18n(
+          "provider_plugins_current_api"
+        )} ${SDK_VERSION}`,
       ],
       "/sync": [i18n("options_data_sync"), i18n("options_sync_description")],
       "/words": [i18n("favorite_words"), i18n("options_words_description")],

@@ -1,6 +1,6 @@
 # Structured image parsing
 
-`parseImage` remains the image parsing capability. API 1 services may declare boolean `includesTranslation` and `includesLayout`; omitted values are false. These flags describe adapter support, not a request to generate those outputs. OCR text polygons (`coordinates`) remain distinct from layout regions.
+`parseImage` remains the image parsing capability. Services may declare boolean `includesTranslation` and `includesLayout`. Omitted values are false. When the selected service declares `includesLayout`, automatic whole-image recognition skips the separate layout service in the web, screenshot and file image workflows. Manual layout requests, explicit regions and PDF page layout still follow their existing workflows. OCR text polygons (`coordinates`) describe positions of text lines.
 
 ## Prompts and protocol
 
@@ -65,7 +65,7 @@ Recognition-only does not call text translation. Fallback-service changes preser
 
 ## Compatibility and release
 
-The host checkout remains 2.2.5 during development. New official packages reserve `minHostVersion: "2.2.6"`; release maintainers must confirm the actual supporting release and adjust this floor if its version differs. Do not publish these packages before that host release. Production compatibility checks are unchanged. Plugin host tests may simulate that future version using the test-only `KISS_TRANSLATOR_TEST_VERSION=2.2.6` environment variable; this does not change the host checkout or runtime.
+Publish API 2 packages after a host supporting API 2 is available. API 2 covers the structured image parsing workflows and bounded Worker timers used by these packages. The host continues to support API 1 packages and existing service instances.
 
 ## Plugin Origin rules
 

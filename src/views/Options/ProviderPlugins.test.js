@@ -115,7 +115,7 @@ async function render() {
 
 test("plugin service table shows template image features without adopting instance features", async () => {
   const current = pack();
-  current.manifest.isFree = true;
+  current.manifest.freeTier = "free";
   current.manifest.services[0].capabilities = {
     parseImage: {
       handler: "parseImage",
@@ -200,7 +200,7 @@ test.each([
 
 test("old local examples merge into the official list and explicit updates retain service snapshots", async () => {
   const old = pack("1.2.1", "deepseek");
-  old.manifest.isFree = true;
+  old.manifest.freeTier = "free";
   mockPackages = [old];
   const entry = {
     id: old.id,
@@ -653,12 +653,10 @@ test("updates use the normal confirmation", async () => {
 
 test("incompatible stored plugins show a warning and keep uninstall available", async () => {
   const plugin = pack();
-  plugin.manifest.minHostVersion = "999999.0.0";
+  plugin.manifest.apiVersion = 99;
   mockPackages = [plugin];
   await render();
-  expect(container.textContent).toContain(
-    "Requires KISS Translator 999999.0.0"
-  );
+  expect(container.textContent).toContain("Unsupported plugin API 99");
   const uninstall = [...container.querySelectorAll("button")].find(
     (button) => button.textContent === "卸载插件"
   );

@@ -4,6 +4,10 @@ import { logger } from "../log";
  * @description 网页图片悬停检测器：负责悬停识别合格 <img>并在图片外上方展示操作条，支持布局分析、线框点选与按需翻译。
  */
 
+import {
+  automaticLayoutRegions,
+  isStaleAutomaticLayout,
+} from "./layoutSelection";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import DualActionButton from "../../views/ImageTranslate/DualActionButton";
@@ -126,10 +130,7 @@ export class ImageHoverDetector {
       if (!this.#enabled || this.#suspended) return;
       const target = e.target;
       if (this.#isEligibleImage(target)) {
-        const cached = this.#layoutCache.get(target);
-        if (cached && cached.source !== (target.currentSrc || target.src)) {
-          this.setLayoutState("idle", [], true, target);
-        }
+        this.#getCachedLayout(target);
         if (this.#activeImage === target && this.#isButtonsVisible()) {
           clearTimeout(this.#hideTimer);
           return;
@@ -251,8 +252,8 @@ export class ImageHoverDetector {
     if (!this.#isEligibleImage(img)) return;
     if (this.#activeImage !== img) {
       this.#hideButtons(true);
-      const cached = this.#layoutCache.get(img);
-      if (cached?.source === (img.currentSrc || img.src)) {
+      const cached = this.#getCachedLayout(img);
+      if (cached) {
         this.#layoutState = "active";
         this.#layoutRegions = cached.regions;
         this.#showLayoutOverlay = cached.visible;
@@ -262,6 +263,22 @@ export class ImageHoverDetector {
     }
     this.#activeImage = img;
     this.#renderButtons();
+  }
+
+  #getCachedLayout(image) {
+    const cached = this.#layoutCache.get(image);
+    if (
+      cached &&
+      (cached.source !== (image.currentSrc || image.src) ||
+        isStaleAutomaticLayout(
+          cached.regions,
+          this.#setting?.imageTranslateSetting?.recognitionService
+        ))
+    ) {
+      this.setLayoutState("idle", [], true, image);
+      return undefined;
+    }
+    return cached;
   }
 
   #updateButtonPosition() {
@@ -374,6 +391,7 @@ export class ImageHoverDetector {
 
   #toggleRegion(index) {
     if (!this.#layoutRegions[index]) return;
+    automaticLayoutRegions.delete(this.#layoutRegions);
     this.#layoutRegions[index] = {
       ...this.#layoutRegions[index],
       enabled: this.#layoutRegions[index].enabled === false,
@@ -591,6 +609,8 @@ export class ImageHoverDetector {
     if (layoutChanged) {
       this.#layoutCache = new WeakMap();
       this.setLayoutState("idle");
+    } else if (this.#activeImage) {
+      this.#getCachedLayout(this.#activeImage);
     }
     if (!this.#enabled) {
       this.#hideButtons(true);

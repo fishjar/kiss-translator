@@ -32,6 +32,7 @@ import Grid from "@mui/material/Grid";
 import Snackbar from "@mui/material/Snackbar";
 import Switch from "@mui/material/Switch";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import FormHelperText from "@mui/material/FormHelperText";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
@@ -257,18 +258,22 @@ function imageRecognitionSettings(scene, context) {
   const service = context.services.find(
     (api) => api.apiSlug === selection?.apiSlug
   );
-  const layoutApi = scene.layoutApiSlug
-    ? imageLayoutApi(scene, context)
-    : undefined;
+  const includesLayout =
+    recognitionFeature(service, selection?.capability)?.includesLayout === true;
+  const layoutApi =
+    !includesLayout && scene.layoutApiSlug
+      ? imageLayoutApi(scene, context)
+      : undefined;
   const promptSlug = scene.vlmPromptSlug || service?.vlmPromptSlug || "";
   return {
     selection,
     service,
     layoutApi,
+    includesLayout,
     promptSlug,
     signature: JSON.stringify({
       layoutService: layoutApi?.recognitionSignature || layoutApi,
-      layoutApiSlug: scene.layoutApiSlug,
+      layoutApiSlug: includesLayout ? "" : scene.layoutApiSlug,
       selection,
       service: service?.recognitionSignature || service,
       fromLang: scene.fromLang,
@@ -1820,8 +1825,14 @@ export default function FileTranslateView() {
       };
       const taskTranslationKey = imageTranslationKeyFor(taskScene, snapshot);
       previousImageTranslationKey.current = taskTranslationKey;
-      const { selection, service, layoutApi, promptSlug, signature } =
-        imageRecognitionSettings(taskScene, snapshot);
+      const {
+        selection,
+        service,
+        layoutApi,
+        includesLayout,
+        promptSlug,
+        signature,
+      } = imageRecognitionSettings(taskScene, snapshot);
       const reusableRecognition =
         imageRecognition.current?.ready &&
         imageRecognition.current.file === file &&
@@ -1901,7 +1912,7 @@ export default function FileTranslateView() {
                 ),
               ]
             : []),
-          ...(!layoutApi
+          ...(!layoutApi && !includesLayout
             ? [
                 i18n(
                   "image_layout_unavailable",
@@ -2494,6 +2505,14 @@ export default function FileTranslateView() {
             options={layoutSelectOptions}
             onChange={handleLayoutServiceChange}
           />
+          {renderedImageRecognition.includesLayout && (
+            <FormHelperText>
+              {i18n(
+                "image_layout_included",
+                "所选识别服务已包含版面分析，整图识别将跳过独立版面服务。"
+              )}
+            </FormHelperText>
+          )}
         </Box>
       )}
 
@@ -2554,6 +2573,7 @@ export default function FileTranslateView() {
       {mode === "image" && (
         <>
           {selectedRecognitionFeature &&
+            !selectedRecognitionFeature.includesLayout &&
             !selectedRecognitionFeature.coordinates && (
               <Typography variant="caption" color="text.secondary">
                 {i18n(
@@ -2886,7 +2906,7 @@ export default function FileTranslateView() {
                     disabled={!connected || !hasRecognitionService || busy}
                     onClick={() => runImageAction("recognize")}
                   >
-                    {activeLayoutApi
+                    {activeLayoutApi || renderedImageRecognition.includesLayout
                       ? i18n("image_layout_recognize", "布局与识别")
                       : i18n("image_recognize", "识别文本")}
                   </MenuItem>

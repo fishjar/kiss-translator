@@ -50,18 +50,23 @@ const catalog = {
   ],
 };
 
-test("official catalog preserves boolean free declarations and rejects invalid types", () => {
-  for (const isFree of [true, false]) {
+test("official catalog preserves free tiers and rejects invalid values", () => {
+  for (const freeTier of [
+    "free",
+    "quota-limited",
+    "some-models",
+    "time-limited",
+  ]) {
     const data = {
       ...catalog,
-      plugins: catalog.plugins.map((p) => ({ ...p, isFree })),
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier })),
     };
-    expect(validateOfficialDirectory(data).plugins[0].isFree).toBe(isFree);
+    expect(validateOfficialDirectory(data).plugins[0].freeTier).toBe(freeTier);
   }
   expect(() =>
     validateOfficialDirectory({
       ...catalog,
-      plugins: catalog.plugins.map((p) => ({ ...p, isFree: "yes" })),
+      plugins: catalog.plugins.map((p) => ({ ...p, freeTier: "yes" })),
     })
   ).toThrow();
 });
@@ -70,7 +75,6 @@ test("catalog preserves unsupported declarations for explanation, while installa
   const entry = {
     ...catalog.plugins[0],
     kind: "page",
-    minHostVersion: "999999.0.0",
   };
   expect(
     validateOfficialDirectory({ schemaVersion: 1, plugins: [entry] }).plugins[0]
@@ -83,7 +87,7 @@ test("catalog preserves unsupported declarations for explanation, while installa
 });
 
 test("unsupported integer API versions remain visible but cannot be downloaded", async () => {
-  const entry = { ...catalog.plugins[0], apiVersion: 2 };
+  const entry = { ...catalog.plugins[0], apiVersion: 3 };
   const directory = {
     schemaVersion: 1,
     plugins: [

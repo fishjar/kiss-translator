@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { OPT_TRANS_LOCALAI } from "../config/apiConstants";
 
 /** Only the compiled local transcription adapter may use this privileged route.
@@ -9,7 +10,7 @@ export function isHostedLocalAsr(instance, capability) {
     capability === "transcribe" &&
     instance?.apiType === OPT_TRANS_LOCALAI &&
     (!provider ||
-      (provider.apiVersion === 1 &&
+      (supportsSdkVersion(provider.apiVersion) &&
         !provider.source?.external &&
         provider.implementation?.kind === "native" &&
         provider.implementation.entry === OPT_TRANS_LOCALAI))

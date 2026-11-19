@@ -1,5 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { SDK_VERSION } from "../../providers/sdk/version";
 import Layout, {
   fetchLatestVersion,
   isWideOptionsPage,
@@ -33,6 +34,20 @@ test("uses full-width rail for file translation page", () => {
   expect(isFullWidthOptionsPage("/file-translate")).toBe(true);
   expect(isFullWidthOptionsPage("/file-translate/")).toBe(true);
   expect(isFullWidthOptionsPage("/apis")).toBe(false);
+});
+
+test("shows the current plugin API next to the plugin page description", () => {
+  mockPathname = "/plugins";
+  const container = document.createElement("div");
+  const root = createRoot(container);
+
+  act(() => root.render(<Layout />));
+
+  expect(container.textContent).toContain(
+    `provider_plugins_description · provider_plugins_current_api ${SDK_VERSION}`
+  );
+
+  act(() => root.unmount());
 });
 
 jest.mock("react-router-dom", () => ({

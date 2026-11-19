@@ -33,6 +33,7 @@ import { supportsServiceFeature } from "../providers/features";
 import { withBuiltinProvider } from "../builtin-plugins";
 import {
   getPluginPromptOptions,
+  pluginPromptSlug,
   selectedPluginPrompt,
   isPluginPromptSlug,
   imagePromptText,
@@ -648,7 +649,26 @@ export function getVlmPromptOptions(prompts = [], api) {
   );
 }
 
+export function resolveVlmPromptSlug(slug, api) {
+  const provider = api?.provider;
+  const source = provider?.source;
+  if (
+    source?.serviceId !== "vision" ||
+    !["index-translate", "openai-compatible-bundle"].includes(source.pluginId)
+  )
+    return slug;
+  for (const id of ["image-translation", "image-bilingual"]) {
+    if (
+      slug === pluginPromptSlug(provider, "vlm", id) &&
+      !provider.defaultPrompts?.vlm?.some((prompt) => prompt.id === id)
+    )
+      return `vlm-${id}`;
+  }
+  return slug;
+}
+
 export function resolveVlmPromptDefinition(userPrompts = [], slug, api) {
+  slug = resolveVlmPromptSlug(slug, api);
   if (
     isPluginPromptSlug(slug) ||
     (!slug && api?.provider?.implementation?.kind !== "native")
@@ -661,6 +681,7 @@ export function resolveVlmPromptDefinition(userPrompts = [], slug, api) {
 }
 
 export function resolveVlmPrompt(userPrompts = [], slug, api) {
+  slug = resolveVlmPromptSlug(slug, api);
   if (isPluginPromptSlug(slug))
     return imagePromptText(selectedPluginPrompt(api, "vlm", slug));
   const prompt = findPromptBySlug(userPrompts, slug);

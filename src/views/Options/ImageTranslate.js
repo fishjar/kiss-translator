@@ -24,7 +24,10 @@ import {
   GLOBLA_RULE,
 } from "../../config";
 import { DEFAULT_IMAGE_TRANSLATE_SETTING } from "../../config/setting";
-import { recognitionOptions } from "../../fileTranslation/recognition";
+import {
+  recognitionFeature,
+  recognitionOptions,
+} from "../../fileTranslation/recognition";
 import {
   supportsApiCapability,
   isApiConfigured,
@@ -155,6 +158,13 @@ export default function ImageTranslate() {
 
   const isVlmService =
     imageSetting.recognitionService?.capability === "parseImage";
+  const recognitionApi = transApis.find(
+    (api) => api.apiSlug === imageSetting.recognitionService?.apiSlug
+  );
+  const includesLayout = recognitionFeature(
+    recognitionApi,
+    imageSetting.recognitionService?.capability
+  )?.includesLayout;
 
   return (
     <Box>
@@ -285,10 +295,7 @@ export default function ImageTranslate() {
               >
                 <ScenePromptSelect
                   category={PROMPT_CATEGORY_VLM}
-                  recognitionApi={setting.transApis?.find(
-                    (api) =>
-                      api.apiSlug === imageSetting.recognitionService?.apiSlug
-                  )}
+                  recognitionApi={recognitionApi}
                   value={imageSetting.vlmPromptSlug || ""}
                   scene={{
                     ...imageSetting,
@@ -304,10 +311,14 @@ export default function ImageTranslate() {
 
             <SettingsRow
               label={i18n("layout_service", "界面分析服务 (可选)")}
-              description={i18n(
-                "image_layout_desc",
-                "默认整图识别。若启用布局服务，将先分块再按序识别"
-              )}
+              description={
+                includesLayout
+                  ? i18n("image_layout_included")
+                  : i18n(
+                      "image_layout_desc",
+                      "默认整图识别。若启用布局服务，将先分块再按序识别"
+                    )
+              }
             >
               <FormControl size="small" sx={{ minWidth: 220 }}>
                 <InputLabel shrink>

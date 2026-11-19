@@ -114,7 +114,7 @@ test("disabled, unconfigured, incompatible and non-executable snapshots do not a
   const required = instance("missing");
   required.provider.settings = [{ key: "model", type: "text", required: true }];
   const future = instance("future");
-  future.provider.minHostVersion = "9999.0.0";
+  future.provider.apiVersion = 99;
   const native = instance("native");
   native.provider.implementation.kind = "native";
   const invalid = instance("invalid");

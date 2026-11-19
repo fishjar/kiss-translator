@@ -91,6 +91,99 @@ describe("ImageTranslateBox staged actions", () => {
     expect(props.setShowBox).toHaveBeenCalledWith(false);
   });
 
+  test("reparses the whole image after displaying automatically detected regions", async () => {
+    const recognitionService = { apiSlug: "doc", capability: "parseImage" };
+    const setting = {
+      imageTranslateSetting: { ...scene, recognitionService },
+      transApis: [
+        {
+          apiSlug: "doc",
+          recognitionFeatures: { parseImage: { includesLayout: true } },
+        },
+      ],
+    };
+    act(() =>
+      root.render(
+        <ImageTranslateBox
+          {...props}
+          setting={setting}
+          selectedRegions={null}
+        />
+      )
+    );
+    sendBgMsg.mockResolvedValue({
+      success: true,
+      result: { layout: { regions }, items: [{ original: "Detected text" }] },
+    });
+
+    let finish;
+    sendBgMsg.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    act(() => {
+      void header().onRunAction("recognize");
+    });
+    const taskId = sendBgMsg.mock.calls[0][1].taskId;
+    progress(taskId, 1, { stage: "recognize", layout: { regions } });
+    await act(async () =>
+      finish({
+        success: true,
+        result: { layout: { regions }, items: [{ original: "Detected text" }] },
+      })
+    );
+    await act(async () => header().onRunAction("recognize"));
+
+    expect(props.onLayoutDetected).toHaveBeenCalledWith(regions, {
+      replace: false,
+    });
+    expect(
+      sendBgMsg.mock.calls.map(([, request]) => request.selectedRegions)
+    ).toEqual([undefined, undefined]);
+
+    const detected = props.onLayoutDetected.mock.calls.at(-1)[0];
+    act(() =>
+      root.render(
+        <ImageTranslateBox
+          {...props}
+          setting={setting}
+          requestVersion={2}
+          selectedRegions={detected}
+        />
+      )
+    );
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1].selectedRegions).toBeUndefined();
+
+    act(() => header().onSettingChange(scene));
+    expect(props.onSettingResetLayout).toHaveBeenCalledTimes(1);
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1]).toMatchObject({
+      scene,
+      selectedRegions: undefined,
+    });
+
+    const explicit = detected.map((region) => ({ ...region, enabled: false }));
+    act(() => header().onSettingChange(setting.imageTranslateSetting));
+    act(() =>
+      root.render(
+        <ImageTranslateBox
+          {...props}
+          setting={setting}
+          requestVersion={2}
+          selectedRegions={explicit}
+        />
+      )
+    );
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1].selectedRegions).toEqual(explicit);
+    act(() => header().onSettingChange(scene));
+    await act(async () => header().onRunAction("recognize"));
+    expect(sendBgMsg.mock.lastCall[1].selectedRegions).toEqual(explicit);
+    expect(props.onSettingResetLayout).toHaveBeenCalledTimes(1);
+  });
+
   test("reports task locking through completion and cancellation and blocks actions while the source is being cropped", async () => {
     let finish;
     sendBgMsg.mockReturnValueOnce(

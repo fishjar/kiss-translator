@@ -99,7 +99,7 @@ function CommunityPluginCard({
               : fullName}
           </Link>
           {metadata && ` · ${metadata.version}`}
-          <PluginFreeBadge isFree={metadata?.isFree} />
+          <PluginFreeBadge freeTier={metadata?.freeTier} />
         </Typography>
         <Button disabled={busy} onClick={() => onInstall(repo.html_url)}>
           {i18n("plugin_download_and_install")}
@@ -251,7 +251,7 @@ export default function PluginDirectory({
               <Stack direction="row" alignItems="center" spacing={2}>
                 <Typography sx={{ flex: 1, overflowWrap: "anywhere" }}>
                   {providerText(entry.name, entry.nameI18n)} · {entry.version}
-                  <PluginFreeBadge isFree={entry.isFree} />
+                  <PluginFreeBadge freeTier={entry.freeTier} />
                 </Typography>
                 <Button
                   disabled={busy || !!pluginCompatibilityError(entry)}

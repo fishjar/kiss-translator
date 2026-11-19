@@ -30,6 +30,7 @@ import {
   getAllTranslationPromptOptions,
   getPromptDisplayName,
   getVlmPromptOptions,
+  resolveVlmPromptSlug,
 } from "../../config/prompt";
 
 export function ImageTranslateSettings({
@@ -103,6 +104,10 @@ export function ImageTranslateSettings({
     (api) => api.apiSlug === scene.recognitionService?.apiSlug
   );
   const vlmPrompts = getVlmPromptOptions(prompts, recognitionApi);
+  const vlmPromptSlug = resolveVlmPromptSlug(
+    scene.vlmPromptSlug,
+    recognitionApi
+  );
 
   // 保留 Shadow DOM 样式，同时避开面板滚动区的裁切与拖拽层的变换。
   const selectMenuProps = useMemo(
@@ -278,8 +283,8 @@ export function ImageTranslateSettings({
             <Select
               label={i18n("plugin_image_recognition_prompt", "视觉解析提示词")}
               value={
-                vlmPrompts.some((p) => p.slug === scene.vlmPromptSlug)
-                  ? scene.vlmPromptSlug
+                vlmPrompts.some((p) => p.slug === vlmPromptSlug)
+                  ? vlmPromptSlug
                   : ""
               }
               displayEmpty
@@ -298,8 +303,8 @@ export function ImageTranslateSettings({
                 </MenuItem>
               ))}
             </Select>
-            {scene.vlmPromptSlug &&
-              !vlmPrompts.some((p) => p.slug === scene.vlmPromptSlug) && (
+            {vlmPromptSlug &&
+              !vlmPrompts.some((p) => p.slug === vlmPromptSlug) && (
                 <FormHelperText>
                   {i18n(
                     "plugin_prompt_unavailable",

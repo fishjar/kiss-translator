@@ -500,6 +500,16 @@ export const IMAGE_TRANSLATE_I18N = {
     tr: "Görüntü okunuyor...",
     vi: "Đang đọc ảnh...",
   },
+  image_layout_included: {
+    zh: "所选识别服务已包含版面分析，整图识别将跳过独立版面服务。",
+    en: "The selected recognition service analyzes layout. Whole-image recognition skips the separate layout service.",
+    zh_TW: "所選辨識服務已包含版面分析，整張圖片辨識將略過獨立的版面服務。",
+    ja: "選択した認識サービスにはレイアウト解析が含まれます。画像全体の認識では個別のレイアウトサービスを省略します。",
+    ko: "선택한 인식 서비스에 레이아웃 분석이 포함되어 있습니다. 전체 이미지 인식 시 별도의 레이아웃 서비스는 건너뜁니다.",
+    tr: "Seçilen tanıma hizmeti yerleşimi de analiz eder. Görüntünün tamamı tanınırken ayrı yerleşim hizmeti atlanır.",
+    vi: "Dịch vụ nhận dạng đã chọn có phân tích bố cục. Khi nhận dạng toàn ảnh, hệ thống bỏ qua dịch vụ bố cục riêng.",
+    ru: "Выбранная служба распознавания анализирует макет. При распознавании всего изображения отдельная служба анализа макета пропускается.",
+  },
   image_stage_layout: {
     zh: "正在分析布局...",
     en: "Analyzing layout...",

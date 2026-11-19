@@ -109,6 +109,35 @@ listen("message", async ({ data }) => {
         writable: false,
         configurable: false,
       });
+    // Sval's Worker globals omit timers. Only expose bounded one-shot callbacks
+    // in the invocation Worker, which the host terminates on timeout or cancel.
+    const timers = new Set();
+    Object.defineProperties(sandbox, {
+      setTimeout: {
+        value(callback, delay = 0) {
+          if (typeof callback !== "function" || !Number.isFinite(delay))
+            throw new TypeError(
+              "Expected a timer callback and a finite delay."
+            );
+          if (timers.size >= 16)
+            throw new Error("Too many pending script timers.");
+          const id = setTimeout(
+            () => {
+              timers.delete(id);
+              callback();
+            },
+            Math.min(Math.max(0, delay), 600000)
+          );
+          timers.add(id);
+          return id;
+        },
+      },
+      clearTimeout: {
+        value(id) {
+          if (timers.delete(id)) clearTimeout(id);
+        },
+      },
+    });
     delete interpreter.exports.__sandbox;
     interpreter.run(data.code);
     const handler = interpreter.exports[data.handler];

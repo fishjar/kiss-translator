@@ -1,3 +1,4 @@
+import { supportsSdkVersion } from "./sdk/version";
 import { buildTextTaskMessages, parseTextTaskResult } from "./sdk/textTasks";
 import { providerError } from "./capabilities";
 import { validateDeclarativeRules, validRuleUrlPath } from "./declarativeRules";
@@ -109,7 +110,7 @@ function resolve(node, roots, ctx, depth = 0) {
 
 export async function runDeclarative(snapshot, handler, input, ctx) {
   if (
-    snapshot.apiVersion !== 1 ||
+    !supportsSdkVersion(snapshot.apiVersion) ||
     Object.hasOwn(snapshot, "manifestVersion") ||
     Object.hasOwn(snapshot, "rulesVersion")
   )

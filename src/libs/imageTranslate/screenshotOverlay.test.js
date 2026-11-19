@@ -1,4 +1,5 @@
 /* eslint-disable testing-library/no-unnecessary-act -- Native React DOM events require act. */
+import { automaticLayoutRegions } from "./layoutSelection";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import DraggableResizable from "../../views/Selection/DraggableResizable";
@@ -430,6 +431,24 @@ describe("ScreenshotOverlay", () => {
     act(() => button("layout").click());
     expect(root().querySelectorAll("polygon")).toHaveLength(2);
     expect(sendBgMsg).toHaveBeenCalledTimes(count);
+  });
+
+  test("preserves the automatic layout on visibility changes until a region is selected", () => {
+    const automatic = regions.map((region) => ({ ...region }));
+    automaticLayoutRegions.set(automatic);
+    act(() => overlay.setLayoutState(automatic));
+    act(() => button("layout").click());
+    act(() => button("layout").click());
+    expect(callbacks.onLayoutChange).toHaveBeenLastCalledWith(automatic, true);
+    expect(automaticLayoutRegions.has(automatic)).toBe(true);
+
+    act(() =>
+      root()
+        .querySelector("polygon")
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    );
+    expect(callbacks.onLayoutChange).toHaveBeenLastCalledWith(automatic);
+    expect(automaticLayoutRegions.has(automatic)).toBe(false);
   });
 
   test("locks new selection, movement and resize during analysis and external tasks only", async () => {
