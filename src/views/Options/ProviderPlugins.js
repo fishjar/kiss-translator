@@ -436,19 +436,27 @@ export default function ProviderPlugins() {
       </Button>
     );
   };
-  const directoryUpdateBadge = (id, version, entries) => {
-    const entry = entries.find((item) => item.id === id);
-    return entry &&
-      !pluginCompatibilityError(entry) &&
-      newerPluginVersion(entry.version, version) ? (
-      <Chip
-        component="span"
-        size="small"
-        color="info"
-        sx={{ ml: 1, verticalAlign: "middle" }}
-        label={`${i18n("plugin_directory_update_available")} · ${entry.version}`}
-      />
-    ) : null;
+  const pluginVersionBadges = (id, version, entries, installedFreeTier) => {
+    const update = entries.find(
+      (entry) =>
+        entry.id === id &&
+        !pluginCompatibilityError(entry) &&
+        newerPluginVersion(entry.version, version)
+    );
+    return (
+      <>
+        {update && (
+          <Chip
+            component="span"
+            size="small"
+            color="info"
+            sx={{ ml: 1, verticalAlign: "middle" }}
+            label={`${i18n("plugin_directory_update_available")} · ${update.version}`}
+          />
+        )}
+        <PluginFreeBadge freeTier={update?.freeTier ?? installedFreeTier} />
+      </>
+    );
   };
   const directoryStatus = (id, version, source, entries) => {
     const entry = entries.find((item) => item.id === id);
@@ -511,7 +519,7 @@ export default function ProviderPlugins() {
                 >
                   {providerText(index.name || index.pluginId, index.nameI18n)} ·{" "}
                   {index.version}
-                  {directoryUpdateBadge(index.pluginId, index.version, entries)}
+                  {pluginVersionBadges(index.pluginId, index.version, entries)}
                 </Typography>
                 {directoryStatus(
                   index.pluginId,
@@ -668,12 +676,12 @@ export default function ProviderPlugins() {
                 >
                   {providerText(pack.manifest.name, pack.manifest.nameI18n)} ·{" "}
                   {pack.manifest.version}
-                  {directoryUpdateBadge(
+                  {pluginVersionBadges(
                     pack.id,
                     pack.manifest.version,
-                    entries
+                    entries,
+                    pack.manifest.freeTier
                   )}
-                  <PluginFreeBadge freeTier={pack.manifest.freeTier} />
                 </Typography>
                 {directoryStatus(
                   pack.id,
