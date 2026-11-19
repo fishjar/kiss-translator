@@ -39,9 +39,11 @@ export function recognitionOptions(
       options.push({
         value: JSON.stringify({ apiSlug: api.apiSlug, capability }),
         label: `${api.apiName || api.apiSlug} · ${
-          feature.coordinates
-            ? i18n("recognition_with_coordinates", "带文字坐标")
-            : i18n("recognition_text_only", "仅文本输出")
+          feature.includesLayout
+            ? i18n("plugin_image_includes_layout", "附带布局")
+            : feature.coordinates
+              ? i18n("recognition_with_coordinates", "带文字坐标")
+              : i18n("recognition_text_only", "仅文本输出")
         }${
           feature.available === false
             ? ` (${i18n("api_unavailable_here", "当前不可用")})`

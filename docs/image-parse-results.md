@@ -1,6 +1,6 @@
 # Structured image parsing
 
-`parseImage` remains the image parsing capability. API 1 services may declare boolean `includesTranslation` and `includesLayout`; omitted values are false. These flags describe adapter support, not a request to generate those outputs. OCR text polygons (`coordinates`) remain distinct from layout regions.
+`parseImage` remains the image parsing capability. API 1 services may declare boolean `includesTranslation` and `includesLayout`. Omitted values are false. When the selected service declares `includesLayout`, automatic whole-image recognition skips the separate layout service in the web, screenshot and file image workflows. Manual layout requests, explicit regions and PDF page layout still follow their existing workflows. OCR text polygons (`coordinates`) describe positions of text lines.
 
 ## Prompts and protocol
 

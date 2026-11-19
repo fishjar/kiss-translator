@@ -17,6 +17,7 @@ import {
 } from "../providers/imageResult";
 import { getInputPolicy, invokeImageProvider } from "./imageProvider";
 import { buildImageParseInput } from "./imageParsing";
+import { recognitionFeature } from "./recognition";
 import { getSettingWithDefault } from "../libs/storage";
 
 async function cropRegionBlob(sourceBlob, [left, top, right, bottom]) {
@@ -81,6 +82,8 @@ export async function executeImageRecognition({
   if (!recApi || recApi.isDisabled) {
     throw new Error("所选文本识别服务不存在或已禁用");
   }
+  const capability = recognitionService.capability;
+  const includesLayout = recognitionFeature(recApi, capability)?.includesLayout;
 
   const policy = await getInputPolicy();
   const prepared = await prepareImage(imageBlob, policy, signal);
@@ -102,8 +105,8 @@ export async function executeImageRecognition({
           })),
       }
     : null;
-  // 1. 若配置了布局服务，先分析版面
-  if (layoutApiSlug && !layoutResult) {
+  // 显式选区已在上面处理。整图解析服务可直接返回识别结果及其版面。
+  if (layoutApiSlug && !layoutResult && !includesLayout) {
     const layoutApi = apis.find((a) => a.apiSlug === layoutApiSlug);
     if (
       layoutApi &&
@@ -146,7 +149,6 @@ export async function executeImageRecognition({
   }
 
   // 2. 文字识别 (OCR 或 VLM)
-  const capability = recognitionService.capability;
   const { prompt, ...imageInput } = await buildImageParseInput({
     api: recApi,
     capability,

@@ -1493,6 +1493,44 @@ describe("FileTranslatePage (M2 UI)", () => {
         mockSetting.fileTranslateSetting = savedScenes;
       }
     });
+    test("a document parser skips separate layout and its result survives layout setting changes", async () => {
+      const saved = mockSetting.fileTranslateSetting;
+      const service = mockSetting.transApis.at(-1);
+      service.recognitionFeatures.parseImage = { includesLayout: true };
+      mockSetting.fileTranslateSetting = {
+        ...saved,
+        image: {
+          ...saved.image,
+          recognitionService: {
+            apiSlug: service.apiSlug,
+            capability: "parseImage",
+          },
+        },
+      };
+      mockAnalyzeLayout.mockClear();
+      try {
+        await setup();
+        expect(container.textContent).toContain("整图识别将跳过独立版面服务");
+        await step("布局与识别");
+        expect(mockAnalyzeLayout).not.toHaveBeenCalled();
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+
+        mockSetting.fileTranslateSetting = {
+          ...mockSetting.fileTranslateSetting,
+          image: {
+            ...mockSetting.fileTranslateSetting.image,
+            layoutApiSlug: "gpu-layout",
+          },
+        };
+        await act(async () => root.render(<FileTranslatePage />));
+        await step("翻译文本");
+        expect(lib.translateFileText).toHaveBeenCalledTimes(1);
+        expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
+        expect(mockAnalyzeLayout).not.toHaveBeenCalled();
+      } finally {
+        mockSetting.fileTranslateSetting = saved;
+      }
+    });
     test.each(["toLang", "apiSlug", "promptSlug", "service"])(
       "image translation invalidates %s changes with independent parsing cache",
       async (field) => {

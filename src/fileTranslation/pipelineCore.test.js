@@ -1275,7 +1275,7 @@ describe("pipelineCore", () => {
   });
 
   test.each(["", "mock-layout"])(
-    "structured parsing respects explicit layout selection: %s",
+    "structured parsing skips automatic layout for a document parser: %s",
     async (layoutApiSlug) => {
       const plugin = {
         apiSlug: "plugin",
@@ -1340,16 +1340,14 @@ describe("pipelineCore", () => {
         },
       });
       expect(invokeBackgroundPlugin).toHaveBeenCalledTimes(1);
-      expect(createNativeRegistry).toHaveBeenCalledTimes(layoutApiSlug ? 1 : 0);
+      expect(createNativeRegistry).not.toHaveBeenCalled();
       expect(executeFileTranslation).not.toHaveBeenCalled();
       expect(result.items[0]).toMatchObject({
         original: "Hello",
         translation: "你好",
         poly: null,
       });
-      expect(result.layout.regions[0].bbox).toEqual(
-        layoutApiSlug ? [0, 0, 400, 300] : [0, 0, 200, 100]
-      );
+      expect(result.layout.regions[0].bbox).toEqual([0, 0, 200, 100]);
     }
   );
 });
