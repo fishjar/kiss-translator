@@ -2573,6 +2573,7 @@ export default function FileTranslateView() {
       {mode === "image" && (
         <>
           {selectedRecognitionFeature &&
+            !selectedRecognitionFeature.includesLayout &&
             !selectedRecognitionFeature.coordinates && (
               <Typography variant="caption" color="text.secondary">
                 {i18n(
