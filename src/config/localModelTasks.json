@@ -7,7 +7,7 @@
     "sensevoice-small": true
   },
   "backends": {
-    "pp-doclayout-v3-onnx": ["wasm"],
+    "pp-doclayout-v3-onnx": ["wasm", "webgpu"],
     "whisper-base-timestamped": ["webgpu"],
     "whisper-small-timestamped": ["webgpu"],
     "whisper-medium-timestamped": ["webgpu"],

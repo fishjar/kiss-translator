@@ -94,6 +94,9 @@ export default function LayoutTab() {
   // 模型与运行环境配置
   const [selectedId, setSelectedId] = useState(DOC_MODEL_ID);
   const [device, setDevice] = useState("wasm");
+  const selectedModel =
+    DOC_MODELS.find((model) => model.id === selectedId) || DOC_MODELS[0];
+  const backends = selectedModel?.backend || ["wasm"];
   const [recs, setRecs] = useState({});
   const [clientState, setClientState] = useState("idle");
   const [progressText, setProgressText] = useState("");
@@ -323,9 +326,13 @@ export default function LayoutTab() {
                 onChange={(e) => setDevice(e.target.value)}
                 disabled={clientState === "loading" || analyzing}
               >
-                <MenuItem value="wasm">
-                  {i18n("compute_device_wasm", "WASM (CPU)")}
-                </MenuItem>
+                {backends.map((backend) => (
+                  <MenuItem key={backend} value={backend}>
+                    {backend === "webgpu"
+                      ? i18n("compute_device_webgpu", "WebGPU")
+                      : i18n("compute_device_wasm", "WASM (CPU)")}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 

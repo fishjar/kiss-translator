@@ -24,6 +24,7 @@ const backendGroups = [
   { id: "jev", tasks: ["decision"] },
   { id: "asr", tasks: ["asr"] },
   { id: "ocr", tasks: ["ocr-detection", "ocr-recognition"] },
+  { id: "layout", tasks: ["doc-layout"], labelKey: "capability_analyzeLayout" },
   { id: "vlm", tasks: ["ocr-vlm"] },
   { id: "llm", tasks: ["llm"] },
   { id: "tts", tasks: ["tts"] },
@@ -282,14 +283,14 @@ export default function DeviceTab() {
               {i18n("local_ai_device_rec_backend", "推荐后端")}
             </Typography>
             <Stack spacing={2.5}>
-              {backendGroups.map(({ id, tasks }) => (
+              {backendGroups.map(({ id, tasks, labelKey }) => (
                 <Box key={id}>
                   <Typography
                     variant="subtitle1"
                     fontWeight={600}
                     sx={{ mb: 1.5 }}
                   >
-                    {i18n(`local_ai_tab_${id}`, id.toUpperCase())}
+                    {i18n(labelKey || `local_ai_tab_${id}`, id.toUpperCase())}
                   </Typography>
                   <Grid container spacing={1.5}>
                     {CATALOG.filter((m) => tasks.includes(m.task)).map((m) => {

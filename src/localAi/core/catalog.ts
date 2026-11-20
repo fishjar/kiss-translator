@@ -116,7 +116,7 @@ export const CATALOG: ModelManifest[] = [
     revision: "ff677269004f03007705f3e7f1bc8d0f4546d299",
     license: "Apache-2.0",
     task: "doc-layout", runtime: "onnx", format: "onnx",
-    backend: ["wasm"],
+    backend: ["wasm", "webgpu"],
     source: "Bei0001/PP-DocLayoutV3-ONNX",
     dir: "doc/pp-doclayout-v3",
     files: [
