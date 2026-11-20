@@ -60,7 +60,7 @@ export function resolveModelTarget(service: AiRpcService, target: ModelTarget): 
       : "wasm";
   let spec: Record<string, any>;
   if (service === "doc") {
-    spec = { dir: m.dir, source: m.source, device, modelFile: m.files.find(f => f.path.endsWith(".onnx"))?.path, dataFile: m.files.find(f => f.path.endsWith(".onnx.data"))?.path };
+    spec = { dir: m.dir, source: m.source, device: "wasm", modelFile: m.files.find(f => f.path.endsWith(".onnx"))?.path, dataFile: m.files.find(f => f.path.endsWith(".onnx.data"))?.path };
   } else if (service === "asr") {
     spec = {
       runtime: m.runtime === "onnx" ? "onnx" : "transformers",
