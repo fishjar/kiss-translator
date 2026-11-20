@@ -99,7 +99,7 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
-test("declared Origin rewriting domains are visible without changing settings", async () => {
+test("service configuration hides declared Origin rewriting domains", async () => {
   await render({
     ...api,
     provider: {
@@ -110,7 +110,7 @@ test("declared Origin rewriting domains are visible without changing settings", 
       },
     },
   });
-  expect(container.textContent).toContain("https://api.invalid");
+  expect(container.textContent).not.toContain("https://api.invalid");
   expect(mockUpdateSetting).not.toHaveBeenCalled();
 });
 
