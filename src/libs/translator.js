@@ -3989,7 +3989,11 @@ export class Translator {
 
             // A complete segment can be shown while the provider validates
             // the rest of the batch. Final results use the same renderer below.
-            if (isSegmentComplete && streamRenderMode === "segment") {
+            if (isSegmentComplete) {
+              if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+              }
               this.#queueTranslationUpdate(hostNode, () => {
                 if (
                   translationFinished ||
@@ -4001,7 +4005,7 @@ export class Translator {
               }).catch((err) =>
                 logger.child("translator").warn("segment preview failed", err)
               );
-            } else if (!isSegmentComplete && streamRenderMode === "realtime") {
+            } else if (streamRenderMode === "realtime") {
               pendingText = text;
               if (!rafId) {
                 // 开启 RAF 排队渲染

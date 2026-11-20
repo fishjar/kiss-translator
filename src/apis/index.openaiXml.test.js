@@ -58,9 +58,13 @@ describe("apiTranslate OpenAI XML", () => {
     clearAllBatchQueue();
   });
 
-  test.each([false, true])(
-    "renders a restored XML segment before the batch settles (fails: %s)",
-    async (fails) => {
+  test.each([
+    ["segment", false],
+    ["segment", true],
+    ["realtime", false],
+  ])(
+    "renders a restored XML segment in %s mode before the batch settles (fails: %s)",
+    async (streamRenderMode, fails) => {
       jest.useFakeTimers();
       const observer = global.IntersectionObserver;
       global.IntersectionObserver = class {
@@ -77,7 +81,7 @@ describe("apiTranslate OpenAI XML", () => {
         ...getOpenAiApiSetting(),
         isDisabled: false,
         useStream: true,
-        streamRenderMode: "segment",
+        streamRenderMode,
         batchSize: 2,
         batchPromptSlug: "batch-translation-xml",
         placeholder: "{{ }}",
@@ -90,7 +94,14 @@ describe("apiTranslate OpenAI XML", () => {
       const delta = (content) =>
         JSON.stringify({ choices: [{ delta: { content } }] });
       fetchStream.mockImplementationOnce(async function* () {
-        yield delta('<root><t id="0">请访问 <i1>文档</i1>，了解 {{1}}。</t>');
+        const openingTag = '<root><t id="0">';
+        const completedSegment = "请访问 <i1>文档</i1>，了解 {{1}}。</t>";
+        if (streamRenderMode === "realtime") {
+          yield delta(openingTag);
+          yield delta(completedSegment);
+        } else {
+          yield delta(openingTag + completedSegment);
+        }
         await remaining;
         if (fails) throw new Error("stream interrupted");
         yield delta('<t id="1">第二段译文。</t></root>');
