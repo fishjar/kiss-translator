@@ -1,5 +1,9 @@
 import { useI18n } from "../../hooks/I18n";
-import { ServiceTestCard, ServiceTestResult } from "./ServiceForm";
+import {
+  ServiceTestCard,
+  ServiceTestResult,
+  useServiceTestTiming,
+} from "./ServiceForm";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
 import { enabledApiCapabilities } from "../../config/serviceSelection";
 import { useEffect, useRef, useState } from "react";
@@ -35,6 +39,7 @@ export default function NativeCapabilityTest({ api, translationTest }) {
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [timing, startTiming] = useServiceTestTiming();
   const [audioUrl, setAudioUrl] = useState("");
   const active = useRef(null);
   useEffect(() => {
@@ -79,6 +84,7 @@ export default function NativeCapabilityTest({ api, translationTest }) {
     [audioUrl]
   );
   const test = async () => {
+    const finishTiming = startTiming();
     setBusy(true);
     setError("");
     setResult("");
@@ -114,12 +120,14 @@ export default function NativeCapabilityTest({ api, translationTest }) {
       assets.clear();
       if (active.current === job) {
         active.current = null;
+        finishTiming();
         setBusy(false);
       }
     }
   };
   return (
     <ServiceTestCard
+      timing={timing}
       actions={
         <>
           <Button

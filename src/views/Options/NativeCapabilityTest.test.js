@@ -86,6 +86,38 @@ test("saving keeps results; switching instances cancels an old task and prevents
   await act(async () => finish({ text: "late result" }));
   expect(node.textContent).not.toContain("late result");
   expect(node.textContent).not.toContain("completed");
+  expect(node.textContent).not.toMatch(/已用|总耗时/);
+});
+
+test("shows elapsed time during a test and freezes its total time on completion", async () => {
+  let finish;
+  invokeService.mockReturnValue({
+    result: new Promise((resolve) => {
+      finish = resolve;
+    }),
+    cancel: jest.fn(),
+  });
+  await render({ apiSlug: "one", enabledCapabilities: ["chat"] });
+  expect(node.textContent).not.toMatch(/已用|总耗时/);
+
+  jest.useFakeTimers();
+  try {
+    await act(async () => button("执行测试").click());
+    act(() => jest.advanceTimersByTime(1250));
+    expect(node.textContent).toContain("已用 1.3秒");
+
+    act(() => jest.advanceTimersByTime(350));
+    await act(async () => finish({ text: "completed" }));
+    expect(node.textContent).toContain("总耗时 1.6秒");
+    act(() => jest.advanceTimersByTime(1000));
+    expect(node.textContent).toContain("总耗时 1.6秒");
+
+    await act(async () => button("执行测试").click());
+    expect(node.textContent).not.toContain("1.6秒");
+    expect(node.textContent).toContain("总耗时 0.0秒");
+  } finally {
+    jest.useRealTimers();
+  }
 });
 
 test("cancel stays in the test card and completes through the existing task cancellation", async () => {
