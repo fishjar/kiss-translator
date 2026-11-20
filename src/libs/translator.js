@@ -20,6 +20,7 @@ import {
   DEFAULT_MOUSE_HOVER_SETTING,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+  OPT_HIGHLIGHT_WORDS_BOTH,
   OPT_MOUSE_HOVER_DISPLAY_BUBBLE,
   OPT_MOUSE_HOVER_HOLD_BUTTON_RIGHT,
   OPT_MOUSE_HOVER_TRANS_AREA,
@@ -105,6 +106,14 @@ function getRuntimeApiSettings(api) {
   delete settings.apiName;
   delete settings.sortOrder;
   return settings;
+}
+
+function hasFavoriteHighlights(mode) {
+  return (
+    mode === OPT_HIGHLIGHT_WORDS_BEFORETRANS ||
+    mode === OPT_HIGHLIGHT_WORDS_AFTERTRANS ||
+    mode === OPT_HIGHLIGHT_WORDS_BOTH
+  );
 }
 
 export class Translator {
@@ -312,6 +321,7 @@ export class Translator {
   #apisMap = new Map(); // 用于接口快速查找
   #favWords = []; // 收藏词汇
   #favoriteHighlightScopes = new Set(); // 已进入收藏词高亮流程的扫描单元
+  #favoriteSourceGroups = new WeakMap(); // 高亮替换节点时同步翻译组持有的原文
 
   #observedNodes = new WeakSet(); // 存储所有被识别出的、可翻译的 DOM 节点单元
   #translationNodes = new WeakMap(); // 存储所有插入到页面的译文节点
@@ -2863,10 +2873,7 @@ export class Translator {
     this.#touchCandidates.add(node);
     this.#touchController?.observe(node);
     if (this.#tryAdoptExistingTranslationHost(node)) {
-      if (
-        this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS ||
-        this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS
-      ) {
+      if (hasFavoriteHighlights(this.#rule.highlightWords)) {
         this.#favoriteHighlightScopes.add(node);
       }
       if (!this.#observedNodes.has(node)) {
@@ -2876,7 +2883,10 @@ export class Translator {
       return;
     }
 
-    if (this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS) {
+    if (
+      this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BEFORETRANS ||
+      this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BOTH
+    ) {
       this.#favoriteHighlightScopes.add(node);
       this.#highlightWordsDeeply(node);
     }
@@ -3022,6 +3032,13 @@ export class Translator {
     // Invalid sources must not become processed/restorable hold targets.
     const sourceText = this.#getSourceText(node);
     if (this.#isInvalidText(sourceText)) return;
+    if (
+      this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BOTH &&
+      !this.#favoriteHighlightScopes.has(node)
+    ) {
+      this.#favoriteHighlightScopes.add(node);
+      this.#highlightWordsDeeply(node);
+    }
     const appliedRule = { ...this.#rule };
     this.#processedNodes.set(node, appliedRule);
     // 按住操作代次与 runId：语言检测等异步环节完成后据此判断任务是否已过期
@@ -3163,9 +3180,22 @@ export class Translator {
     if (newNodes.length > 0) {
       // Marking new nodes alone does not suppress removal of the old source.
       this.#withIgnoredMutations([textNode.parentNode], () =>
-        textNode.replaceWith(...newNodes)
+        this.#replaceFavoriteSourceNode(textNode, newNodes)
       );
     }
+  }
+
+  #replaceFavoriteSourceNode(node, replacements) {
+    const group = this.#favoriteSourceGroups.get(node);
+    const index = group?.indexOf(node) ?? -1;
+    if (index !== -1) {
+      group.splice(index, 1, ...replacements);
+      replacements.forEach((replacement) =>
+        this.#favoriteSourceGroups.set(replacement, group)
+      );
+      this.#favoriteSourceGroups.delete(node);
+    }
+    node.replaceWith(...replacements);
   }
 
   // 高亮词汇
@@ -3178,7 +3208,7 @@ export class Translator {
     const escapedWords = words.map(escapeRegex);
     const wordRegex = new RegExp(`\\b(${escapedWords.join("|")})\\b`, "gi");
 
-    if (parentNode.nodeType === Node.ELEMENT_NODE) {
+    if (Translator.isElementOrFragment(parentNode)) {
       const walker = document.createTreeWalker(
         parentNode,
         NodeFilter.SHOW_TEXT,
@@ -3240,38 +3270,43 @@ export class Translator {
       );
     }
 
-    if (
-      this.#rule.highlightWords !== OPT_HIGHLIGHT_WORDS_BEFORETRANS &&
-      this.#rule.highlightWords !== OPT_HIGHLIGHT_WORDS_AFTERTRANS
-    ) {
-      return;
-    }
+    if (!hasFavoriteHighlights(this.#rule.highlightWords)) return;
+
+    const scopes = new Set(this.#favoriteHighlightScopes);
+    this.#favoriteHighlightScopes.forEach((scope) => {
+      this.#findTranslationWrappers(scope).forEach((wrapper) => {
+        const backup = this.#getTranslationBackup(wrapper);
+        if (backup?.content.childNodes.length) scopes.add(backup.content);
+      });
+    });
 
     if (isFavorite) {
-      this.#favoriteHighlightScopes.forEach((scope) => {
+      scopes.forEach((scope) => {
         this.#highlightWordsDeeply(scope, [word.trim()]);
       });
     } else {
-      this.#removeFavoriteWordHighlights(normalized);
+      this.#removeFavoriteWordHighlights(normalized, scopes);
     }
   }
 
-  #removeFavoriteWordHighlights(normalizedWord) {
+  #removeFavoriteWordHighlights(
+    normalizedWord,
+    scopes = this.#favoriteHighlightScopes
+  ) {
+    const highlightSelector = `.${Translator.KISS_CLASS.highlight}`;
     const highlights = new Set();
-    this.#favoriteHighlightScopes.forEach((scope) => {
+    const collect = (node) => {
       if (
-        scope.matches?.(`.${Translator.KISS_CLASS.highlight}`) &&
-        scope.dataset.kissFavoriteWord === normalizedWord
+        (normalizedWord === undefined ||
+          node.dataset.kissFavoriteWord === normalizedWord) &&
+        !node.closest(Translator.KISS_IGNORE_SELECTOR)
       ) {
-        highlights.add(scope);
+        highlights.add(node);
       }
-      scope
-        .querySelectorAll?.(`.${Translator.KISS_CLASS.highlight}`)
-        .forEach((node) => {
-          if (node.dataset.kissFavoriteWord === normalizedWord) {
-            highlights.add(node);
-          }
-        });
+    };
+    scopes.forEach((scope) => {
+      if (scope.matches?.(highlightSelector)) collect(scope);
+      scope.querySelectorAll?.(highlightSelector).forEach(collect);
     });
 
     highlights.forEach((highlight) => {
@@ -3279,7 +3314,7 @@ export class Translator {
       this.#skipMoNodes.add(textNode);
       // Merging can remove an adjacent source node that was never highlighted.
       this.#withIgnoredMutations([highlight.parentNode], () => {
-        highlight.replaceWith(textNode);
+        this.#replaceFavoriteSourceNode(highlight, [textNode]);
         this.#mergeFavoriteHighlightText(textNode);
       });
     });
@@ -3287,19 +3322,26 @@ export class Translator {
 
   #mergeFavoriteHighlightText(textNode) {
     let mergedNode = textNode;
+    const group = this.#favoriteSourceGroups.get(textNode);
     const previous = mergedNode.previousSibling;
-    if (previous?.nodeType === Node.TEXT_NODE) {
+    if (
+      previous?.nodeType === Node.TEXT_NODE &&
+      this.#favoriteSourceGroups.get(previous) === group
+    ) {
       this.#skipMoNodes.add(previous);
       previous.nodeValue += mergedNode.nodeValue;
-      mergedNode.remove();
+      this.#replaceFavoriteSourceNode(mergedNode, []);
       mergedNode = previous;
     }
 
     const next = mergedNode.nextSibling;
-    if (next?.nodeType === Node.TEXT_NODE) {
+    if (
+      next?.nodeType === Node.TEXT_NODE &&
+      this.#favoriteSourceGroups.get(next) === group
+    ) {
       this.#skipMoNodes.add(mergedNode);
       mergedNode.nodeValue += next.nodeValue;
-      next.remove();
+      this.#replaceFavoriteSourceNode(next, []);
     }
   }
 
@@ -3840,6 +3882,9 @@ export class Translator {
     } = options.touch
       ? { ...this.#rule, transOnly: "false", transOrder: "original-first" }
       : this.#rule;
+    if (hasFavoriteHighlights(highlightWords)) {
+      nodes.forEach((node) => this.#favoriteSourceGroups.set(node, nodes));
+    }
     const {
       newlineLength,
       // langDetector，
@@ -4109,7 +4154,7 @@ export class Translator {
           // 高亮词汇
           if (highlightWords === OPT_HIGHLIGHT_WORDS_AFTERTRANS) {
             this.#favoriteHighlightScopes.add(hostNode);
-            nodes.forEach((node) => this.#highlightWordsDeeply(node));
+            [...nodes].forEach((node) => this.#highlightWordsDeeply(node));
           }
 
           // 翻译完成钩子函数（在隔离沙盒内安全执行用户自定义的译后处理脚本）
@@ -4237,7 +4282,12 @@ export class Translator {
       return;
     }
 
-    const word = (highlight.textContent || "").trim();
+    const word = (
+      (highlight.closest(`.${Translator.KISS_CLASS.warpper}`) &&
+        highlight.dataset.kissFavoriteWord) ||
+      highlight.textContent ||
+      ""
+    ).trim();
     const i18n = newI18n(this.#setting.uiLang || "zh");
     const currentRunId = ++this.#hoverBubbleRunId;
     this.#hoverBubbleTarget = highlight;
@@ -4547,6 +4597,9 @@ overflow-wrap: anywhere !important;`;
 
   // 处理节点转为翻译字符串
   #serializeForTranslation(nodes, termsStyle, terminology, placeholderConfig) {
+    const preserveFavoriteHighlights =
+      this.#rule.highlightWords === OPT_HIGHLIGHT_WORDS_BOTH &&
+      this.#rule.hasRichText === "true";
     const termEntries =
       terminology?.resolved.normalEntries || this.#termEntries;
     const termMatcher = terminology
@@ -4611,8 +4664,11 @@ overflow-wrap: anywhere !important;`;
           !(node instanceof HTMLUnknownElement) &&
           (preserveLayout || getNodeLayout(node) === "atomic");
 
-        // 收藏词高亮只影响原文显示，不应改变翻译请求的结构
-        if (node.classList.contains(Translator.KISS_CLASS.highlight)) {
+        // 只有双向高亮模式会把收藏词标记作为行内富文本发送。
+        if (
+          node.classList.contains(Translator.KISS_CLASS.highlight) &&
+          !preserveFavoriteHighlights
+        ) {
           return Array.from(node.childNodes, (child) =>
             traverse(child, preserveStructure)
           ).join("");
@@ -4633,6 +4689,11 @@ overflow-wrap: anywhere !important;`;
               `${Translator.KISS_IGNORE_SELECTOR}, ${NON_CONTENT_SELECTOR}`
             )
             .forEach((child) => child.remove());
+          if (!preserveFavoriteHighlights) {
+            serializedNode
+              .querySelectorAll(`.${Translator.KISS_CLASS.highlight}`)
+              .forEach((child) => child.replaceWith(...child.childNodes));
+          }
           if (
             node.tagName?.toUpperCase() === "IMG" ||
             node.tagName?.toUpperCase() === "SVG"
@@ -5122,6 +5183,9 @@ overflow-wrap: anywhere !important;`;
         originalWrapper,
         isHide: hasBackupNodes,
       });
+      if (hasFavoriteHighlights(this.#rule.highlightWords)) {
+        nodes.forEach((node) => this.#favoriteSourceGroups.set(node, nodes));
+      }
       nodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE) {
           this.#processedNodes.set(node, { ...this.#rule });
@@ -5414,6 +5478,7 @@ overflow-wrap: anywhere !important;`;
     this.#viewNodes.clear();
     this.#rootNodes.clear();
     this.#favoriteHighlightScopes.clear();
+    this.#favoriteSourceGroups = new WeakMap();
     this.#touchCandidates.clear();
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
@@ -5787,13 +5852,14 @@ overflow-wrap: anywhere !important;`;
   }
 
   // 重新扫描页面
-  rescan() {
+  rescan({ clearFavoriteHighlights = false } = {}) {
     if (!this.#isInitialized || this.#editorPaused) return;
     this.#cancelTranslationRequests();
     const touchMode = this.#touchController?.mode || "off";
     this.setTouchMode("off");
 
     this.#cleanupAllNodes();
+    if (clearFavoriteHighlights) this.#removeFavoriteWordHighlights();
     this.#resetOptions();
 
     // 重新初始化
@@ -5871,7 +5937,12 @@ overflow-wrap: anywhere !important;`;
       };
     }
     let hasChanged = false;
-    let needsRescan = false;
+    const oldHighlightWords = this.#rule.highlightWords;
+    const newHighlightWords = newRule.highlightWords ?? oldHighlightWords;
+    const switchesBothHighlight =
+      (oldHighlightWords === OPT_HIGHLIGHT_WORDS_BOTH) !==
+      (newHighlightWords === OPT_HIGHLIGHT_WORDS_BOTH);
+    let needsRescan = switchesBothHighlight;
     if (
       ["apiSlug", "fromLang", "toLang", "hasRichText"].some(
         (key) =>
@@ -5975,7 +6046,12 @@ overflow-wrap: anywhere !important;`;
       needsTriggerRescan ||
       (this.#enabled && this.#transAllnow)
     ) {
-      this.rescan();
+      this.rescan({
+        clearFavoriteHighlights:
+          switchesBothHighlight &&
+          newHighlightWords !== OPT_HIGHLIGHT_WORDS_BOTH &&
+          newHighlightWords !== OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      });
       this.#syncTransOnlyRevert();
       return;
     }

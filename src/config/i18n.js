@@ -6145,6 +6145,15 @@ export const I18N = {
     tr: `Çeviriden Sonra Vurgula`,
     vi: "Tô sáng sau khi dịch",
   },
+  highlight_both: {
+    zh: "原文译文均高亮",
+    en: "Highlight in original and translation",
+    zh_TW: "原文和譯文皆醒目標示",
+    ja: "原文と訳文の両方をハイライト",
+    ko: "원문과 번역문 모두 강조 표시",
+    tr: "Orijinalde ve çeviride vurgula",
+    vi: "Tô sáng cả văn bản gốc và bản dịch",
+  },
   pagescroll_root_margin: {
     zh: `滚动加载提前触发 (0-10000px)`,
     en: `Early triggering of scroll loading (0-10000px)`,
