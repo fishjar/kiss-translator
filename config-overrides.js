@@ -267,6 +267,7 @@ const userscriptWebpack = (config, env) => {
 // @connect       kiss-translator.rayjar.com
 // @connect       ghproxy.com
 // @connect       dav.jianguoyun.com
+// @connect       kurio.infini-cloud.net
 // @connect       fanyi.baidu.com
 // @connect       transmart.qq.com
 // @connect       niutrans.com
