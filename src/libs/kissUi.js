@@ -9,7 +9,7 @@ export const KISS_UI_SELECTOR = `.${APP_LCNAME}-wrapper, .${APP_LCNAME}-hover-bu
   #${APP_CONSTS.popupID}, .${APP_CONSTS.popupID}_warpper, .${APP_CONSTS.popupID}_wrapper,
   #${APP_CONSTS.imageBoxID}, .${APP_CONSTS.imageBoxID}_wrapper,
   #kiss-rule-editor, #kiss-rule-highlights, [data-kiss-ui],
-  #kiss-touch-status, #kiss-subtitle-menus, .kiss-player-feedback,
+  #kiss-subtitle-menus, .kiss-player-feedback,
   .kiss-youtube-tab-header, .kiss-word-tooltip, #KISS-Translator-Message,
   .kt-image-hover-root, .kt-image-manager-layout-root, .kt-image-layout-overlay,
   .kt-image-dual-btn-container, .kt-screenshot-overlay-root,
