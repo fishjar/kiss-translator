@@ -182,6 +182,7 @@ test("the cancel button still cancels an active service test", async () => {
   await act(async () => button("执行测试").click());
   expect(invokeService).toHaveBeenCalledTimes(1);
   expect(button("测试中…").disabled).toBe(true);
+  expect(container.textContent).toContain("已用");
   expect(
     button("测试中…").querySelector('[role="progressbar"]')
   ).not.toBeNull();
@@ -189,6 +190,7 @@ test("the cancel button still cancels an active service test", async () => {
   expect(cancel).toHaveBeenCalledTimes(1);
   expect(button("执行测试").disabled).toBe(false);
   expect(container.querySelector('[role="progressbar"]')).toBeNull();
+  expect(container.textContent).toContain("总耗时");
 });
 
 test.each(["success", "failure"])(

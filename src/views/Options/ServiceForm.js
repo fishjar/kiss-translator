@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { useAlert } from "../../hooks/Alert";
 import ValidationInput from "../../hooks/ValidationInput";
@@ -89,8 +89,51 @@ export function ServiceTestResult({ result }) {
   );
 }
 
+export function useServiceTestTiming() {
+  const [timing, setTiming] = useState(null);
+  const startTiming = () => {
+    const startedAt = performance.now();
+    setTiming({ startedAt });
+    return () =>
+      setTiming({ startedAt, elapsedMs: performance.now() - startedAt });
+  };
+  return [timing, startTiming];
+}
+
+function ServiceTestDuration({ startedAt, elapsedMs }) {
+  const i18n = useI18n();
+  const [now, setNow] = useState(() => performance.now());
+  const running = elapsedMs === undefined;
+  useEffect(() => {
+    if (!running) return;
+    const timer = setInterval(() => setNow(performance.now()), 250);
+    return () => clearInterval(timer);
+  }, [running]);
+
+  const seconds = (elapsedMs ?? Math.max(0, now - startedAt)) / 1000;
+  const duration = seconds.toLocaleString(i18n.language?.replace("_", "-"), {
+    style: "unit",
+    unit: "second",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return (
+    <Typography
+      component="span"
+      variant="body2"
+      color="text.secondary"
+      sx={{ alignSelf: "center", fontVariantNumeric: "tabular-nums" }}
+    >
+      {i18n(running ? "plugin_test_elapsed" : "plugin_test_total_time").replace(
+        "{0}",
+        duration
+      )}
+    </Typography>
+  );
+}
+
 /** Both implementations keep test inputs and their actions in a separate card. */
-export function ServiceTestCard({ children, actions }) {
+export function ServiceTestCard({ children, actions, timing }) {
   const i18n = useI18n();
   return (
     <Stack className="kt-service-card kt-service-test" spacing={2}>
@@ -106,6 +149,7 @@ export function ServiceTestCard({ children, actions }) {
         flexWrap="wrap"
       >
         {actions}
+        {timing && <ServiceTestDuration {...timing} />}
       </Stack>
     </Stack>
   );

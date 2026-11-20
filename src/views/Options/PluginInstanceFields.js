@@ -5,6 +5,7 @@ import { useConfirm } from "../../hooks/Confirm";
 import {
   ServiceTestCard,
   ServiceTestResult,
+  useServiceTestTiming,
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
@@ -89,6 +90,7 @@ export default function PluginInstanceFields({
   const [testError, setTestError] = useState("");
   const active = useRef(null);
   const [call, setCall] = useState(null);
+  const [timing, startTiming] = useServiceTestTiming();
   const [quickBusy, setQuickBusy] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
   const draft = useMemo(
@@ -176,6 +178,7 @@ export default function PluginInstanceFields({
       });
   };
   const test = async () => {
+    const finishTiming = startTiming();
     setTestError("");
     setAudioUrl("");
     // A test may be cancelled while loading saved configuration,
@@ -227,6 +230,7 @@ export default function PluginInstanceFields({
       assets.clear();
       if (active.current === job) {
         active.current = null;
+        finishTiming();
         setCall(null);
       }
     }
@@ -486,6 +490,7 @@ export default function PluginInstanceFields({
         </Menu>
       </Stack>
       <ServiceTestCard
+        timing={timing}
         actions={
           <>
             <Button
