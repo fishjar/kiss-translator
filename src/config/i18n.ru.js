@@ -580,6 +580,7 @@ export const RU_I18N = {
   highlight_disable: `Отключить`,
   highlight_beforetrans: `Подсвечивать до перевода`,
   highlight_aftertrans: `Подсвечивать после перевода`,
+  highlight_both: `Подсвечивать в оригинале и переводе`,
   pagescroll_root_margin: `Упреждающий запуск подгрузки при прокрутке (0-10000 px)`,
   styles_setting: `Настройка стилей`,
   style_name: `Название стиля`,
