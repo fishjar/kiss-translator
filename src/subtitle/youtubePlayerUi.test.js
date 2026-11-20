@@ -1,5 +1,5 @@
 import DomManager from "../libs/domManager.js";
-import { YouTubePlayerUi } from "./youtubePlayerUi.js";
+import { YT_CAPTION_STYLE_ID, YouTubePlayerUi } from "./youtubePlayerUi.js";
 
 const mockDestroy = jest.fn();
 const mockHide = jest.fn();
@@ -128,6 +128,30 @@ describe("YouTubePlayerUi", () => {
     setting.hideSubtitleButton = false;
     ui.injectToggleButton(controls);
     expect(document.querySelector(".kiss-subtitle-button")).not.toBeNull();
+  });
+
+  test("keeps native captions hidden when their window mounts after the request", () => {
+    document.body.innerHTML =
+      '<div class="html5-video-player"><video></video></div>';
+    const videoEl = document.querySelector("video");
+    const player = document.querySelector(".html5-video-player");
+    const ui = createUi(videoEl);
+
+    ui.hideYtCaption();
+    expect(player.getAttribute("data-kiss-native-captions-hidden")).toBe(
+      "true"
+    );
+    expect(document.getElementById(YT_CAPTION_STYLE_ID)).not.toBeNull();
+
+    const caption = document.createElement("div");
+    caption.id = "ytp-caption-window-container";
+    player.appendChild(caption);
+    expect(getComputedStyle(caption).display).toBe("none");
+
+    ui.showYtCaption();
+    expect(player.hasAttribute("data-kiss-native-captions-hidden")).toBe(false);
+    expect(document.getElementById(YT_CAPTION_STYLE_ID)).toBeNull();
+    expect(getComputedStyle(caption).display).not.toBe("none");
   });
 
   test("hides notification when loading notification setting is disabled", () => {
