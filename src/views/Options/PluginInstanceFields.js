@@ -41,7 +41,6 @@ import {
   MenuItem,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import { useSetting } from "../../hooks/Setting";
 import { usePromptList } from "../../hooks/Prompt";
@@ -284,12 +283,6 @@ export default function PluginInstanceFields({
   return (
     <Stack spacing={3} useFlexGap>
       <Stack className="kt-service-card kt-service-configuration" spacing={2}>
-        {Boolean(draft.provider?.permissions?.originRewrite?.length) && (
-          <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-            {i18n("plugin_origin_rewrite", "Origin 重写域名")}:{" "}
-            {draft.provider.permissions.originRewrite.join("、")}
-          </Typography>
-        )}
         <ServiceFormHeader
           api={draft}
           onChange={(name, value) =>
