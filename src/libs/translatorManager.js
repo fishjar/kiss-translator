@@ -1,6 +1,4 @@
 import { supportsTouch } from "./touchCapability";
-import ShadowDomManager from "./shadowDomManager";
-import { TouchTranslateStatus } from "../components/TouchTranslateControl";
 import { isInBlacklist } from "./blacklist";
 import {
   MSG_TOUCH_TRANSLATE_MODE_SET,
@@ -64,7 +62,6 @@ import {
 export default class TranslatorManager {
   // 全局注册项的清理句柄；这些只随 start/stop 注册，restart 时不重复注册。
   #touchMode = "off";
-  #touchStatus = null;
   #clearShortcuts = [];
   #menuCommandIds = [];
   #clearTouchListeners = [];
@@ -300,13 +297,6 @@ export default class TranslatorManager {
 
     // Frames keep page, selection, and hover translation, but no top-level UI.
     if (!this.#isIframe) {
-      this.#touchStatus = new ShadowDomManager({
-        id: "kiss-touch-status",
-        className: "notranslate",
-        reactComponent: TouchTranslateStatus,
-        props: { processActions: this.#processActions.bind(this) },
-      });
-      this.#touchStatus.show();
       this._inputTranslator = new InputTranslator(
         this.#cloneConfig(this.#setting)
       );
@@ -356,8 +346,6 @@ export default class TranslatorManager {
    * restart 只调用本方法，避免重复注册全局入口。
    */
   #destroyRuntimeModules() {
-    this.#touchStatus?.destroy();
-    this.#touchStatus = null;
     this._ruleEditorManager?.destroy();
     this._ruleEditorManager = null;
     this._popupManager?.destroy();

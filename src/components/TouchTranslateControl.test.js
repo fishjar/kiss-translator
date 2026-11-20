@@ -1,20 +1,9 @@
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-jest.mock("../hooks/Setting", () => ({
-  SettingProvider: ({ children }) => children,
-}));
-jest.mock(
-  "../hooks/M3Theme",
-  () =>
-    ({ children }) =>
-      children
-);
 jest.mock("../libs/msg", () => ({ sendTabMsg: jest.fn() }));
 import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { Simulate } from "react-dom/test-utils";
-import TouchTranslateControl, {
-  TouchTranslateStatus,
-} from "./TouchTranslateControl";
+import TouchTranslateControl from "./TouchTranslateControl";
 import {
   EVENT_KISS_INNER,
   MSG_TOUCH_TRANSLATE_MODE_SET,
@@ -178,30 +167,6 @@ describe("touch mode controls", () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
-  test("the independent status bar saves off when closed", async () => {
-    dispatch.mockImplementation(({ args }) => ({
-      touchTranslate: {
-        mode: args?.mode || "tap",
-        supported: true,
-        direction: "right",
-      },
-    }));
-    await act(async () => {
-      root.render(<TouchTranslateStatus processActions={dispatch} />);
-    });
-    expect(container.querySelector('[role="status"]')).not.toBeNull();
-    expect(container.querySelector("button").getAttribute("aria-label")).toBe(
-      "touch_exit"
-    );
-    expect(container.querySelector("button").textContent).toBe("");
-
-    await act(async () => {
-      container.querySelector("button").click();
-    });
-    expect(container.querySelector('[role="status"]')).toBeNull();
-    expect(mockSave).toHaveBeenCalledWith({ touchMode: "off" });
-  });
-
   test("hides on a mouse-only desktop", async () => {
     Object.defineProperty(navigator, "maxTouchPoints", {
       configurable: true,
@@ -269,52 +234,5 @@ describe("touch mode controls", () => {
     expect(container.querySelector('[role="alert"]').textContent).toBe(
       "touch_save_failed"
     );
-  });
-
-  test("keeps status feedback visible after off fails to save and allows retry", async () => {
-    dispatch.mockImplementation(({ args }) => ({
-      touchTranslate: {
-        mode: args?.mode || "tap",
-        supported: true,
-        direction: "right",
-      },
-    }));
-    mockSave.mockRejectedValueOnce(new Error("Storage unavailable"));
-    await act(async () => {
-      root.render(<TouchTranslateStatus processActions={dispatch} />);
-    });
-    await act(async () => container.querySelector("button").click());
-    expect(container.querySelector('[role="alert"]').textContent).toBe(
-      "touch_save_failed"
-    );
-    await act(async () => container.querySelector("button").click());
-    expect(mockSave).toHaveBeenCalledTimes(2);
-    expect(mockSave).toHaveBeenLastCalledWith({ touchMode: "off" });
-    expect(container.querySelector('[role="status"]')).toBeNull();
-  });
-
-  test("blocks repeated status actions until persistence finishes", async () => {
-    let finishSave;
-    mockSave.mockImplementationOnce(
-      () => new Promise((resolve) => (finishSave = resolve))
-    );
-    dispatch.mockImplementation(({ args }) => ({
-      touchTranslate: {
-        mode: args?.mode || "tap",
-        supported: true,
-        direction: "right",
-      },
-    }));
-    await act(async () => {
-      root.render(<TouchTranslateStatus processActions={dispatch} />);
-    });
-    await act(async () => {
-      container.querySelector("button").click();
-      container.querySelector("button").click();
-    });
-    expect(mockSave).toHaveBeenCalledTimes(1);
-    expect(container.querySelector("button").disabled).toBe(true);
-    await act(async () => finishSave());
-    expect(container.querySelector('[role="status"]')).toBeNull();
   });
 });

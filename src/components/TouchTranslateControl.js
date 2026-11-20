@@ -1,9 +1,6 @@
 import { supportsTouch } from "../libs/touchCapability";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Alert from "@mui/material/Alert";
-import IconButton from "@mui/material/IconButton";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
@@ -15,8 +12,6 @@ import {
 import { sendTabMsg } from "../libs/msg";
 import { useMouseHoverSetting } from "../hooks/MouseHover";
 import { useI18n } from "../hooks/I18n";
-import { SettingProvider } from "../hooks/Setting";
-import ThemeProvider from "../hooks/M3Theme";
 import { createMenuKeyDownHandler } from "../libs/menuFocus";
 
 function useTouchState(processActions) {
@@ -239,68 +234,4 @@ function ConnectedTouchControl({
 
 export default function TouchTranslateControl(props) {
   return supportsTouch() ? <ConnectedTouchControl {...props} /> : null;
-}
-
-function Status({ processActions }) {
-  const i18n = useI18n();
-  const { state, change, failed, saveFailed, pending } =
-    useTouchState(processActions);
-  if (!state || (state.mode === "off" && !pending && !saveFailed)) return null;
-  return (
-    <Paper
-      role="status"
-      data-kiss-touch-ui
-      elevation={3}
-      sx={{
-        position: "fixed",
-        bottom: "max(16px, env(safe-area-inset-bottom))",
-        zIndex: 2147483647,
-        left: "50%",
-        transform: "translateX(-50%)",
-        py: "2px",
-        px: 1,
-        fontSize: 12,
-        borderRadius: 3,
-        maxWidth: "calc(100vw - 24px)",
-        width: "max-content",
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <span>
-          {i18n(
-            state.mode === "off"
-              ? "touch_off"
-              : state.mode === "tap"
-                ? "touch_tap"
-                : state.direction === "left"
-                  ? "touch_left"
-                  : "touch_right"
-          )}
-        </span>
-        <IconButton
-          aria-label={i18n("touch_exit")}
-          title={i18n("touch_exit")}
-          sx={{ width: 28, height: 28, p: "4px", flexShrink: 0 }}
-          disabled={pending}
-          onClick={() => change("off")}
-        >
-          <CloseRoundedIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Stack>
-      {failed && <Alert severity="error">{i18n("touch_failed")}</Alert>}
-      {saveFailed && (
-        <Alert severity="error">{i18n("touch_save_failed")}</Alert>
-      )}
-    </Paper>
-  );
-}
-
-export function TouchTranslateStatus(props) {
-  return (
-    <SettingProvider context="touchStatus">
-      <ThemeProvider>
-        <Status {...props} />
-      </ThemeProvider>
-    </SettingProvider>
-  );
 }
