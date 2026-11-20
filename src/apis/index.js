@@ -875,6 +875,7 @@ const executeApiTranslate = async ({
           onStreamChunk({
             id: item.id,
             text: item.partialText,
+            ...(item.isSegmentComplete && { isSegmentComplete: true }),
             isComplete: false,
           });
         }

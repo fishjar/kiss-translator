@@ -123,6 +123,7 @@ const BatchQueue = (
           task.args?.onStreamChunk?.({
             id: item.id,
             text: isComplete ? item.result : item.partialText,
+            ...(item.isSegmentComplete && { isSegmentComplete: true }),
             isComplete,
           });
           // A callback can synchronously cancel its own request.

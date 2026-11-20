@@ -26,7 +26,7 @@ test("plugin adapter maps stable IDs back to BatchQueue indexes regardless of or
   }))
     results.push(result);
   expect(results).toEqual([
-    { id: 1, partialText: "乙", isComplete: false },
+    { id: 1, partialText: "乙", isSegmentComplete: true, isComplete: false },
     { id: 1, result: ["乙", ""] },
     { id: 0, result: ["甲", ""] },
   ]);
@@ -53,7 +53,14 @@ test("a row completion before a failed/truncated final response never reaches th
       rows.push(row);
   };
   await expect(consume()).rejects.toThrow("truncated");
-  expect(rows).toEqual([{ id: 0, partialText: "preview", isComplete: false }]);
+  expect(rows).toEqual([
+    {
+      id: 0,
+      partialText: "preview",
+      isSegmentComplete: true,
+      isComplete: false,
+    },
+  ]);
 });
 
 test("partial results do not hide a failed final invocation", async () => {
