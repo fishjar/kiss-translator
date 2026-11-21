@@ -79,7 +79,12 @@ export async function* translatePlugin(
         completed.set(id, event.text);
         // A completed row is still a preview until the whole invocation succeeds.
         // Returning a `result` here would let BatchQueue/cache accept a truncated stream.
-        yield { id, partialText: event.text, isComplete: false };
+        yield {
+          id,
+          partialText: event.text,
+          isSegmentComplete: true,
+          isComplete: false,
+        };
       } else if (!completed.has(id)) {
         // Scene renderers consume accumulated text; Provider events carry only the new delta.
         const partialText = (partials.get(id) || "") + event.text;

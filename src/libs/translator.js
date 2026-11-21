@@ -3980,18 +3980,27 @@ export class Translator {
       if (!inserted || currentRunId !== this.#runId || !wrapper.isConnected)
         return;
 
-      // 1. 确定流式渲染模式状态
-      const streamRenderMode = this.#apiSetting.streamRenderMode || "disabled";
+      const streamRenderMode = selectedApi.streamRenderMode || "disabled";
       const isStreamRender =
         streamRenderMode !== "disabled" &&
-        this.#apiSetting.useStream &&
-        supportsServiceFeature(this.#apiSetting, "stream");
+        selectedApi.useStream &&
+        supportsServiceFeature(selectedApi, "stream");
 
-      // REVIEW: 极佳的性能优化设计 (RequestAnimationFrame 缓冲刷新)！
-      // 大模型流式输出（onStreamChunk）返回速率极快（每秒可达几十次）。
-      // 若每次收到数据都直接操作 DOM 修改 innerText 刷新页面，极易导致浏览器主线程阻塞和严重的 Layout Thrashing (布局抖动)。
-      // 此处引入了 RAF (requestAnimationFrame) 刷新缓冲区，限制每秒最多渲染 60 次（FPS 锁帧），
-      // 并只在空闲时间执行 flushPendingText() 修改 textNode 节点，大幅度节约了 DOM 回流重绘的开销，用户体验丝滑。
+      let translationFinished = false;
+      let renderedText;
+      const renderTranslatedText = (text) => {
+        if (text === renderedText) return;
+        const html = this.#restoreFromTranslation(
+          text,
+          placeholderMap,
+          placeholderConfig,
+          selectedApi.apiType
+        );
+        inner.innerHTML = trustedTypesHelper.createHTML(html);
+        renderedText = text;
+      };
+
+      // Only realtime mode displays unfinished text, at most once per frame.
       let rafId = null;
       let pendingText = "";
       let hasFirstChunk = false;
@@ -4020,17 +4029,28 @@ export class Translator {
             // 容器已被还原移除时同样停止流式写入，避免向脱离文档的节点空转渲染
             if (!wrapper.isConnected || (options.valid && !options.valid()))
               return;
-            const { text, isComplete } = chunk;
-            if (!text) return;
+            const { text, isComplete, isSegmentComplete } = chunk;
+            if (!text || isComplete || translationFinished) return;
 
-            if (isComplete) {
-              pendingText = Array.isArray(text) ? text[0] : text;
-              if (rafId) {
+            // A complete segment can be shown while the provider validates
+            // the rest of the batch. Final results use the same renderer below.
+            if (isSegmentComplete) {
+              if (rafId !== null) {
                 cancelAnimationFrame(rafId);
                 rafId = null;
               }
-              flushPendingText();
-            } else {
+              this.#queueTranslationUpdate(hostNode, () => {
+                if (
+                  translationFinished ||
+                  !wrapper.isConnected ||
+                  (options.valid && !options.valid())
+                )
+                  return;
+                renderTranslatedText(text);
+              }).catch((err) =>
+                logger.child("translator").warn("segment preview failed", err)
+              );
+            } else if (streamRenderMode === "realtime") {
               pendingText = text;
               if (!rafId) {
                 // 开启 RAF 排队渲染
@@ -4069,15 +4089,11 @@ export class Translator {
         translatedText = result.trText;
         isSameLang = result.isSame;
       } finally {
+        translationFinished = true;
+        if (rafId !== null) cancelAnimationFrame(rafId);
         if (options.limitConcurrency) {
           this.#releaseHoldRequestSlot();
         }
-      }
-
-      // 请求完成后，立刻注销多余的 RAF 定时监听器，防止内存泄漏
-      if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
       }
 
       if (this.#runId !== currentRunId) {
@@ -4099,21 +4115,6 @@ export class Translator {
         return;
       }
 
-      // 3. 将翻译后文本里的 {{1}}、<tag1> 等占位符还原为对应的 DOM 节点和 HTML 结构
-      const htmlString = this.#restoreFromTranslation(
-        translatedText,
-        placeholderMap,
-        placeholderConfig,
-        selectedApi.apiType
-      );
-
-      // REVIEW: 高安全标准的 Trusted Types 注入机制。
-      // 在页面插入 innerHTML 很容易遭受 DOM-based XSS 跨站脚本攻击。
-      // 特别是在 Chrome 扩展中强灌 innerHTML 会直接触发扩展程序的安全拦截。
-      // 此处将 htmlString 传入 trustedTypesHelper.createHTML 转化为受信任的 TrustedHTML 实例，
-      // 再安全地写入 inner.innerHTML，这完全符合现代高 CSP 标准站点的规范，非常专业。
-      const trustedHTML = trustedTypesHelper.createHTML(htmlString);
-
       await this.#queueTranslationUpdate(
         hostNode,
         () => {
@@ -4125,7 +4126,7 @@ export class Translator {
             `:scope > br, :scope > .${Translator.KISS_CLASS.space}`
           );
           if (separator) separator.hidden = hideOrigin;
-          inner.innerHTML = trustedHTML;
+          renderTranslatedText(translatedText);
 
           let originalWrapper = null;
           if (wrapOriginal === "true") {

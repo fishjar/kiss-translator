@@ -1372,7 +1372,9 @@ async function* handleTranslateStreamInternal(
               results[id] = translation;
               yield { id, result: translation };
             }
-          } else {
+          }
+
+          if (formatDetected && !isJsonFormat) {
             for (const { id, translation } of parseStreamingSegments(
               fullContent,
               processedIds
