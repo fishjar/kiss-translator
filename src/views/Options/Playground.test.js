@@ -556,7 +556,7 @@ describe("draft persistence debounce", () => {
   });
 });
 
-describe("draft multi-tab race and unload flush (M3/B1)", () => {
+describe("draft multi-tab race and unload flush", () => {
   const TERMS_KEY = "kt-playground-terms-draft";
   const AI_TERMS_KEY = "kt-playground-aiterms-draft";
   const SEED_KEY = "kt-playground-term-seed";
@@ -590,7 +590,7 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
     document.body.innerHTML = "";
   });
 
-  test("M3：pagehide/beforeunload 时三键同步 flush（含此前不持久化的 seed）", async () => {
+  test("pagehide/beforeunload 时三键同步 flush（含此前不持久化的 seed）", async () => {
     const { host, root } = mountView();
     await openTermsTab(host);
 
@@ -620,7 +620,7 @@ describe("draft multi-tab race and unload flush (M3/B1)", () => {
     act(() => root.unmount());
   });
 
-  test("M3：seed 持久化跨卸载/重挂载恢复", async () => {
+  test("seed 持久化跨卸载/重挂载恢复", async () => {
     const { host, root } = mountView();
     await openTermsTab(host);
     act(() => {

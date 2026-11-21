@@ -165,7 +165,7 @@ async function doLoad(spec: JevLoadSpec): Promise<string> {
   try {
     session = await ort.InferenceSession.create(new Uint8Array(modelBuf), {
       executionProviders: providers,
-      // 文档 §37：Laya 完整图在 WebGPU 下使用 basic 图优化级别以确保算子兼容与精度一致
+      // Laya 完整图在 WebGPU 下使用 basic 图优化级别以确保算子兼容与精度一致
       graphOptimizationLevel: spec.device === "webgpu" ? "basic" : "all",
     });
     currentKey = key;

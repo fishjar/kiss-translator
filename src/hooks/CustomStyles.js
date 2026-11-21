@@ -7,13 +7,6 @@ import { useI18n } from "./I18n";
 export const STYLE_SOURCE_BUILTIN = "builtin";
 export const STYLE_SOURCE_CUSTOM = "custom";
 
-export function getCompactStylePreviewCode(style) {
-  if (style?.source !== STYLE_SOURCE_BUILTIN || style?.isBuiltin !== true) {
-    return "";
-  }
-  return style.styleCode || "";
-}
-
 export function toPersistedCustomStyle(style = {}) {
   return {
     styleSlug: style.styleSlug,
@@ -36,8 +29,12 @@ function useStyleState() {
 export function useStyleList() {
   const { customStyles, updateSetting } = useStyleState();
 
-  // 添加新的自定义 CSS 样式项，预设为样式模版中的第一个样式并生成新的 UUID 作为标识
-  const addStyle = useCallback(() => {
+  // 添加新的自定义 CSS 样式项：接受初始 styleCode（空白样式传 ""、模板
+  // 传所选内置 compact 代码），新卡片 unshift 置顶（新卡在最上）；返回新
+  // styleSlug 供互斥单开的自动展开定位。styleName 保持 Style_xxxxxxxx
+  // 自动生成逻辑不动。DEFAULT_CUSTOM_STYLES 仅作结构形状来源，不再预填
+  // 其默认代码（预填职责移交模板选择模态）。
+  const addStyle = useCallback((initialCode = "") => {
     const defaultStyle = DEFAULT_CUSTOM_STYLES[0];
     const uuid = crypto.randomUUID();
     const styleSlug = `custom_${crypto.randomUUID()}`;
@@ -46,11 +43,13 @@ export function useStyleList() {
       ...defaultStyle,
       styleSlug,
       styleName,
+      styleCode: initialCode,
     };
     updateSetting((prev) => ({
       ...prev,
-      customStyles: [...(prev?.customStyles || []), newStyle],
+      customStyles: [newStyle, ...(prev?.customStyles || [])],
     }));
+    return styleSlug;
   }, [updateSetting]);
 
   // 删除特定的自定义 CSS 样式项

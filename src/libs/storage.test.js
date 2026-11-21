@@ -603,7 +603,7 @@ describe("settings storage migration", () => {
   );
 
   test("fills in new mouse hover hold defaults without overriding stored choices", async () => {
-    // 旧版本升级上来的设置：mouseHoverSetting 里没有本轮新增的键
+    // 旧版本升级上来的设置：mouseHoverSetting 里没有新增的悬停键
     window.localStorage.setItem(
       STOKEY_SETTING,
       JSON.stringify({

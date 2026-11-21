@@ -78,7 +78,7 @@ export interface ChromiumOffscreenHostOptions {
 }
 
 /**
- * Chrome / Edge MV3 扩展模式下的 Offscreen Runtime Host 适配器（文档 §4 & §5.2）。
+ * Chrome / Edge MV3 扩展模式下的 Offscreen Runtime Host 适配器。
  * 具备完整的 RPC 结束路径：
  * - 每个 pending 请求均设超时计时器（流式/进度回调时自动续期看门狗）；
  * - 收到响应、发送失败、超时、取消或 Offscreen 关闭时统一清理 timer + Map 并结算 Promise；

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useLayoutEffect } from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline, GlobalStyles } from "@mui/material";
 import { useDarkMode } from "./ColorMode";
@@ -9,9 +9,12 @@ import {
   M3_GLOBAL_CSS,
   resolveM3Colors,
   resolveM3ThemeMode,
+  setIconStyleSnapshot,
 } from "../styles/m3";
 import { getMuiSwitchStyleOverrides } from "./themeStyles";
 import { useSystemDarkPreference } from "./SystemColorScheme";
+import { useSetting } from "./Setting";
+import { installFocusModality } from "./focusModality";
 
 export { getMuiSwitchStyleOverrides } from "./themeStyles";
 
@@ -39,6 +42,43 @@ export default function M3Theme({
     () => resolveM3Colors(resolvedMode, M3_BRAND_COLOR),
     [resolvedMode]
   );
+
+  // 图标风格快照同步：入口根挂载的 M3Theme 把 setting.iconStyle 推入分发
+  // 器订阅的 store（setIconStyleSnapshot 内部经 resolveIconStyle 归一，
+  // 设置键未上线时安全回退缺省 lucide）。两段式同步：首渲染在渲染体内
+  // 初始化快照——订阅方图标组件经 useSyncExternalStore 在渲染期读取
+  // getIconStyleSnapshot，快照必须在本组件渲染体落定，子组件首渲染即见
+  // 当前 iconStyle（ref 守卫仅执行一次，StrictMode 重复渲染时快照已落定、
+  // 幂等跳过）；后续 iconStyle 变化改在布局 effect 中更新——绘制前落定
+  // 不闪旧风格帧，且避开渲染期通知：值变化会同步通知订阅方，渲染期通知
+  // 会令已挂载的订阅组件在 M3Theme 渲染中途被调度重渲染。
+  // 挂载与安全口径：全部入口（popup / Action / ContentFab / ImageTranslate /
+  // Selection / TouchTranslateStatus / Options / RuleEditor）的 M3Theme 均
+  // 嵌在 SettingProvider 内侧，且 Provider 在加载/读取失败期不渲染
+  // children——本行解构执行时 setting 必为已加载值。缺省 context 亦自带
+  // setting: DEFAULT_SETTING（Setting.js），即使未来出现无 Provider 的挂载
+  // 点，解构与 setting?.iconStyle 均空安全，不存在渲染崩溃路径。
+  // 为何不在此处上收 Setting.js：全部入口自身已引入 SettingProvider，主题
+  // 层引用 useSetting 不给任何入口新增依赖链；带上 isLoading 守卫并统一
+  // iconStyle/iconColor 双快照的完整上收，属图标设置键上线分支的既定终局
+  // 形态，避免此处先行实现半套、后续返工。
+  const { setting } = useSetting();
+  const iconStyleInitRef = useRef(false);
+  if (!iconStyleInitRef.current) {
+    iconStyleInitRef.current = true;
+    setIconStyleSnapshot(setting?.iconStyle);
+  }
+  useLayoutEffect(() => {
+    setIconStyleSnapshot(setting?.iconStyle);
+  }, [setting?.iconStyle]);
+
+  // 焦点模态监听：所有 surface 的唯一包裹层在这里对 ownerDocument 显式安装
+  // 模态监听（幂等，per-document；Shadow DOM / 独立窗口各自安装）。此后
+  // MUI 自持 autofocus 等任何聚焦路径都在 focusin 统一处置覆盖之下。
+  const rootRef = useRef(null);
+  useLayoutEffect(() => {
+    installFocusModality(rootRef.current?.ownerDocument);
+  }, []);
 
   const theme = useMemo(() => {
     const color = colors;
@@ -419,6 +459,7 @@ export default function M3Theme({
       <CssBaseline />
       <GlobalStyles styles={styles} />
       <div
+        ref={rootRef}
         className="kt-m3-root"
         data-theme={resolvedMode}
         data-brand={M3_BRAND_COLOR}

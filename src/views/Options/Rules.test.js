@@ -76,10 +76,47 @@ jest.mock("../../hooks/Api", () => ({
 }));
 
 jest.mock("../../hooks/CustomStyles", () => ({
+  STYLE_SOURCE_CUSTOM: "custom",
   useAllTextStyles: () => ({
     allTextStyles: [
-      { styleSlug: "style_none", styleName: "style_none" },
-      { styleSlug: "marker", styleName: "marker" },
+      {
+        styleSlug: "style_none",
+        styleName: "style_none",
+        styleCode: "",
+        source: "builtin",
+        isBuiltin: true,
+      },
+      {
+        styleSlug: "marker",
+        styleName: "marker",
+        styleCode: "color: red;",
+        source: "custom",
+        isBuiltin: false,
+      },
+      {
+        styleSlug: "broken",
+        styleName: "broken",
+        styleCode: "body, html { color:blue",
+        source: "custom",
+        isBuiltin: false,
+      },
+      {
+        // 平衡的选择器列表：编译期顶层逗号闸整份判无效（反向断言覆盖的
+        // 下拉路径形态），非花括号失衡
+        styleSlug: "selector-list",
+        styleName: "selector-list",
+        styleCode: "&, body { position: fixed; }",
+        source: "custom",
+        isBuiltin: false,
+      },
+      {
+        // 伪造 slug（导入/同步通道注入）：净化后不得产生选择器列表逃逸
+        styleSlug: "x, body",
+        styleName: "forged",
+        styleCode: "color: red;",
+        source: "custom",
+        isBuiltin: false,
+      },
     ],
   }),
 }));
@@ -890,6 +927,154 @@ describe("Options Rules global tab", () => {
       view.container.querySelector('input[name="wrapOriginal"]')
     ).not.toBeNull();
     expect(view.container.querySelector(".MuiGrid-grid-lg-3")).toBeNull();
+
+    view.unmount();
+  });
+
+  test("renders style previews inside the text style dropdown options", async () => {
+    const view = renderRules();
+
+    const input = view.container.querySelector('input[name="textStyle"]');
+    const select = input.parentElement.querySelector('[role="combobox"]');
+    await act(async () => {
+      select.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        })
+      );
+    });
+
+    // 下拉经 portal 挂 document.body；默认夹具为全局规则（pattern="*"），
+    // GlobalItem 仅在非全局规则下渲染，此处恰为五个样式项
+    const options = [...document.body.querySelectorAll('[role="option"]')];
+    expect(options).toHaveLength(5);
+
+    const previewOf = (option) =>
+      // 取文档序最内层的演示叶节点：custom 失败项的包裹 span（含 scope
+      // 类）textContent 亦为 translated_text，必须跳过取叶子
+      [...option.querySelectorAll("span")]
+        .filter((span) => span.textContent === "translated_text")
+        .pop();
+
+    // 样式项：名称文案 + 预览节点（style_none 为 builtin 纯文本预览；
+    // marker 为 custom 且代码合法 → compileCss 作用域编译路径；broken 为
+    // custom 且代码括号失衡 → 校验失败回退显式"无法预览"提示；selector-
+    // list 为括号平衡的顶层选择器列表 → 顶层逗号闸整份判无效）
+    const noneOption = options.find((option) =>
+      option.textContent.includes("style_none")
+    );
+    const markerOption = options.find((option) =>
+      option.textContent.includes("marker")
+    );
+    const brokenOption = options.find((option) =>
+      option.textContent.includes("broken")
+    );
+    const selectorListOption = options.find((option) =>
+      option.textContent.includes("selector-list")
+    );
+    expect(noneOption).toBeDefined();
+    expect(markerOption).toBeDefined();
+    expect(brokenOption).toBeDefined();
+    expect(selectorListOption).toBeDefined();
+    expect(previewOf(noneOption)).toBeDefined();
+    expect(previewOf(markerOption)).toBeDefined();
+
+    // custom 合法项：经 compileCss 作用域编译，<style> 产物整体落在
+    // kt-scope-<slug> 作用域之下，演示 span 挂 kt-style-demo 演示类
+    expect(previewOf(markerOption).className).toBe("kt-style-demo");
+    const markerStyle = markerOption.querySelector("style");
+    expect(markerStyle.textContent).toBe(
+      ".kt-scope-marker .kt-style-demo { color: red; }"
+    );
+
+    // custom 校验失败项：回退显式"无法预览"提示（css_invalid），不再渲染
+    // 普通文本演示致用户误认实际效果——无 <style>、无演示类，原始代码
+    // 绝不直进 emotion
+    const brokenHint = [...brokenOption.querySelectorAll("span")]
+      .filter((span) => span.textContent === "css_invalid")
+      .pop();
+    expect(brokenHint).toBeDefined();
+    expect(brokenHint.className).toBe("");
+    expect(brokenOption.querySelector("style")).toBeNull();
+
+    // 平衡的选择器列表夹具：与 broken 同为编译失败路径，断言无 <style>
+    expect(selectorListOption.querySelector("style")).toBeNull();
+    expect(
+      [...selectorListOption.querySelectorAll("span")].some(
+        (span) => span.textContent === "css_invalid"
+      )
+    ).toBe(true);
+
+    // 关闭态触发框：MUI SelectInput 渲染选中 MenuItem 的 children 节点
+    // （displaySingle = child.props.children，浏览器实测证实），
+    // 故名称文案与预览节点同时在位——锁定该行为防 MUI 版本漂移。
+    await act(async () => {
+      markerOption.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+    expect(select.textContent).toContain("marker");
+    expect(
+      [...select.querySelectorAll("span")].some(
+        (span) => span.textContent === "translated_text"
+      )
+    ).toBe(true);
+    // 选中值落库到隐藏 input（表单语义），与触发框呈现解耦
+    expect(input.value).toBe("marker");
+    // 预览 a11y 隔离闸：aria-hidden 包裹层使预览及其 translated_text 不进
+    // 入关闭态选择框的可访问名称，朗读只保留样式名称
+    const closedPreview = [...select.querySelectorAll("span")].find(
+      (span) => span.textContent === "translated_text"
+    );
+    expect(closedPreview).toBeDefined();
+    expect(closedPreview.closest('[aria-hidden="true"]')).not.toBeNull();
+
+    // 清理由文件级 afterEach（renderedViews 统一 unmount）承接，成功与
+    // 失败路径均覆盖，此处不再重复清理
+  });
+
+  test("scopes a forged slug through the sanitizer without selector-list escape", async () => {
+    const view = renderRules();
+
+    const input = view.container.querySelector('input[name="textStyle"]');
+    const select = input.parentElement.querySelector('[role="combobox"]');
+    await act(async () => {
+      select.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+        })
+      );
+    });
+
+    const options = [...document.body.querySelectorAll('[role="option"]')];
+    const forgedOption = options.find((option) =>
+      option.textContent.includes("forged")
+    );
+    expect(forgedOption).toBeDefined();
+
+    // 预览包裹 span 的作用域类名经净化：slug "x, body" 的逗号与空格被
+    // 可逆编码，不得以裸 slug 进入 className（会产生第二段全局类）
+    const scopeSpan = [...forgedOption.querySelectorAll("span")].find(
+      (span) =>
+        typeof span.className === "string" &&
+        span.className.startsWith("kt-scope-")
+    );
+    expect(scopeSpan).toBeDefined();
+    // Box 会叠加 MUI/emotion 类，锁净化类在位且无裸逗号/空白段（整串
+    // 相等断言会误伤框架附加类）
+    expect(scopeSpan.className).toContain("kt-scope-xu002cu0020body");
+    expect(scopeSpan.className).not.toContain(",");
+
+    // 编译产物整体落在净化类之下：选择器串无逗号即无选择器列表成员，
+    // body 不可能以第二成员身份逃逸出卡片作用域
+    const style = forgedOption.querySelector("style");
+    expect(style.textContent).toBe(
+      ".kt-scope-xu002cu0020body .kt-style-demo { color: red; }"
+    );
+    expect(style.textContent).not.toContain(",");
 
     view.unmount();
   });
