@@ -329,6 +329,35 @@ describe("Translator rule styles", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(1);
   });
 
+  test.each([
+    [undefined, "under_line", ["style_none", "fuzzy", "style_none"]],
+    [["fuzzy", "mine", "style_none"], "fuzzy", ["mine", "style_none", "fuzzy"]],
+    [["mine"], "style_none", ["mine", "mine"]],
+    [[], "under_line", ["under_line"]],
+  ])(
+    "cycles webpage styles in %j from %s",
+    (styleCycle, textStyle, expected) => {
+      const translator = createTranslator(
+        { textStyle, transOpen: "false" },
+        {
+          ...(styleCycle && { styleCycle }),
+          customStyles: [{ styleSlug: "mine", styleCode: "color: red;" }],
+        }
+      );
+      const updateRule = jest.spyOn(translator, "updateRule");
+      let currentStyle = textStyle;
+      for (const nextStyle of expected) {
+        updateRule.mockClear();
+        translator.toggleStyle();
+        expect(translator.rule.textStyle).toBe(nextStyle);
+        expect(updateRule).toHaveBeenCalledTimes(
+          Number(currentStyle !== nextStyle)
+        );
+        currentStyle = nextStyle;
+      }
+    }
+  );
+
   test("late cancellation of an old language request does not replace the new translation", async () => {
     document.body.innerHTML =
       '<main id="root"><p>Article translation</p></main>';

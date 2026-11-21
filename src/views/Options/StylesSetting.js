@@ -272,7 +272,22 @@ export default function StylesSetting() {
   // 自定义 CSS 列表 Hook
   const { addStyle, deleteStyle, updateStyle } = useStyleList();
   // 系统内置的只读样式配置列表
-  const { builtinStyles, customStyles } = useAllTextStyles();
+  const { builtinStyles, customStyles, allTextStyles } = useAllTextStyles();
+  const styleNames = new Map(
+    allTextStyles.map(({ styleSlug, styleName }) => [styleSlug, styleName])
+  );
+
+  const handleStyleCycleChange = (nextCycle) => {
+    const added = nextCycle.find((slug) => !setting.styleCycle.includes(slug));
+    const removed = setting.styleCycle.find(
+      (slug) => !nextCycle.includes(slug)
+    );
+    updateSetting(({ styleCycle }) => ({
+      styleCycle: added
+        ? [...styleCycle, added]
+        : styleCycle.filter((slug) => slug !== removed),
+    }));
+  };
 
   // 添加新 CSS 样式
   const handleClick = (e) => {
@@ -332,16 +347,26 @@ export default function StylesSetting() {
       <SettingsSection title={i18n("settings_translation_styles")}>
         <SettingsCard>
           <SettingsRow
-            label={i18n("settings_custom_css")}
-            description={i18n("settings_custom_css_description")}
+            label={i18n("settings_style_cycle")}
+            description={i18n("settings_style_cycle_description")}
+            stacked
           >
-            <Button
-              size="small"
-              variant="contained"
-              onClick={() => setStyleManagerVisibility(true)}
-            >
-              {i18n("edit")}
-            </Button>
+            <SettingsSelect
+              label={i18n("settings_style_cycle")}
+              value={setting.styleCycle}
+              onChange={handleStyleCycleChange}
+              options={[...styleNames].map(([value, label]) => ({
+                value,
+                label,
+              }))}
+              renderValue={(selected) =>
+                selected.map((slug) => styleNames.get(slug)).join(" → ") || "—"
+              }
+              multiple
+              fullWidth
+              hiddenLabel
+              data-settings-search-id="settings_style_cycle"
+            />
           </SettingsRow>
           <SettingsRow
             label={i18n("settings_style_library")}

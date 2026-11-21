@@ -203,7 +203,7 @@ describe.each(["document", "shadow root"])("ContentFab in %s", (context) => {
     }
     expect(menuItems().map((item) => item.textContent)).toEqual([
       "popup_translate_page",
-      "fab_toggle_blur",
+      "fab_toggle_style",
       "fab_open_translation",
       "image_screenshot_translate",
       "open_menu",

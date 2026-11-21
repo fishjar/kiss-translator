@@ -28,6 +28,7 @@ import {
   DEFAULT_TRANBOX_SETTING,
   DEFAULT_IMAGE_TRANSLATE_SETTING,
   DEFAULT_MOUSE_HOVER_SETTING,
+  OPT_STYLE_ALL,
   normalizeApiThinkingSettings,
   KV_SETTING_KEY,
   KV_RULES_KEY,
@@ -547,9 +548,21 @@ const mergeSettingWithDefault = (setting) => {
     version: setting?.version ?? DEFAULT_SETTING.version,
   };
 
-  // 设置读取时只在内存中归一化一次，避免每次请求重复解析模型能力。
+  const styleCycle = Array.isArray(mergedSetting.styleCycle)
+    ? mergedSetting.styleCycle
+    : DEFAULT_SETTING.styleCycle;
+  const availableStyles = new Set([
+    ...OPT_STYLE_ALL,
+    ...(Array.isArray(mergedSetting.customStyles)
+      ? mergedSetting.customStyles.map((style) => style?.styleSlug)
+      : []),
+  ]);
   return {
     ...mergedSetting,
+    styleCycle: [...new Set(styleCycle)].filter(
+      (slug) => typeof slug === "string" && availableStyles.has(slug)
+    ),
+    // 在读取设置时统一归一化，避免每次请求重复解析模型能力。
     transApis: normalizeApiThinkingSettings(mergedSetting.transApis),
   };
 };
