@@ -1,4 +1,5 @@
 import TerminologySelect from "./TerminologySelect";
+import { textStyleOptionLabel } from "../Popup/textStylePreview";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -923,7 +924,7 @@ function RuleFields({ rule, rules, setShow, setKeyword, draftId }) {
                 {GlobalItem}
                 {allTextStyles.map((item) => (
                   <MenuItem key={item.styleSlug} value={item.styleSlug}>
-                    {item.styleName}
+                    {textStyleOptionLabel(item, i18n)}
                   </MenuItem>
                 ))}
               </TextField>

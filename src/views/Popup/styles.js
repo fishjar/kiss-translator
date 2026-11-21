@@ -185,9 +185,7 @@ export const POPUP_STYLES = String.raw`
 /* 同 .kt-popup-language-select：展开态降为底色表意，主色环只留给键盘焦点。 */
 .kt-popup-style-select[aria-expanded="true"] { background: var(--kt-sf4); }
 .kt-popup-style-label { flex: none; color: var(--kt-popup-muted); font-size: 11px; font-weight: 600; }
-.kt-popup-style-value { height: 100%; min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 600; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-.kt-popup-style-value::after { content: ""; display: inline-block; height: 100%; vertical-align: middle; }
-.kt-popup-style-value > span { display: inline; vertical-align: middle; }
+.kt-popup-style-value { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; max-height: 32px; font-size: 13px; font-weight: 600; }
 .kt-popup-style-select > svg { width: 18px; height: 18px; flex: none; color: var(--kt-onv); }
 .kt-popup-display-mode { position: relative; min-width: 0; height: 40px; display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding: 3px; border-radius: 12px; background: var(--kt-sf0); }
 .kt-popup-display-mode .kt-popup-segment-indicator { top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); }
@@ -291,11 +289,27 @@ button:active > .kt-popup-switch[data-checked="true"]::after { left: 21px; }
 .kt-popup-service-option .kt-service-logo { width: 22px; height: 22px; }
 .kt-popup-service-option .kt-service-logo img { width: 14px; height: 14px; }
 .kt-popup-service-option > span:not(.kt-service-logo) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kt-popup-style-menu.MuiPaper-root { width: 322px; padding: 8px; }
-.kt-popup-style-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); grid-auto-rows: 32px; align-content: start; gap: 6px; }
-.kt-popup-style-chip { min-width: 0; height: 32px; display: inline-block; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; border: 1px solid var(--kt-linev); border-radius: 8px; background: var(--kt-sf0); color: var(--kt-on); font-size: 11.5px; font-weight: 600; white-space: nowrap; cursor: pointer; }
-.kt-popup-style-chip[aria-pressed="true"] { border-color: var(--kt-onsecc); background: var(--kt-secc); color: var(--kt-onsecc); }
-.kt-popup-style-chip > span { display: inline; }
+.kt-popup-style-menu.MuiPaper-root { min-width: 112px; max-width: min(280px, calc(100vw - 24px)); width: max-content; padding: 8px; }
+.kt-popup-style-option { min-width: 0; height: 48px; display: flex; align-items: center; padding: 0 16px; border-radius: 4px; background: transparent; color: var(--kt-on); font-size: 13px; font-weight: 500; cursor: pointer; }
+.kt-popup-style-option:hover { background: color-mix(in srgb, var(--kt-on) 8%, transparent); }
+.kt-popup-style-option:active { background: color-mix(in srgb, var(--kt-on) 12%, transparent); }
+.kt-popup-style-option--selected { background: var(--kt-secc); }
+.kt-popup-style-option--selected:hover { background: var(--kt-secc); }
+.kt-popup-style-option > span { min-width: 0; width: 100%; }
+/* Inset keyboard rings keep adjacent 48px rows from overlapping rings. */
+.kt-popup-style-option:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--kt-pri); }
+/* forced-colors 域 UA 丢弃上方 box-shadow 内嵌环：listbox 选项键盘环改以系统色
+   outline 兜底（不写描边色，交强制引擎）；排默认 :focus-visible 之后，同特异度
+   靠源码顺序压过 outline:none。与 .kt-popup-global-feature 块同范式。选中态
+   底色在强制域被系统色接管、失去焦点后无独立信号：以系统色 outline 作选中
+   独立标记，排键盘环之前——聚焦态规则特异度更高，选中+聚焦仍呈现键盘环。 */
+@media (forced-colors: active) {
+  .kt-popup-style-option--selected { outline: 2px solid Highlight; outline-offset: -2px; }
+  .kt-popup-style-option:focus-visible { outline: 3px solid; outline-offset: -3px; box-shadow: none; }
+}
+/* The menu paper is a layout container, not a semantic stop: never ring it. */
+.kt-popup-style-menu.MuiPaper-root:focus,
+.kt-popup-style-menu.MuiPaper-root:focus-visible { outline: none; }
 .kt-popup-language-menu.MuiPaper-root { max-height: min(320px, calc(100% - 16px)); scrollbar-gutter: stable; }
 .kt-popup-language-option.MuiMenuItem-root,
 .kt-popup-language-menu .MuiMenuItem-root { min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 16px; }

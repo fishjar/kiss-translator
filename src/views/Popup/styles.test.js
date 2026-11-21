@@ -180,7 +180,9 @@ describe("popup menus", () => {
     ).toBe(true);
     expect(
       hoverBodies.some((body) =>
-        body.includes("background: color-mix(in srgb, currentColor 8%, transparent)")
+        body.includes(
+          "background: color-mix(in srgb, currentColor 8%, transparent)"
+        )
       )
     ).toBe(true);
   });
@@ -225,21 +227,31 @@ describe("popup menus", () => {
       ".kt-popup-pattern-menu .kt-popup-pattern-option.MuiMenuItem-root.Mui-selected .kt-popup-pattern-copy small"
     )[0];
     expect(smallRule).toContain("color: var(--kt-onsecc)");
-    const hoverBodies = getCssAtRuleBodies(POPUP_STYLES, "@media (hover: hover)");
+    const hoverBodies = getCssAtRuleBodies(
+      POPUP_STYLES,
+      "@media (hover: hover)"
+    );
     expect(
       hoverBodies.some(
         (body) =>
           body.includes(
             ".kt-popup-pattern-menu .kt-popup-pattern-option.MuiMenuItem-root.Mui-selected:hover"
-          ) && body.includes("color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc))")
+          ) &&
+          body.includes(
+            "color-mix(in srgb, var(--kt-onsecc) 8%, var(--kt-secc))"
+          )
       )
     ).toBe(true);
   });
 
   test("segmented rows carry no ::before checkmark slot (toggle switches must not render a check)", () => {
-    expect(getRuleBodies(".kt-popup-display-mode button::before")).toHaveLength(0);
+    expect(getRuleBodies(".kt-popup-display-mode button::before")).toHaveLength(
+      0
+    );
     expect(
-      getRuleBodies('.kt-popup-display-mode button[aria-checked="true"]::before')
+      getRuleBodies(
+        '.kt-popup-display-mode button[aria-checked="true"]::before'
+      )
     ).toHaveLength(0);
     expect(getRuleBodies(".kt-popup-global-feature::before")).toHaveLength(0);
     expect(
@@ -254,23 +266,36 @@ describe("popup menus", () => {
     expect(source).toContain("NARROW_SEGMENT_CHECKMARK_EXEMPTION");
   });
 
-  test("menu geometry follows the spec: gap 12, chip 32, switch 52x32 with press states", () => {
-    expect(getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root")[0]).toContain(
-      "gap: 12px"
-    );
-    expect(getRuleBodies(".kt-popup-service-option.MuiMenuItem-root")[0]).toContain(
-      "gap: 12px"
-    );
+  test("menu geometry follows the spec: gap 12, option 48, switch 52x32 with press states", () => {
+    expect(
+      getRuleBodies(".kt-popup-pattern-option.MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
+    expect(
+      getRuleBodies(".kt-popup-service-option.MuiMenuItem-root")[0]
+    ).toContain("gap: 12px");
     expect(
       getRuleBodies(".kt-popup-language-option.MuiMenuItem-root")[0]
     ).toContain("gap: 12px");
     expect(
       getRuleBodies(".kt-popup-language-menu .MuiMenuItem-root")[0]
     ).toContain("gap: 12px");
-    expect(getRuleBodies(".kt-popup-style-grid")[0]).toContain(
-      "grid-auto-rows: 32px"
+    expect(getRuleBodies(".kt-popup-style-option")[0]).toContain(
+      "height: 48px"
     );
-    expect(getRuleBodies(".kt-popup-style-chip")[0]).toContain("height: 32px");
+    expect(getRuleBodies(".kt-popup-style-option")[0]).toContain(
+      "padding: 0 16px"
+    );
+    expect(getRuleBodies(".kt-popup-style-option")[0]).toContain(
+      "border-radius: 4px"
+    );
+    const styleMenuRule = getRuleBodies(
+      ".kt-popup-style-menu.MuiPaper-root"
+    )[0];
+    expect(styleMenuRule).toContain("min-width: 112px");
+    expect(styleMenuRule).toContain(
+      "max-width: min(280px, calc(100vw - 24px))"
+    );
+    expect(styleMenuRule).toContain("width: max-content");
     const switchRule = getRuleBodies(".kt-popup-switch")[0];
     expect(switchRule).toContain("width: 52px");
     expect(switchRule).toContain("height: 32px");
@@ -283,7 +308,9 @@ describe("popup menus", () => {
     )[0];
     expect(checkedThumbRule).toContain("width: 24px");
     expect(checkedThumbRule).toContain("height: 24px");
-    const pressRule = getRuleBodies("button:active > .kt-popup-switch > span")[0];
+    const pressRule = getRuleBodies(
+      "button:active > .kt-popup-switch > span"
+    )[0];
     expect(pressRule).toContain("width: 28px");
     const pressCheckedRule = getRuleBodies(
       'button:active > .kt-popup-switch[data-checked="true"] > span'
@@ -297,17 +324,17 @@ describe("popup menus", () => {
     expect(POPUP_STYLES).not.toContain("#FCEEEE");
     expect(POPUP_STYLES).not.toContain("rgba(31,31,31");
     expect(POPUP_STYLES).toContain("var(--kt-popup-focus, var(--kt-pri))");
-    expect(POPUP_STYLES).toContain("--kt-popup-translated-text: var(--kt-onpric)");
+    expect(POPUP_STYLES).toContain(
+      "--kt-popup-translated-text: var(--kt-onpric)"
+    );
     expect(POPUP_STYLES).toContain("--kt-popup-danger-hover: var(--kt-errc)");
     expect(
       (POPUP_STYLES.match(/--kt-popup-translated-text:/g) || []).length
     ).toBe(1);
-    expect(
-      (POPUP_STYLES.match(/--kt-popup-danger-hover:/g) || []).length
-    ).toBe(1);
-    expect(
-      (POPUP_STYLES.match(/--kt-popup-focus:/g) || []).length
-    ).toBe(1);
+    expect((POPUP_STYLES.match(/--kt-popup-danger-hover:/g) || []).length).toBe(
+      1
+    );
+    expect((POPUP_STYLES.match(/--kt-popup-focus:/g) || []).length).toBe(1);
     expect(POPUP_STYLES).toContain(
       "color-mix(in srgb, var(--kt-on) 5%, transparent)"
     );
@@ -326,12 +353,63 @@ describe("segmented track tokens", () => {
       "background: var(--kt-secc)"
     );
     // 指示器即 services 分段的选中段承载，服务行选中文字色同批切换 onsecc。
-    expect(getRuleBodies('.kt-popup-service[aria-checked="true"]')[0]).toContain(
-      "color: var(--kt-onsecc)"
-    );
+    expect(
+      getRuleBodies('.kt-popup-service[aria-checked="true"]')[0]
+    ).toContain("color: var(--kt-onsecc)");
     expect(
       getRuleBodies('.kt-popup-display-mode button[aria-checked="true"]')[0]
     ).toContain("color: var(--kt-onsecc)");
+  });
+});
+
+describe("popup style option keyboard ring", () => {
+  test("paints the listbox option ring with a system outline in forced-colors mode", () => {
+    // forced-colors 域 UA 丢弃 box-shadow 内嵌环：listbox 选项键盘环须以
+    // 系统色 outline 兜底，且该块源码序晚于默认 :focus-visible（同特异度
+    // 靠源码顺序压过 outline:none）。与 .kt-popup-global-feature 块同范式。
+    const forcedColorBodies = getCssAtRuleBodies(
+      POPUP_STYLES,
+      "@media (forced-colors: active)"
+    );
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-popup-style-option:focus-visible\s*\{[^}]*outline:\s*3px solid;[^}]*outline-offset:\s*-3px;[^}]*box-shadow:\s*none;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    expect(
+      POPUP_STYLES.lastIndexOf("@media (forced-colors: active)")
+    ).toBeGreaterThan(
+      POPUP_STYLES.indexOf(".kt-popup-style-option:focus-visible")
+    );
+  });
+
+  test("keeps the selected option identifiable in forced-colors mode", () => {
+    // forced-colors 域背景色被系统色接管：选中态仅靠 --kt-secc 底色不可辨，
+    // 失去焦点后无任何独立信号——以系统色 outline 作选中独立标记；排在
+    // :focus-visible 键盘环之前，聚焦态规则特异度更高，选中+聚焦仍呈现
+    // 键盘环（与 aria-selected 行的 ContentFab 菜单选中标记同口径）
+    const forcedColorBodies = getCssAtRuleBodies(
+      POPUP_STYLES,
+      "@media (forced-colors: active)"
+    );
+    expect(
+      forcedColorBodies.some((body) =>
+        /\.kt-popup-style-option--selected\s*\{[^}]*outline:\s*2px solid Highlight;[^}]*outline-offset:\s*-2px;/.test(
+          body
+        )
+      )
+    ).toBe(true);
+    const selectedMarkerIdx = POPUP_STYLES.indexOf(
+      ".kt-popup-style-option--selected { outline: 2px solid Highlight"
+    );
+    const focusRingIdx = POPUP_STYLES.indexOf(
+      ".kt-popup-style-option:focus-visible { outline: 3px solid"
+    );
+    expect(selectedMarkerIdx).toBeGreaterThan(-1);
+    expect(focusRingIdx).toBeGreaterThan(-1);
+    expect(selectedMarkerIdx).toBeLessThan(focusRingIdx);
   });
 });
 
@@ -350,7 +428,9 @@ describe("persistent global feature segments", () => {
         )
       )
     ).toBe(true);
-    expect(POPUP_STYLES.indexOf("@media (forced-colors: active)")).toBeGreaterThan(
+    expect(
+      POPUP_STYLES.indexOf("@media (forced-colors: active)")
+    ).toBeGreaterThan(
       POPUP_STYLES.indexOf(".kt-popup-global-feature:focus-visible")
     );
   });

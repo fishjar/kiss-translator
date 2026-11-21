@@ -6,7 +6,7 @@ import {
   getMenuActiveElement,
 } from "../../libs/menuFocus";
 
-// 取"首个选中项"，无则落可用条目族；守卫/聚焦/滚动统一走 libs/menuFocus。
+// 取“首个选中项”，无则落可用条目族；守卫/聚焦/滚动统一走 libs/menuFocus。
 // 样式网格场景 PopupCont 打开路径已把焦点交给网格项，Paper 内已有焦点时
 // 守卫让位（网格 chip 是 aria-pressed 普通按钮，不命中 menuitem/option
 // selector，无守卫会把焦点抢到 MenuList 兜底、令网格方向键导航失效）。
@@ -28,6 +28,7 @@ export default function PopupMenu({
   direction = "auto",
   position,
   menuRole = "menu",
+  paperMaxWidth = "calc(100% - 16px)",
 }) {
   // 焦点约束的判据取菜单最终挂载容器的根节点，而非锚点的根节点：容器解析
   // （closest(".kt-m3-root") || body）可能把菜单挂回 document（锚点在影子内
@@ -256,7 +257,7 @@ export default function PopupMenu({
         elevation: 0,
         style: {
           maxHeight: placement?.height,
-          maxWidth: "calc(100% - 16px)",
+          maxWidth: paperMaxWidth,
           overflowY: "auto",
           overscrollBehavior: "contain",
         },

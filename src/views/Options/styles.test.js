@@ -191,10 +191,83 @@ describe("settings layout boundaries", () => {
     );
   });
 
+  test("draws the style-library capsule group as a two-member split button", () => {
+    const groupRule = OPTIONS_STYLES.match(
+      /\.kt-style-split-group\s*\{([^}]*)\}/
+    )?.[1];
+    const leadingRule = OPTIONS_STYLES.match(
+      /\.kt-style-split-group__leading\s*\{([^}]*)\}/
+    )?.[1];
+    const trailingRule = OPTIONS_STYLES.match(
+      /\.kt-style-split-group__trailing\s*\{([^}]*)\}/
+    )?.[1];
+    const rotatedChevron = OPTIONS_STYLES.match(
+      /\.kt-style-split-group__trailing\[aria-expanded="true"\] svg\s*\{([^}]*)\}/
+    )?.[1];
+    // 组：inline-flex、成员间 2px 缝、成员等高拉伸。
+    expect(groupRule).toContain("display: inline-flex");
+    expect(groupRule).toContain("gap: 2px");
+    expect(groupRule).toContain("align-items: stretch");
+    // 外 full 内 4px 胶囊收口（token 化、零 hex）。
+    expect(leadingRule).toContain("border-radius: 9999px 4px 4px 9999px");
+    expect(trailingRule).toContain("border-radius: 4px 9999px 9999px 4px");
+    // chevron 随展开态 180°（镜像箭头钮既有语义）。
+    expect(rotatedChevron).toContain("rotate(180deg)");
+    for (const body of [groupRule, leadingRule, trailingRule]) {
+      expect(body).not.toMatch(/#[0-9a-fA-F]{3,6}/);
+    }
+  });
+
   test("uses the wider drawer breakpoint and container-driven narrow layout", () => {
     expect(OPTIONS_STYLES).toContain("@media (max-width: 1179px)");
     expect(OPTIONS_STYLES).toContain(
       "@container options-main (max-width: 620px)"
+    );
+  });
+
+  test("collapses the style waterfall inside the container narrow layout", () => {
+    // 样式瀑布流的窄屏折叠归位容器查询体系（NARROW 常量本体、两处插值
+    // 自动同步）：flex 容器用 flex-direction 折叠，grid 死属性清除；
+    // 游离的 @media (max-width: 680px) 独立规则不得再出现。
+    const containerBody = getCssAtRuleBodies(
+      OPTIONS_STYLES,
+      "@container options-main (max-width: 620px)"
+    )[0];
+    const fallbackBodies = getCssAtRuleBodies(
+      OPTIONS_STYLES,
+      "@supports not (container-type: inline-size)"
+    );
+    const fallbackMediaBody = getCssAtRuleBodies(
+      fallbackBodies[0],
+      "@media (max-width: 656px)"
+    )[0];
+
+    for (const body of [containerBody, fallbackMediaBody]) {
+      // 交叉轴必须随主轴改向同步声明：折叠为 column 后 align-items 管水平轴，
+      // 基类 flex-start 会令列容器收缩左堆——窄屏须 stretch。
+      expect(body).toContain(
+        ".kt-style-grid { flex-direction: column; align-items: stretch; }"
+      );
+      // 列容器升格透明：卡成网格直接项目，宽度=网格全宽（恒不变），根除展开
+      // 拉宽与同列共振捆绑。
+      expect(body).toContain(".kt-style-grid__column { display: contents; }");
+      // 行级豁免：样式库行窄屏保持水平、控制簇居右，不随全局 column 竖排。
+      expect(body).toContain(
+        ".kt-settings-row.kt-settings-row--inline-control { flex-direction: row; align-items: center; }"
+      );
+      expect(body).toContain(
+        ".kt-settings-row.kt-settings-row--inline-control .kt-settings-row__control { width: auto; max-width: 58%; justify-content: flex-end; }"
+      );
+      // 胶囊组窄屏 icon-only：文案节点隐藏但 textContent 保留（搜索恒命中）。
+      expect(body).toContain(".kt-style-split-group__label { display: none; }");
+      // 窄屏 display:contents 后网格 gap 与卡 margin-bottom 会双计间距，折叠归零卡 margin。
+      expect(body).toContain(".kt-style-card { margin-bottom: 0; }");
+      expect(body).not.toContain(
+        ".kt-style-grid { grid-template-columns: 1fr; }"
+      );
+    }
+    expect(OPTIONS_STYLES).not.toContain(
+      "@media (max-width: 680px) { .kt-style-grid"
     );
   });
 
@@ -432,7 +505,9 @@ describe("settings layout boundaries", () => {
     expect(OPTIONS_STYLES).toMatch(
       /\.kt-sync-method__description\s*\{[^}]*transition:[^;}]*color[^;}]*opacity/
     );
-    expect(selectedRule).toContain("box-shadow: inset 0 0 0 1px var(--kt-secc)");
+    expect(selectedRule).toContain(
+      "box-shadow: inset 0 0 0 1px var(--kt-secc)"
+    );
     expect(selectedRule).toContain("background: var(--kt-secc)");
     expect(selectedRule).toContain("color: var(--kt-onsecc)");
     expect(selectedRule).not.toContain("border: 2px");
@@ -484,5 +559,51 @@ describe("settings select entry typography", () => {
     // 下拉入口字重统一回落主题默认 400：规则不得自带 font-weight（与
     // 同网格其他 400 控件对齐；600 混排由本断言作漂移绊线钉死）。
     expect(selectRule).not.toContain("font-weight");
+  });
+});
+
+describe("style card and template item state layers", () => {
+  test("gives both state-layer opacity transitions a non-zero duration", () => {
+    // --kt-spring 是纯缓动曲线（m3.js:185 无时长分量），transition 简写缺
+    // duration 时长为 0s，hover/active 的 opacity 0→.08/.12 会直接跳变。
+    // 两处 state-layer ::before 均须带 .15s（与同卡 border-color .15s 同口径）。
+    for (const selector of [
+      "\\.kt-style-card__toggle \\.m3-state-layer::before",
+      "\\.kt-template-item \\.m3-state-layer::before",
+    ]) {
+      const rule = OPTIONS_STYLES.match(
+        new RegExp(`${selector}\\s*\\{([^}]*)\\}`)
+      )?.[1];
+      expect(rule).toMatch(/(?:^|;)\s*opacity:\s*0(?=\s*;|\s*$)/);
+      expect(rule).toMatch(
+        /transition:\s*opacity\s+\.15s\s+var\(--kt-spring,\s*cubic-bezier\(\.3, 1\.4, \.4, 1\)\)/
+      );
+    }
+  });
+});
+
+describe("style card demo block axis", () => {
+  test("locks the demo to the shared preview fixed block axis", () => {
+    // 与共享预览（textStylePreview 预览根 height:32）同源的固定块轴：
+    // 用户 CSS 的 line-height/font-size 不得撑高卡片演示、推动编辑区
+    // 其他元素（越缘交由既有 overflow+contain 裁剪）
+    const rule = OPTIONS_STYLES.match(
+      /(?:^|\n)\.kt-style-card__demo\s*\{([^}]*)\}/
+    )?.[1];
+    expect(rule).toMatch(/(?:^|;)\s*height:\s*32px(?=\s*;|\s*$)/);
+  });
+});
+
+describe("style card header layout discipline", () => {
+  test("lets the name input shrink so the demo and toggle stay visible in narrow columns", () => {
+    // 名称框 flex:none 定宽在窄列下把演示/箭头挤出 .kt-style-card 的
+    // overflow:hidden 裁切线：改 flex-basis 160 上限语义 + min-width:0——
+    // 宽列几何零变化，极窄列名称框 ellipsis 收缩、预览与箭头恒在场
+    const rule = OPTIONS_STYLES.match(
+      /(?:^|\n)\.kt-style-card__name-input\s*\{([^}]*)\}/
+    )?.[1];
+    expect(rule).toContain("flex: 0 1 160px");
+    expect(rule).toContain("min-width: 0");
+    expect(rule).not.toContain("flex: none");
   });
 });

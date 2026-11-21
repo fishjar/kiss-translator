@@ -7,13 +7,6 @@ import { useI18n } from "./I18n";
 export const STYLE_SOURCE_BUILTIN = "builtin";
 export const STYLE_SOURCE_CUSTOM = "custom";
 
-export function getCompactStylePreviewCode(style) {
-  if (style?.source !== STYLE_SOURCE_BUILTIN || style?.isBuiltin !== true) {
-    return "";
-  }
-  return style.styleCode || "";
-}
-
 export function toPersistedCustomStyle(style = {}) {
   return {
     styleSlug: style.styleSlug,
@@ -36,27 +29,39 @@ function useStyleState() {
 export function useStyleList() {
   const { customStyles, updateSetting } = useStyleState();
 
-  // 添加新的自定义 CSS 样式项，预设为样式模版中的第一个样式并生成新的 UUID 作为标识
-  const addStyle = useCallback(() => {
-    const defaultStyle = DEFAULT_CUSTOM_STYLES[0];
-    const uuid = crypto.randomUUID();
-    const styleSlug = `custom_${crypto.randomUUID()}`;
-    const styleName = `Style_${uuid.slice(0, 8)}`;
-    const newStyle = {
-      ...defaultStyle,
-      styleSlug,
-      styleName,
-    };
-    updateSetting((prev) => ({
-      ...prev,
-      customStyles: [...(prev?.customStyles || []), newStyle],
-    }));
-  }, [updateSetting]);
+  // 添加新的自定义 CSS 样式项：接受初始 styleCode（空白样式传 ""、模板
+  // 传所选内置 compact 代码），新卡片 unshift 置顶（新卡在最上）；返回
+  // { styleSlug, promise }——slug 供互斥单开的自动展开定位（同步计算，
+  // 不依赖 updateSetting 回调时序），promise 透传存储写结果供调用方在
+  // 落库确认后再收口创建流程（失败保留创建入口重试）。styleName 保持
+  // Style_xxxxxxxx 自动生成逻辑不动。DEFAULT_CUSTOM_STYLES 仅作结构形状
+  // 来源，不再预填其默认代码（预填职责移交模板选择模态）。
+  const addStyle = useCallback(
+    (initialCode = "") => {
+      const defaultStyle = DEFAULT_CUSTOM_STYLES[0];
+      const uuid = crypto.randomUUID();
+      const styleSlug = `custom_${crypto.randomUUID()}`;
+      const styleName = `Style_${uuid.slice(0, 8)}`;
+      const newStyle = {
+        ...defaultStyle,
+        styleSlug,
+        styleName,
+        styleCode: initialCode,
+      };
+      const promise = updateSetting((prev) => ({
+        ...prev,
+        customStyles: [newStyle, ...(prev?.customStyles || [])],
+      }));
+      return { styleSlug, promise };
+    },
+    [updateSetting]
+  );
 
-  // 删除特定的自定义 CSS 样式项
+  // 删除特定的自定义 CSS 样式项：透传 updateSetting 的 Promise，调用方
+  // 据写结果收口本地草稿清理（失败回滚后卡片复现、草稿保留）
   const deleteStyle = useCallback(
     (styleSlug) => {
-      updateSetting((prev) => ({
+      return updateSetting((prev) => ({
         ...prev,
         customStyles: (prev?.customStyles || []).filter(
           (item) => item.styleSlug !== styleSlug
@@ -69,7 +74,9 @@ export function useStyleList() {
   // 更新特定自定义样式的属性数据（例如 styleName 或 styleCode 等）
   const updateStyle = useCallback(
     (styleSlug, updateData) => {
-      updateSetting((prev) => ({
+      // 透传 updateSetting 的 Promise：调用方可感知存储写失败（如释放
+      // 保存提交标记）；既有忽略返回值的调用方零行为变化
+      return updateSetting((prev) => ({
         ...prev,
         customStyles: (prev?.customStyles || []).map((item) =>
           item.styleSlug === styleSlug ? { ...item, ...updateData } : item
