@@ -38,6 +38,7 @@ const mockSetting = {
   uiLang: "en",
   darkMode: "auto",
   textareaGripStyle: "concentric-smooth",
+  styleCycle: ["style_none", "fuzzy"],
   customStyles: [
     {
       styleSlug: "custom-dangerous",
@@ -104,18 +105,69 @@ function renderStylesSetting() {
   document.body.appendChild(container);
   const root = createRoot(container);
 
-  act(() => {
-    root.render(<StylesSetting />);
-  });
+  const rerender = () => act(() => root.render(<StylesSetting />));
+  rerender();
 
   return {
     container,
+    rerender,
     cleanup() {
       act(() => root.unmount());
       container.remove();
     },
   };
 }
+
+test("shows selected styles in selection order and allows clearing the cycle", () => {
+  mockUpdateSetting.mockImplementation((update) => {
+    mockSetting.styleCycle = update(mockSetting).styleCycle;
+  });
+  const view = renderStylesSetting();
+  try {
+    const select = view.container.querySelector(
+      '[aria-label="settings_style_cycle"]'
+    );
+    expect(select.textContent).toBe("style_none → fuzzy");
+    select.parentElement.getBoundingClientRect = () => ({
+      top: 100,
+      bottom: 144,
+      left: 100,
+      right: 360,
+      width: 260,
+      height: 44,
+    });
+    act(() =>
+      select.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))
+    );
+    const toggle = (slug) => {
+      act(() => document.querySelector(`[data-value="${slug}"]`).click());
+      view.rerender();
+    };
+
+    act(() => {
+      document.querySelector('[data-value="custom-dangerous"]').click();
+      document.querySelector('[data-value="under_line"]').click();
+    });
+    view.rerender();
+    expect(select.textContent).toBe(
+      "style_none → fuzzy → Custom Dangerous → under_line"
+    );
+
+    for (const slug of [
+      "style_none",
+      "fuzzy",
+      "custom-dangerous",
+      "under_line",
+    ])
+      toggle(slug);
+    expect(mockSetting.styleCycle).toEqual([]);
+    expect(select.textContent).toBe("—");
+  } finally {
+    mockSetting.styleCycle = ["style_none", "fuzzy"];
+    mockUpdateSetting.mockReset();
+    view.cleanup();
+  }
+});
 
 function getCompiledStyleCode() {
   return mockCss.mock.calls.flatMap((call) => call.slice(1)).join("\n");

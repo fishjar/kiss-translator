@@ -42,7 +42,7 @@ export const SETTINGS_SEARCH_KEYS = {
   appearance: [
     "settings_appearance_mode",
     "settings_textarea_grip_style",
-    "settings_custom_css",
+    "settings_style_cycle",
     "settings_style_library",
     "style_name",
     "style_code",
@@ -381,7 +381,7 @@ const DESCRIPTION_KEYS = {
   input_trans_start_sign: "input_trans_start_sign_help",
   touch_mode: "touch_help",
   settings_textarea_grip_style: "settings_textarea_grip_style_desc",
-  settings_custom_css: "settings_custom_css_description",
+  settings_style_cycle: "settings_style_cycle_description",
   settings_style_library: "settings_style_library_description",
   settings_subtitle_auto_start: "settings_subtitle_auto_start_description",
   is_skip_ad: "settings_skip_ad_description",

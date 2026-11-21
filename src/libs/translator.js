@@ -9,7 +9,6 @@ import { TouchParagraph, touchParent, isTouchExcluded } from "./touchParagraph";
 import { isInBlacklist } from "./blacklist";
 import {
   APP_LCNAME,
-  OPT_STYLE_FUZZY,
   GLOBLA_RULE,
   GLOBAL_KEY,
   DEFAULT_SETTING,
@@ -5883,13 +5882,14 @@ overflow-wrap: anywhere !important;`;
     }
   }
 
-  // 快速切换模糊样式
+  // 按配置顺序轮换译文样式
   toggleStyle() {
-    const textStyle =
-      this.#rule.textStyle === OPT_STYLE_FUZZY
-        ? OPT_STYLE_NONE
-        : OPT_STYLE_FUZZY;
-    this.updateRule({ textStyle });
+    const { styleCycle } = this.#setting;
+    if (styleCycle.length === 0) return;
+    const currentStyle = this.#rule.textStyle;
+    const nextStyle =
+      styleCycle[(styleCycle.indexOf(currentStyle) + 1) % styleCycle.length];
+    if (nextStyle !== currentStyle) this.updateRule({ textStyle: nextStyle });
   }
 
   // 切换划词翻译

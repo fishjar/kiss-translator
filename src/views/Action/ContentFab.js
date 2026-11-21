@@ -319,7 +319,7 @@ export function ContentFabContent({
       action: () => runAction(MSG_TRANS_TOGGLE),
     },
     {
-      label: i18n("fab_toggle_blur"),
+      label: i18n("fab_toggle_style"),
       icon: PaletteRoundedIcon,
       action: () => runAction(MSG_TRANS_TOGGLE_STYLE),
     },
