@@ -1,6 +1,10 @@
+import MenuCheckGlyph from "../../components/MenuCheckGlyph";
 import ListSubheader from "@mui/material/ListSubheader";
-import { useEffect, useId, useRef, useState } from "react";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
+import {
+  CheckRoundedIcon,
+  ExpandMoreRoundedIcon,
+} from "../../components/icons";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import AccordionSummary from "@mui/material/AccordionSummary";
@@ -82,6 +86,7 @@ export function SettingsSegmented({
   items,
   label,
   className = "",
+  size = "medium",
 }) {
   const itemRefs = useRef([]);
   const normalizedItems = items.map((item) =>
@@ -132,11 +137,12 @@ export function SettingsSegmented({
   return (
     <ToggleButtonGroup
       exclusive
+      size={size === "small" ? "small" : "medium"}
       value={value}
       onChange={(_event, nextValue) => {
         if (nextValue !== null) onChange(nextValue);
       }}
-      className={`kt-settings-segmented ${className}`.trim()}
+      className={`kt-settings-segmented ${size === "small" ? "kt-settings-segmented--small " : ""}${className}`.trim()}
       aria-label={label}
       role="radiogroup"
     >
@@ -161,6 +167,10 @@ export function SettingsSegmented({
             onKeyDown={(event) => handleKeyDown(event, index)}
             key={normalized.value}
           >
+            <CheckRoundedIcon
+              aria-hidden="true"
+              className="kt-settings-segmented__checkmark"
+            />
             <span className="kt-settings-segmented__label">
               {normalized.label}
             </span>
@@ -170,6 +180,18 @@ export function SettingsSegmented({
     </ToggleButtonGroup>
   );
 }
+
+// 与 MUI SelectInput.areEqualValues 同规则：对象值恒等比较，标量值
+// 字符串化比较（DOM 侧 value 一律字符串化）。标签查找与勾选判定共用
+// 此规则，避免"勾了但标签显示原值"的口径分裂。
+const areEqualValues = (a, b) => {
+  if (typeof b === "object" && b !== null) return a === b;
+  return String(a) === String(b);
+};
+
+// 多选排序键：标量值字符串化归一（与 areEqualValues 同口径），对象值
+// 以恒等身份作键——Map 身份判定与恒等比较同源。
+const orderKey = (v) => (typeof v === "object" && v !== null ? v : String(v));
 
 export function SettingsSelect({
   value,
@@ -187,6 +209,10 @@ export function SettingsSelect({
   ...rest
 }) {
   const isHiddenLabel = hiddenLabel !== undefined ? hiddenLabel : !fullWidth;
+  // 调用方 SelectProps 单独摘出合流：整包展开会覆盖多选渲染配置
+  // （multiple/renderValue），MenuProps 等其余键保留调用方值；
+  // 多选注入键后置胜出，单选不注入 renderValue（调用方自带则原样生效）。
+  const { SelectProps: callerSelectProps, ...textFieldProps } = rest;
   return (
     <TextField
       select
@@ -201,14 +227,116 @@ export function SettingsSelect({
       className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple, displayEmpty: true }}
+      SelectProps={{
+        ...callerSelectProps,
+        multiple,
+        displayEmpty: true,
+        ...(multiple
+          ? {
+              // 仅多选注入：关闭态 trigger 逐项渲染（单选显示不受影响）。
+              // 标签按 options 序输出，不随受控 value 的书写顺序漂移；
+              // 不得 join：label 可为 JSX 节点，字符串化会把 React 元素变成
+              // [object Object]；分隔符作独立文本节点插入，纯文本 label 的
+              // 输出与旧实现逐字一致。
+              renderValue: (selected) => {
+                const optionOrder = new Map(
+                  options.map((o, index) => [
+                    orderKey(Array.isArray(o) ? o[0] : o.value),
+                    index,
+                  ])
+                );
+                // 展示方向与取消方向同源去重：混合等值孪生（如 "2" 与 2）
+                // 命中同一 option 时只产出一次标签，保留首现顺序；对象值
+                // 走恒等比较，不受字符串化归一影响。
+                const seen = new Set();
+                return (Array.isArray(selected) ? selected : [])
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      (optionOrder.get(orderKey(a)) ?? Infinity) -
+                      (optionOrder.get(orderKey(b)) ?? Infinity)
+                  )
+                  .filter((v) => {
+                    const optionValue = options.reduce((found, o) => {
+                      if (found !== undefined) return found;
+                      const candidate = Array.isArray(o) ? o[0] : o.value;
+                      return candidate !== undefined &&
+                        areEqualValues(v, candidate)
+                        ? candidate
+                        : undefined;
+                    }, undefined);
+                    if (optionValue === undefined) {
+                      // 未命中且值本身是对象（对象选项值变更后残留）不能作
+                      // React 子节点，空串占槽经下方 flatMap 分隔符会产出
+                      // 悬挂逗号——展示序列直接剔除；标量未命中照旧透传
+                      // （MUI 默认行为，便于定位未知存储值）。
+                      return !(v && typeof v === "object");
+                    }
+                    const dedupeKey = orderKey(optionValue);
+                    if (seen.has(dedupeKey)) return false;
+                    seen.add(dedupeKey);
+                    return true;
+                  })
+                  .map((v) => {
+                    const hit = options.find((o) => {
+                      const optionValue = Array.isArray(o) ? o[0] : o.value;
+                      return (
+                        optionValue !== undefined &&
+                        areEqualValues(v, optionValue)
+                      );
+                    });
+                    if (hit) return Array.isArray(hit) ? hit[1] : hit.label;
+                    // 过滤层已剔除未命中对象；此处仅剩标量未命中，原值透传。
+                    return v;
+                  })
+                  .flatMap((node, index) =>
+                    index === 0
+                      ? [<Fragment key={index}>{node}</Fragment>]
+                      : [
+                          <Fragment key={`${index}-sep`}>, </Fragment>,
+                          <Fragment key={index}>{node}</Fragment>,
+                        ]
+                  );
+              },
+            }
+          : {}),
+      }}
       inputProps={{ "aria-label": label }}
-      onChange={(event) => onChange(event.target.value)}
+      onChange={(event) => {
+        const next = event.target.value;
+        // 多选增删归一：MUI SelectInput 多选去重对 DOM 回传值走严格
+        // indexOf，受控存储值（如 "2"）与点击值（如 2）严格不等时会把
+        // 已勾选项当新增追加、或把取消项残留为等值孪生。追加项以严格
+        // 比较识别（MUI 追加判定即严格），命中后再经 areEqualValues 查
+        // 语义等值的原存储值——与勾选判定同源同口径；取消方向对称：
+        // 以严格比较识别被移除的存储项，按 areEqualValues 滤除其全部
+        // 等值孪生后回传。
+        if (multiple && Array.isArray(value) && Array.isArray(next)) {
+          if (next.length > value.length) {
+            const added = next.find((item) => !value.some((v) => v === item));
+            if (added !== undefined) {
+              const existing = value.find((v) => areEqualValues(v, added));
+              if (existing !== undefined) {
+                onChange(value.filter((v) => v !== existing));
+                return;
+              }
+            }
+          }
+          if (next.length < value.length) {
+            const removed = value.find((v) => !next.some((n) => n === v));
+            if (removed !== undefined) {
+              onChange(value.filter((v) => !areEqualValues(v, removed)));
+              return;
+            }
+          }
+        }
+        onChange(next);
+      }}
       sx={{
         ...(fullWidth ? { width: "100%", maxWidth: "none" } : {}),
         ...sx,
       }}
-      {...rest}
+      {...textFieldProps}
     >
       {options.map((option) => {
         const normalized = Array.isArray(option)
@@ -220,8 +348,17 @@ export function SettingsSelect({
               {normalized.groupLabel}
             </ListSubheader>
           );
+        // 勾选判定与 MUI SelectInput 同源：value.some(areEqualValues(v, 项值))，
+        // 字符串化标量口径；与上方标签查找共用同一规则。
+        const checked =
+          multiple &&
+          Array.isArray(value) &&
+          value.some((v) => areEqualValues(v, normalized.value));
         return (
           <MenuItem key={normalized.value} value={normalized.value}>
+            {multiple && (
+              <MenuCheckGlyph checked={checked} style={{ marginRight: 10 }} />
+            )}
             {normalized.label}
           </MenuItem>
         );

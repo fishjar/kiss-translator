@@ -2,6 +2,7 @@ import { APP_NAME } from "../config";
 import DomManager from "../libs/domManager.js";
 import { createLogoSVG } from "../libs/svg.js";
 import { Menus } from "./Menus.js";
+import { installFocusModality, scriptFocus } from "../hooks/focusModality";
 import { asrFeedbackEvents } from "./asr/status";
 
 /**
@@ -74,7 +75,7 @@ export class YouTubePlayerUi {
     this.#menuManager?.hide();
     this.#toggleButton?.setAttribute("aria-expanded", "false");
     this.#toggleButton?.replaceChildren(createLogoSVG());
-    this.#toggleButton?.focus();
+    scriptFocus(this.#toggleButton ?? null);
     cancelAnimationFrame(this.#menuFrame);
   };
 
@@ -166,6 +167,10 @@ export class YouTubePlayerUi {
     kissControls.appendChild(toggleButton);
 
     // 使用 DomManager 挂载 React 菜单，避免直接把菜单结构散落到 provider 编排层。
+    // 焦点模态监听在此预装（同文档幂等）：scriptFocus 只在首次调用时惰性安装，
+    // 首次键盘交互（如方向键落在开关按钮上）若先于任何 scriptFocus，keydown
+    // 监听缺席会让键盘模态建立不起来、落点被静默标记吞环。
+    installFocusModality(document);
     this.#menuManager = new DomManager({
       id: "kiss-subtitle-menus",
       className: "notranslate",
@@ -184,9 +189,11 @@ export class YouTubePlayerUi {
         this.updateMenuProps();
         toggleButton.setAttribute("aria-expanded", "true");
         this.#menuFrame = requestAnimationFrame(() => {
-          document
-            .querySelector("#kiss-subtitle-menus [role=button][tabindex='0']")
-            ?.focus();
+          scriptFocus(
+            document.querySelector(
+              "#kiss-subtitle-menus [role=button][tabindex='0'], #kiss-subtitle-menus [role=switch][tabindex='0']"
+            ) ?? null
+          );
           this.#fitMenu();
         });
       } else {
@@ -295,6 +302,8 @@ export class YouTubePlayerUi {
     const label = document.createElement("div");
     const bar = document.createElement("progress");
     bar.max = 100;
+    // accent-exempt: 容器直挂 YouTube 播放器 DOM（.html5-video-player），
+    // 本仓 kt 令牌作用域不可达，var() 恒走 fallback＝死令牌，故保留字面量。
     bar.style.cssText =
       "display:block;width:100%;height:4px;margin-top:4px;accent-color:#209cee;";
     progress.append(label, bar);

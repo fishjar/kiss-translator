@@ -28,9 +28,24 @@ import {
 } from "../../config/serviceSelection";
 import { validateEnabledCapabilities } from "../../providers/capabilities";
 import Autocomplete from "@mui/material/Autocomplete";
+// 本面用裸 MUI Autocomplete，伪下拉样式由 ReusableAutocomplete 的注入体承担，
+// 而注入规则整组限定在专属弹层类下，故须挂同一类（单源常量，勿重写字面量）；
+// 注入入口亦须共用——本面可独立于任何 ReusableAutocomplete 实例挂载，
+// 挂载期由 ProviderSettings 兜底注入同一份注入体。
+import {
+  PSEUDO_DROPDOWN_POPPER_CLASS,
+  ensurePseudoDropdownStyles,
+  getShadowCache,
+  resolvePopperContainer,
+} from "./ReusableAutocomplete";
+import {
+  createMenuKeyDownHandler,
+  focusMenuTarget,
+} from "../../libs/menuFocus";
 import { ServiceUpgradeAction } from "./ServiceUpgrade";
 import { capabilityLabelKeys } from "../../providers/capabilityLabels";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useMemo, useRef } from "react";
+import { CacheProvider } from "@emotion/react";
 import {
   Alert,
   Button,
@@ -602,7 +617,79 @@ export function ProviderSettings({
   compact = false,
 }) {
   const providerText = useProviderI18n();
-  return fields.map((field) => {
+  // 弹层与 emotion 样式的按根接线：fields 可异步到达（service 配置迟加载），
+  // effect 必须随 fields 重跑；挂载后实例级字段锚点已回填（ref 回调先于
+  // layout effect）。按锚点节点所属根判定（主文档 → head 去重注入；影子
+  // 宿主 → 该影子根注入 + emotion 影子缓存——head 默认缓存的规则不级联进
+  // 影子树）；纯 select 面的菜单弹层同样依赖该判定。缓存翻转守卫单向
+  // （null → cache）：包裹翻转 = 返回树根元素类型翻转，React 视为不同节点
+  // 整树卸载重挂，不得随重渲染来回翻转。modelFieldRef 声明在本 effect 之下
+  // （函数组件体内 ref 不受书写顺序约束，闭包执行时序合法）。
+  const [shadowCache, setShadowCache] = useState(null);
+  // 实例级字段节点登记表（按字段 key 键控，Map 保持首插序）：select 与模型
+  // 字段的挂载回调各登记/注销自身，锚点取首个在挂字段节点。影子根检测与
+  // select 菜单容器解析共用该锚点——不单靠可为空的 modelFieldRef（无模型
+  // 字段实例也有 select 弹层），也不依赖共享 selectFieldRef（多 select 字段
+  // 时最后挂载者胜出，任一字段卸载即清空共享 ref）。卸载回调经字段 key
+  // 闭包注销（React 卸载只回调 null，不带节点身份）。
+  const fieldNodeRefs = useRef(new Map());
+  const anchorNode = () => {
+    for (const node of fieldNodeRefs.current.values()) return node;
+    return null;
+  };
+  useLayoutEffect(() => {
+    const ownerRoot = anchorNode()?.getRootNode?.();
+    if (ownerRoot?.host) setShadowCache(getShadowCache(ownerRoot));
+    // modelField 无效→有效切换时 fields 不变，仅 service.modelField 变化：
+    // 缺该依赖则字段换型（text → Autocomplete）后 effect 不重跑，注入缺位。
+  }, [fields, service?.modelField]);
+  useEffect(() => {
+    const fieldNode = modelFieldRef.current;
+    if (!fieldNode) return;
+    ensurePseudoDropdownStyles(fieldNode.getRootNode());
+  }, [fields, service?.modelField]);
+  // 裸 Autocomplete 弹层挂根锚点：MUI v5 Autocomplete forwardRef 到根 div。
+  const modelFieldRef = useRef(null);
+  // select 下拉弹层与影子焦点契约接线：影子宿主场景菜单默认 portal 到
+  // body，与影子缓存注入的样式异根（样式不级联出影子边界即失活）。
+  // shadowCache 非空（组件活在影子树）时 MenuProps 条件化声明——container
+  // 按锚点所属根挂回 resolvePopperContainer 解析的根；Shadow 弹层焦点
+  // 契约三键同给关掉 MUI 自持焦点链，初始焦点经 focusMenuTarget 走
+  // scriptFocus 单一入口（focusModality 统一处置覆盖）。非影子路径三键
+  // 不声明、零行为变化。
+  const selectFieldRef = useRef(null);
+  const navigateSelectMenu = useMemo(
+    () => createMenuKeyDownHandler({ shadowOnly: true }),
+    []
+  );
+  const selectMenuProps = shadowCache
+    ? {
+        container: () => {
+          const anchor = anchorNode();
+          return anchor?.getRootNode?.()?.host
+            ? resolvePopperContainer(anchor)
+            : undefined;
+        },
+        autoFocus: false,
+        disableAutoFocus: true,
+        disableAutoFocusItem: true,
+        disableEnforceFocus: true,
+        // 影子树内 document.activeElement＝影子宿主，MUI MenuList 的方向键
+        // 导航据此定位当前项会每次回卷首项；捕获导航改由影子口径处理器
+        // 接管（镜像 EditorSelect 的 shadowOnly 先例）。
+        MenuListProps: {
+          onKeyDownCapture: navigateSelectMenu,
+        },
+        // 初始焦点交付挂 Grow 的 onEntered（MenuProps 顶层 onEntered 在
+        // Popover→Modal→Portal 链上被丢弃）：TransitionProps 由 Menu 与
+        // 内部 onEntering 合流后落 Grow，node 即菜单 Paper，focusMenuTarget
+        // 以选中项→Mui-selected→可用项优先级与容器兜底禁令选点。
+        TransitionProps: {
+          onEntered: (node) => focusMenuTarget(node),
+        },
+      }
+    : undefined;
+  const content = fields.map((field) => {
     const sx =
       compact &&
       (field.type === "password" ||
@@ -614,10 +701,24 @@ export function ProviderSettings({
       return (
         <Autocomplete
           key={field.key}
+          ref={(node) => {
+            modelFieldRef.current = node;
+            if (node) fieldNodeRefs.current.set(field.key, node);
+            else fieldNodeRefs.current.delete(field.key);
+          }}
           freeSolo={service?.allowCustomModel !== false}
           disableClearable={service?.allowCustomModel === false}
           forcePopupIcon
           size="small"
+          slotProps={{
+            popper: {
+              className: PSEUDO_DROPDOWN_POPPER_CLASS,
+              // 弹层默认 portal 到 body，脱离 .kt-m3-root 令牌作用域；与
+              // ReusableAutocomplete 共用同一回退链（.kt-m3-root 祖先 →
+              // 影子根 → body），以字段根节点为锚点解析容器。
+              container: () => resolvePopperContainer(modelFieldRef.current),
+            },
+          }}
           options={(service?.models || []).map((model) => model.id)}
           value={values[field.key] || ""}
           onChange={(_, value) => onChange(field.key, value || "")}
@@ -673,6 +774,18 @@ export function ProviderSettings({
         select={field.type === "select"}
         type={field.type === "number" ? "number" : "text"}
         value={values[field.key] ?? ""}
+        ref={
+          field.type === "select"
+            ? (node) => {
+                selectFieldRef.current = node;
+                if (node) fieldNodeRefs.current.set(field.key, node);
+                else fieldNodeRefs.current.delete(field.key);
+              }
+            : undefined
+        }
+        SelectProps={
+          field.type === "select" ? { MenuProps: selectMenuProps } : undefined
+        }
         onChange={(event) =>
           onChange(
             field.key,
@@ -691,4 +804,12 @@ export function ProviderSettings({
       </Field>
     );
   });
+  // 影子宿主场景整树包进影子根专属缓存：head 默认缓存的 MUI 规则不级联进
+  // 影子树，弹层已 portal 回影子根而样式落 head 即整体失活。非影子路径
+  // （shadowCache 为 null）零包裹、零行为变化。
+  return shadowCache ? (
+    <CacheProvider value={shadowCache}>{content}</CacheProvider>
+  ) : (
+    content
+  );
 }

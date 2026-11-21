@@ -373,6 +373,19 @@ describe("TranCont", () => {
       act(() => root.unmount());
     });
 
+    test("does not interleave a transient cleared report when an error flips on", async () => {
+      // error 由空翻真值时，报告 effect 的前一次运行 cleanup 会先以 false 报一次
+      // （冗余清空），随后的 effect 再报 true——宿主在两次提交之间收到瞬时
+      // cleared 态，可能误清重试入口。卸载清空须只在卸载时发生。
+      apiTranslate.mockRejectedValueOnce(new Error("Unauthorized"));
+      const onErrorChange = jest.fn();
+      const { root } = renderTranCont({ isPopup: true, onErrorChange });
+      await flushEffects();
+      const sequence = onErrorChange.mock.calls.map(([, failed]) => failed);
+      expect(sequence).toEqual([false, true]);
+      act(() => root.unmount());
+    });
+
     test.each([
       [
         JSON.stringify({
@@ -1851,8 +1864,6 @@ describe("TranCont textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // B1：hidden = 完全不渲染手柄 + textarea 原生 resize 回退（红：现实现
-  // 渲染空图形手柄且 resize 压成 none）。
   test("hidden variant renders no grip and restores native resize", async () => {
     mockUseTextareaGripStyle.mockReturnValue("hidden");
     apiTranslate.mockResolvedValueOnce({ trText: "译文" });
@@ -1869,7 +1880,7 @@ describe("TranCont textarea grip style", () => {
     act(() => root.unmount());
   });
 
-  // 意见 A：grip 样式切到 hidden 时自动释放会话高度锁（红：现实现残留
+  // grip 样式切到 hidden 时自动释放会话高度锁（现实现残留
   // kt-height-locked 与内联高度，字段被永久钉死）。
   test("switching to hidden releases the session height lock", async () => {
     mockUseTextareaGripStyle.mockReturnValue("concentric-smooth");

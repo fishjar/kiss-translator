@@ -8,6 +8,7 @@ import { STOKEY_SETTING } from "../config/storage.js";
 import { logger } from "../libs/log.js";
 import { injectJs, INJECTOR } from "../injectors/index.js";
 import { saveEdit } from "../libs/storage.js";
+import { setIconStyleSnapshot } from "../styles/iconStyleStore.js";
 
 // 各视频平台对应的字幕初始化拦截器配置
 // 目前仅配置了 YouTube 的匹配规则 (pattern) 及其对应的初始化引导器 (YouTubeInitializer)
@@ -42,6 +43,9 @@ export function persistSubtitlePosition(positionRatio) {
  */
 export async function runSubtitle({ href, setting }) {
   try {
+    // 独立入口快照同步：字幕菜单的字形档经共享 store 读取，入口初始化即写入
+    setIconStyleSnapshot(setting.iconStyle);
+
     // 获取字幕配置，若无则使用默认字幕配置
     const subtitleSetting = setting.subtitleSetting || DEFAULT_SUBTITLE_SETTING;
 

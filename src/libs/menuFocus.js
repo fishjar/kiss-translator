@@ -1,14 +1,103 @@
+import { scriptFocus } from "../hooks/focusModality";
+
 export const getMenuActiveElement = (menu) =>
   menu?.getRootNode()?.activeElement || menu?.ownerDocument?.activeElement;
 
+// 菜单打开期焦点交接的统一候选口径：选中项族 + 可聚焦条目族，
+// 全部排除 .Mui-disabled、aria-disabled 与原生 disabled（MUI 禁用项前两者
+// 兼备，双闸防漏；原生 disabled 属第三种形态，只挡前两者会漏选禁用项）。
+// 候选角色集与键盘导航的 [role^="menuitem"] + [role="option"] 对齐。
+const SELECTED_TARGET_SELECTOR =
+  '[role="option"][aria-selected="true"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="menuitemradio"][aria-checked="true"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="radio"][aria-checked="true"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), .MuiMenuItem-root.Mui-selected:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled)';
+// 导出供焦点交接方（PopupMenu 的 paper 内可聚焦项观测）复用同一候选口径。
+export const AVAILABLE_TARGET_SELECTOR =
+  '[role="menuitem"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="menuitemcheckbox"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="menuitemradio"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="radio"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), [role="option"]:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled), .MuiMenuItem-root:not(.Mui-disabled):not([aria-disabled="true"]):not(:disabled)';
+
+// 元素实际可见性（两组焦点候选共用）：hidden 属性只是派生态之一。
+// 祖先链只因计算后 display:none 排除（display 不继承、祖先折叠即子树
+// 不渲染）；visibility 属可继承态，子项显式 visible 可覆盖祖先 hidden，
+// 故只判菜单项自身计算后 visibility——祖先 hidden、自身 visible 仍可
+// 聚焦与导航。沿 parentElement 经 getRootNode().host 跨影子边界上行走满
+// 祖先链至链顶——boundary 早退会漏判菜单外隐藏祖先（真浏览器对
+// display:none 子树的 focus() 直接失败，候选不可见即不应聚焦）；
+// getComputedStyle 不可用时（极老环境）退化为 hidden 判定。
+const isElementVisible = (element) => {
+  if (element.hidden) return false;
+  const ownStyle =
+    element.ownerDocument?.defaultView?.getComputedStyle?.(element);
+  if (
+    ownStyle &&
+    (ownStyle.display === "none" || ownStyle.visibility === "hidden")
+  ) {
+    return false;
+  }
+  let node = element.parentElement || element.getRootNode?.()?.host || null;
+  while (node) {
+    if (node.nodeType === 1) {
+      const style = node.ownerDocument?.defaultView?.getComputedStyle?.(node);
+      if (style && style.display === "none") {
+        return false;
+      }
+    }
+    node = node.parentElement || node.getRootNode?.()?.host || null;
+  }
+  return true;
+};
+
+/**
+ * 菜单打开期的脚本化焦点交接（PopupMenu.focusFirstItem、Selection 的
+ * focusSelectedOption 与 Options/DropdownRoot 挂载期 effect 三处共用）：
+ * ① 守卫——Paper 内已有焦点（含 ShadowRoot.activeElement 判据）则让位，
+ * 不把键盘光标位置强行拉回选中项；② 按调用方策略选目标（选中项 first/last，
+ * 无则落可用条目族；无任何可聚焦项不聚焦容器）；③ scriptFocus 聚焦后用
+ * getBoundingClientRect 视口增量把目标滚入 Paper 可视区——不依赖 offsetTop
+ * （MUI 弹层 offsetParent 未必是 paper，会算错），只动 paper.scrollTop，
+ * 不碰外层页面滚动。
+ */
+export function focusMenuTarget(
+  paper,
+  { pick = "first", reclaim = false } = {}
+) {
+  if (!paper) return null;
+  const active = getMenuActiveElement(paper);
+  if (!reclaim && active && paper.contains(active)) return null;
+  // 已选目标按 getMenuItems 同口径先做实际可见性过滤：选择器不吃 hidden
+  // 派生态，也表达不了祖先链上的 display:none / visibility:hidden，不可见
+  // 的已选项会抢走初始焦点；可见已选为空再回退可用条目族。
+  const selected = Array.from(
+    paper.querySelectorAll(SELECTED_TARGET_SELECTOR)
+  ).filter((item) => isElementVisible(item));
+  const ordered = pick === "last" ? selected.reverse() : selected;
+  const fallback = Array.from(
+    paper.querySelectorAll(AVAILABLE_TARGET_SELECTOR)
+  ).find((item) => isElementVisible(item));
+  const target = ordered[0] ?? fallback ?? null;
+  scriptFocus(target);
+  if (target) {
+    const t = target.getBoundingClientRect();
+    const s = paper.getBoundingClientRect();
+    // Grow 缩放过渡期 rect 为视觉坐标：按 paper 视觉/布局高度比把纵向差值
+    // 换算回布局坐标再叠加居中偏移；高度不可用按 1 兜底。
+    const ratio =
+      s.height > 0 && paper.offsetHeight > 0
+        ? s.height / paper.offsetHeight
+        : 1;
+    paper.scrollTop +=
+      (t.top - s.top) / ratio - (paper.clientHeight - target.offsetHeight) / 2;
+  }
+  return target;
+}
+
 const getMenuItems = (menu) =>
   Array.from(
-    menu.querySelectorAll('[role^="menuitem"], [role="option"]')
+    menu.querySelectorAll('[role^="menuitem"], [role="option"], [role="radio"]')
   ).filter(
     (item) =>
+      !item.matches(":disabled") &&
+      !item.matches(".Mui-disabled") &&
       !item.disabled &&
       item.getAttribute("aria-disabled") !== "true" &&
-      !item.hidden
+      isElementVisible(item)
   );
 
 // Capture navigation before MUI reads document.activeElement, which is the host
