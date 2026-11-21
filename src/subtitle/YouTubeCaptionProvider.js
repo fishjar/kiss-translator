@@ -1016,7 +1016,10 @@ export class YouTubeCaptionProvider {
 
           if (node.matches(adLayoutSelector)) {
             logger.child("subtitle").debug("Youtube Provider: Ad ends!");
-            if (this.#setting.autoTranslate) {
+            if (
+              this.#setting.autoTranslate &&
+              (this.#managerInstance || this.#asr?.active)
+            ) {
               this.#playerUi.hideYtCaption();
             }
             if (videoEl && skipAd) {

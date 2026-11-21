@@ -38,6 +38,7 @@ jest.mock("./captionCache", () => ({
 
 const mockAcquire = jest.fn();
 const mockUiOptions = [];
+const mockUiInstances = [];
 const mockProviders = [];
 const mockCancel = jest.fn();
 let mockCapture;
@@ -164,8 +165,10 @@ jest.mock("./youtubePlayerUi.js", () => ({
         ).YouTubePlayerUi)(options);
         ui.injectToggleButton = jest.fn();
         ui.updateMenuProps = jest.fn();
+        mockUiInstances.push(ui);
         return ui;
       }
+      mockUiInstances.push(this);
     }
     injectToggleButton = jest.fn();
     removeToggleButton = jest.fn();
@@ -208,6 +211,7 @@ jest.mock("./BilingualSubtitleManager.js", () => ({
     destroy = jest.fn();
     appendSubtitles = jest.fn();
     repairChunkTranslations = jest.fn();
+    setIsAdPlaying = jest.fn();
   },
 }));
 
@@ -326,6 +330,7 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     mockManagerSettings.length = 0;
     mockManagers.length = 0;
     mockUiOptions.length = 0;
+    mockUiInstances.length = 0;
     mockIsAd = false;
     mockSnapshotReady = true;
     mockAsrControllers.length = 0;
@@ -438,6 +443,35 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     create();
     await flushPromises();
     expect(mockAcquire).toHaveBeenCalledTimes(2);
+  });
+
+  test("ad end does not hide native captions before bilingual subtitles start", async () => {
+    document.body.innerHTML =
+      '<div id="movie_player"><video></video><div class="ad"><div class="ytp-ad-player-overlay-layout"></div></div><div class="ytp-right-controls"><button class="ytp-subtitles-button" aria-pressed="true"></button></div></div>';
+    mockAcquire.mockImplementationOnce(() => new Promise(() => {}));
+    create();
+    await flushPromises();
+    const playerUi = mockUiInstances.at(-1);
+    expect(mockManagers).toHaveLength(0);
+
+    document.querySelector(".ytp-ad-player-overlay-layout").remove();
+    await flushPromises();
+    expect(playerUi.hideYtCaption).not.toHaveBeenCalled();
+  });
+
+  test("ad end still hides native captions while bilingual subtitles are active", async () => {
+    document.body.innerHTML =
+      '<div id="movie_player"><video></video><div class="ad"><div class="ytp-ad-player-overlay-layout"></div></div><div class="ytp-right-controls"><button class="ytp-subtitles-button" aria-pressed="true"></button></div></div>';
+    create();
+    await flushPromises();
+    await flushPromises();
+    const playerUi = mockUiInstances.at(-1);
+    expect(mockManagers).toHaveLength(1);
+
+    playerUi.hideYtCaption.mockClear();
+    document.querySelector(".ytp-ad-player-overlay-layout").remove();
+    await flushPromises();
+    expect(playerUi.hideYtCaption).toHaveBeenCalledTimes(1);
   });
 
   test("a slow cache lookup cannot restore the previous video after navigation", async () => {
