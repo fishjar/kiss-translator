@@ -2,7 +2,11 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import * as fflate from "fflate";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 import FileTranslatePage from "./index";
+
+// Full-page mounts run long act() sequences; parallel workers exceed the 5 s default.
+jest.setTimeout(15000);
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
@@ -2063,6 +2067,25 @@ describe("FileTranslatePage (M2 UI)", () => {
       });
       expect(ops.recognizeFileImage).toHaveBeenCalledTimes(1);
     });
+  });
+
+  test("dropzone upload icon uses theme primary color at rest", async () => {
+    await act(async () => {
+      root.render(
+        <ThemeProvider
+          theme={createTheme({ palette: { primary: { main: "#0B57D0" } } })}
+        >
+          <FileTranslatePage />
+        </ThemeProvider>
+      );
+    });
+    const icon = container.querySelector(
+      '[data-testid="CloudUploadRoundedIcon"]'
+    );
+    expect(icon).not.toBeNull();
+    // 行为断言：直接读 emotion sx 注入后的计算色，随主题 primary.main 流动；
+    // 比 CSSOM 规则扫描更忠实——重构到等价 token 形态不会假红。
+    expect(getComputedStyle(icon).color).toBe("rgb(11, 87, 208)");
   });
 
   test("renders with M2 root container and outlined inputs", async () => {

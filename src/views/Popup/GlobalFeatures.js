@@ -1,7 +1,8 @@
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import KeyboardRoundedIcon from "@mui/icons-material/KeyboardRounded";
-import MouseRoundedIcon from "@mui/icons-material/MouseRounded";
-import SelectAllRoundedIcon from "@mui/icons-material/SelectAllRounded";
+import {
+  KeyboardRoundedIcon,
+  MouseRoundedIcon,
+  SelectAllRoundedIcon,
+} from "../../components/icons";
 import { useI18n } from "../../hooks/I18n";
 import { usePopupFeatureToggles } from "./usePopupFeatureToggles";
 
@@ -10,6 +11,8 @@ const FEATURE_LABELS = {
   hover: "popup_hover_translation",
   input: "input_translate",
 };
+// 微型面板纯底色紧凑呈现（插件微型化裁剪）：段行两态由 aria-pressed 与容器底色
+// 承载，Checkmark 裁剪、功能图标恒为身份标识，不随开/关交换字形。
 const FEATURE_ICONS = {
   selection: SelectAllRoundedIcon,
   hover: MouseRoundedIcon,
@@ -40,9 +43,7 @@ export default function GlobalFeatures(props) {
     >
       {features.map((feature) => {
         const label = i18n(FEATURE_LABELS[feature.name]);
-        const FeatureIcon = feature.enabled
-          ? CheckRoundedIcon
-          : FEATURE_ICONS[feature.name];
+        const FeatureIcon = FEATURE_ICONS[feature.name];
         return (
           <button
             type="button"

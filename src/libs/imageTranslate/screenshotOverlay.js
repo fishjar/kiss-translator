@@ -8,7 +8,7 @@ import { automaticLayoutRegions } from "./layoutSelection";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { flushSync } from "react-dom";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { CloseRoundedIcon } from "../../components/icons";
 import { sendBgMsg } from "../msg";
 import {
   MSG_CAPTURE_VISIBLE_TAB,
@@ -736,7 +736,9 @@ export class ScreenshotOverlay {
       top: ${sel.y}px;
       width: ${sel.w}px;
       height: ${sel.h}px;
+      /* semantic-green-exempt: 高亮元素挂宿主页面 document.body，kt 令牌作用域不可达；语义绿为选区成功域固定语义色。 */
       border: 2px dashed #00c853;
+      /* semantic-green-exempt: 同上豁免域的伴生底色，保留字面量。 */
       background: rgba(0, 200, 83, 0.08);
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
       z-index: 2147483640;
@@ -1011,6 +1013,7 @@ export class ScreenshotOverlay {
               top: "var(--kt-selection-y)",
               width: "var(--kt-selection-width)",
               height: "var(--kt-selection-height)",
+              // semantic-green-exempt: 高亮元素挂宿主页面 document.body，kt 令牌作用域不可达；语义绿保留字面量。
               border: "2px solid #00c853",
               cursor: this.#busy ? "default" : "move",
               boxSizing: "border-box",
@@ -1058,7 +1061,9 @@ export class ScreenshotOverlay {
                   top: this.#coarsePointer ? 18 : 0,
                   width: 8,
                   height: 8,
+                  // semantic-green-exempt: 同上豁免域的伴生底色，保留字面量。
                   backgroundColor: "#ffffff",
+                  // semantic-green-exempt: 手柄挂宿主页面 document.body，同上豁免域，保留字面量。
                   border: "2px solid #00c853",
                   borderRadius: 2,
                   pointerEvents: "none",

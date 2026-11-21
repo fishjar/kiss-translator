@@ -45,20 +45,20 @@ describe("content FAB Material 3 shape", () => {
       /\.kt-content-fab-menu\s*\{[^}]*overflow-x:\s*hidden;/
     );
     expect(ACTION_STYLES).toMatch(
-      /\.kt-content-fab-menu__item\s*\{[^}]*border-radius:\s*8px;/
+      /\.kt-content-fab-menu__item\s*\{[^}]*border-radius:\s*4px;/
     );
     const menuItemRule = ACTION_STYLES.match(
       /\.kt-content-fab-menu__item\s*\{([^}]*)\}/
     )?.[1];
-    expect(menuItemRule).toContain("transition:");
     expect(menuItemRule).not.toContain("animation:");
+    expect(ACTION_STYLES).not.toContain("var(--kt-sf1)");
     const hoverBodies = getCssAtRuleBodies(
       ACTION_STYLES,
       "@media (hover: hover)"
     );
     expect(
       hoverBodies.some((body) =>
-        /\.kt-content-fab-menu__item:hover\s*\{/.test(body)
+        /\.kt-content-fab-menu__item:hover \.kt-state-layer\s*\{/.test(body)
       )
     ).toBe(true);
   });

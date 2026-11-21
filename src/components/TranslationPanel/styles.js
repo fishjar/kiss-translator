@@ -37,10 +37,24 @@ export const TRANSLATION_PANEL_STYLES = String.raw`
 }
 .kt-tranbox-header__menu svg { width: 18px; height: 18px; flex: none; }
 
-.kt-tranbox-header__font-size { display: flex; align-items: center; flex-shrink: 0; gap: 4px; padding: 0 5px 0 11px; min-height: 39px; font-size: 14px; }
+/* 字号行几何取值与 .kt-tranbox-header__menu button 基线逐值同步，基线演进时两处需同改 */
+.kt-tranbox-header__font-size { display: flex; align-items: center; flex-shrink: 0; gap: 10px; padding: 0 5px 0 11px; min-height: 39px; font-size: 14px; }
 .kt-tranbox-header__font-size > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.kt-tranbox-header__font-size > output { flex: none; min-width: 4ch; text-align: center; font-variant-numeric: tabular-nums; }
-.kt-tranbox-header__menu .kt-tranbox-header__font-size > button { justify-content: center; padding: 0; width: 30px; min-height: 32px; }
+.kt-tranbox-header__font-size-capsule { flex: none; display: flex; align-items: center; border: 1px solid var(--kt-linev); border-radius: 999px; background: transparent; }
+.kt-tranbox-header__font-size-capsule button { position: relative; justify-content: center; padding: 0; width: 26px; min-height: 20px; border-radius: 0; }
+.kt-tranbox-header__font-size-capsule button:first-child { border-radius: 999px 0 0 999px; }
+.kt-tranbox-header__font-size-capsule button:last-child { border-radius: 0 999px 999px 0; border-left: 1px solid var(--kt-linev); }
+.kt-tranbox-header__font-size-capsule button svg { width: 16px; height: 16px; }
+.kt-tranbox-header__font-size-capsule output { position: absolute; width: 1px; height: 1px; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.kt-tranbox-header__menu .kt-tranbox-header__font-size-capsule button:disabled { opacity: .38; cursor: default; }
+@media (hover: hover) {
+  .kt-tranbox-header__menu .kt-tranbox-header__font-size-capsule button:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); color: var(--kt-on); }
+}
+.kt-tranbox-header__menu .kt-tranbox-header__font-size-capsule button:not(:disabled):active { background: color-mix(in srgb, currentColor 12%, transparent); }
+@media (pointer: coarse) {
+  .kt-tranbox-header__font-size-capsule button { width: 48px; }
+  .kt-tranbox-header__font-size-capsule button::after { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; }
+}
 
 .kt-tranbox-content { container-type: inline-size; container-name: kt-translation-content; padding: 10px !important; background: var(--kt-sf0) !important; color: var(--kt-on) !important; }
 .KT-draggable-body .kt-tranbox-content { padding-bottom: 2px !important; }

@@ -1,91 +1,12 @@
 import { supportsTouch } from "../libs/touchCapability";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import {
-  EVENT_KISS_INNER,
-  MSG_TOUCH_TRANSLATE_MODE_SET,
-  MSG_TOUCH_TRANSLATE_STATE,
-} from "../config";
-import { sendTabMsg } from "../libs/msg";
-import { useMouseHoverSetting } from "../hooks/MouseHover";
+import { useTouchState } from "../hooks/useTouchTranslateState";
 import { useI18n } from "../hooks/I18n";
 import { createMenuKeyDownHandler } from "../libs/menuFocus";
-
-function useTouchState(processActions) {
-  const [state, setState] = useState(null);
-  const [failed, setFailed] = useState(false);
-  const [saveFailed, setSaveFailed] = useState(false);
-  const [pending, setPending] = useState(false);
-  const pendingRef = useRef(false);
-  const { updateMouseHoverSetting } = useMouseHoverSetting();
-  const dispatch = useCallback(
-    async (action, args) => {
-      try {
-        const result = processActions
-          ? await processActions({ action, args })
-          : await sendTabMsg(action, args, { frameId: 0 });
-        if (!result?.touchTranslate)
-          throw new Error("Missing touch translation state");
-        if (
-          action === MSG_TOUCH_TRANSLATE_MODE_SET &&
-          (result.touchTranslate.mode !== args.mode ||
-            (args.direction &&
-              result.touchTranslate.direction !== args.direction))
-        )
-          throw new Error("Page rejected touch mode");
-        setState(result.touchTranslate);
-        setFailed(false);
-        return result.touchTranslate;
-      } catch {
-        if (action === MSG_TOUCH_TRANSLATE_MODE_SET) setFailed(true);
-        return null;
-      }
-    },
-    [processActions]
-  );
-  useEffect(() => {
-    dispatch(MSG_TOUCH_TRANSLATE_STATE);
-    const update = (event) => {
-      if (
-        event.detail?.action === MSG_TOUCH_TRANSLATE_STATE &&
-        event.detail?.touchTranslate
-      ) {
-        setState(event.detail.touchTranslate);
-      }
-    };
-    document.addEventListener(EVENT_KISS_INNER, update);
-    return () => document.removeEventListener(EVENT_KISS_INNER, update);
-  }, [dispatch]);
-  const change = async (mode, direction) => {
-    if (pendingRef.current) return;
-    pendingRef.current = true;
-    setPending(true);
-    setSaveFailed(false);
-    try {
-      const result = await dispatch(MSG_TOUCH_TRANSLATE_MODE_SET, {
-        mode,
-        ...(direction ? { direction } : {}),
-      });
-      if (result?.mode === mode) {
-        try {
-          await updateMouseHoverSetting({
-            touchMode: mode,
-            ...(direction ? { touchDirection: direction } : {}),
-          });
-        } catch {
-          setSaveFailed(true);
-        }
-      }
-    } finally {
-      pendingRef.current = false;
-      setPending(false);
-    }
-  };
-  return { state, failed, saveFailed, pending, change };
-}
 
 function ConnectedTouchControl({
   processActions,

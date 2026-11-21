@@ -204,3 +204,25 @@ test("disambiguates the panel pin and follow-selection labels", () => {
     "Закрепить панель (не скрывается при потере фокуса)"
   );
 });
+
+// 悬浮球手势菜单的 4 个模式徽标（禁用/点按/向左/向右）曾以英文拷贝
+// 充当非英文语言的渲染值。本锁钉住每个非 en 支持语言必须有独立于
+// 英文拷贝的渲染值：语言回退即红；措辞迭代不破锁，故取不等式
+// 而非逐字快照。
+test("ships touch summary mode labels as native translations", () => {
+  const keys = [
+    "touch_summary_off",
+    "touch_summary_tap",
+    "touch_summary_left",
+    "touch_summary_right",
+  ];
+  const locales = UI_LANGS.map(([locale]) => locale).filter(
+    (locale) => locale !== "en"
+  );
+  const drifting = keys.flatMap((key) =>
+    locales
+      .filter((locale) => I18N[key][locale] === I18N[key].en)
+      .map((locale) => `${key}:${locale}`)
+  );
+  expect(drifting).toEqual([]);
+});

@@ -5,7 +5,11 @@ jest.mock("../../hooks/MouseHover", () => ({
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import ContentFab from "./ContentFab";
-import { MSG_OPEN_OPTIONS, MSG_TRANS_TOGGLE } from "../../config";
+import {
+  MSG_OPEN_OPTIONS,
+  MSG_TOUCH_TRANSLATE_STATE,
+  MSG_TRANS_TOGGLE,
+} from "../../config";
 import { sendBgMsg } from "../../libs/msg";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -126,6 +130,11 @@ describe.each(["document", "shadow root"])(
     const touch = (target, type) =>
       act(() =>
         target.dispatchEvent(new Event(type, { bubbles: true, composed: true }))
+      );
+    // Passive state reads are expected once the menu consumes the shared hook.
+    const actionDispatches = () =>
+      processActions.mock.calls.filter(
+        ([request]) => request.action !== MSG_TOUCH_TRANSLATE_STATE
       );
 
     const wrapper = () => fab().closest('[style*="position: fixed"]');
@@ -403,7 +412,7 @@ describe.each(["document", "shadow root"])(
       }
     );
 
-    test("real touch control survives Portal clicks and synchronizes on reopen", async () => {
+    test("real gesture drill-down selects a mode and synchronizes on reopen", async () => {
       Object.defineProperty(navigator, "maxTouchPoints", {
         configurable: true,
         value: 2,
@@ -425,54 +434,36 @@ describe.each(["document", "shadow root"])(
           (el) => el.textContent === "touch_paragraph"
         )
       ).toBe(false);
-      const select = menu().querySelector('[role="combobox"]');
-      act(() =>
-        select.dispatchEvent(
-          new MouseEvent("mousedown", {
-            bubbles: true,
-            composed: true,
-            button: 0,
-          })
-        )
+      const entry = menu().querySelector("#kt-fab-gesture-entry");
+      expect(entry).not.toBeNull();
+      expect(entry.textContent).toContain("touch_mode_short");
+      expect(entry.textContent).toContain("touch_summary_off");
+      expect(entry.querySelectorAll(".MuiListItemIcon-root svg")).toHaveLength(
+        1
       );
-      const list = contentRoot.querySelector('[role="listbox"]');
-      expect(list.closest(".kt-m3-root")).toBe(
-        container.querySelector(".kt-m3-root")
-      );
-      expect(list.closest(".kt-content-fab-menu")).toBeNull();
-      // Opening the Select can retarget the release click to its modal root.
-      click(list.closest(".MuiModal-root"));
-      click(list.closest(".kt-m3-root"));
-      expect(menu()).not.toBeNull();
-      expect(document.querySelector('[role="listbox"]')).toBe(
-        context === "shadow root" ? null : list
-      );
-      act(() =>
-        list.dispatchEvent(
-          new KeyboardEvent("keydown", {
-            key: "End",
-            bubbles: true,
-            composed: true,
-          })
-        )
-      );
-      expect(list.getRootNode().activeElement).toBe(
-        list.querySelector('[data-value="swipe-left"]')
-      );
+      click(entry);
+      const listbox = menu().querySelector("#kt-fab-gesture-listbox");
+      expect(listbox).not.toBeNull();
+      expect(menu().contains(listbox)).toBe(true);
+      expect(listbox.querySelector(".kt-content-fab-menu__back")).toBeNull();
+
       await act(async () => {
-        list.querySelector('[data-value="tap"]').click();
+        listbox.querySelector('[role="option"][data-mode="tap"]').click();
       });
+
       expect(menu()).not.toBeNull();
-      expect(select.textContent).toBe("touch_tap");
+      expect(entry.getAttribute("aria-expanded")).toBe("false");
+      expect(entry.textContent).toContain("touch_summary_tap");
+
       click(document.body);
       expect(menu()).toBeNull();
       openMenu();
       await act(async () => {
         await Promise.resolve();
       });
-      expect(menu().querySelector('[role="combobox"]').textContent).toBe(
-        "touch_tap"
-      );
+      expect(
+        menu().querySelector("#kt-fab-gesture-entry").textContent
+      ).toContain("touch_summary_tap");
     });
 
     test.each(["menu surface", "disabled item"])(
@@ -490,7 +481,7 @@ describe.each(["document", "shadow root"])(
           );
           expect(menu()).not.toBeNull();
           expect(onPageClick).not.toHaveBeenCalled();
-          expect(processActions).not.toHaveBeenCalled();
+          expect(actionDispatches()).toHaveLength(0);
 
           click(document.body);
 
@@ -510,7 +501,7 @@ describe.each(["document", "shadow root"])(
       click(fab());
 
       expect(menu()).toBeNull();
-      expect(processActions).not.toHaveBeenCalled();
+      expect(actionDispatches()).toHaveLength(0);
       openMenu();
     });
 
@@ -531,7 +522,7 @@ describe.each(["document", "shadow root"])(
         click(outside);
 
         expect(menu()).toBeNull();
-        expect(processActions).not.toHaveBeenCalled();
+        expect(actionDispatches()).toHaveLength(0);
       }
     );
 
@@ -550,7 +541,7 @@ describe.each(["document", "shadow root"])(
       touch(document.body, "touchend");
 
       expect(menu()).toBeNull();
-      expect(processActions).not.toHaveBeenCalled();
+      expect(actionDispatches()).toHaveLength(0);
     });
 
     test.each(["close", "unmount"])(
