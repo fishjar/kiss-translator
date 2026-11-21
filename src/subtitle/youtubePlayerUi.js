@@ -14,6 +14,9 @@ export const CONTROLS_SELECTOR = ".ytp-right-controls";
 export const YT_CAPTION_SELECTOR = "#ytp-caption-window-container";
 export const YT_AD_SELECTOR = ".video-ads";
 export const YT_SUBTITLE_BUTTON_SELECTOR = "button.ytp-subtitles-button";
+export const YT_CAPTION_STYLE_ID = "kiss-youtube-native-captions-style";
+const YT_PLAYER_CAPTIONS_HIDDEN_ATTR = "data-kiss-native-captions-hidden";
+const YT_CAPTION_HIDDEN_ATTR = "data-kiss-native-caption-hidden";
 
 /**
  * 异步等待目标 DOM 元素挂载并执行回调。
@@ -67,7 +70,6 @@ export class YouTubePlayerUi {
   #notificationErrorUntil = 0;
   #menuFrame;
   #resizeObserver;
-  #captionPositions = new Map();
 
   closeMenu = () => {
     this.#isMenuShow = false;
@@ -238,15 +240,26 @@ export class YouTubePlayerUi {
    * @returns {void}
    */
   hideYtCaption() {
-    const player = this.#getVideoEl()?.closest(".html5-video-player");
+    const player = this.#getVideoEl()?.closest(
+      ".html5-video-player, #movie_player"
+    );
     const ytCaption =
       player?.querySelector(YT_CAPTION_SELECTOR) ||
       document.querySelector(YT_CAPTION_SELECTOR);
-    if (ytCaption) {
-      if (!this.#captionPositions.has(ytCaption))
-        this.#captionPositions.set(ytCaption, ytCaption.style.top);
-      ytCaption.style.top = "-10000px";
+    if (!player && !ytCaption) return;
+    if (!document.getElementById(YT_CAPTION_STYLE_ID)) {
+      const style = document.createElement("style");
+      style.id = YT_CAPTION_STYLE_ID;
+      style.textContent = `
+[${YT_PLAYER_CAPTIONS_HIDDEN_ATTR}="true"] #ytp-caption-window-container,
+[${YT_PLAYER_CAPTIONS_HIDDEN_ATTR}="true"] .ytp-caption-window-container,
+[${YT_CAPTION_HIDDEN_ATTR}="true"] {
+  display: none !important;
+}`;
+      document.head.appendChild(style);
     }
+    if (player) player.setAttribute(YT_PLAYER_CAPTIONS_HIDDEN_ATTR, "true");
+    else ytCaption.setAttribute(YT_CAPTION_HIDDEN_ATTR, "true");
   }
 
   /**
@@ -255,9 +268,15 @@ export class YouTubePlayerUi {
    * @returns {void}
    */
   showYtCaption() {
-    for (const [element, top] of this.#captionPositions)
-      element.style.top = top;
-    this.#captionPositions.clear();
+    document
+      .querySelectorAll(
+        `[${YT_PLAYER_CAPTIONS_HIDDEN_ATTR}], [${YT_CAPTION_HIDDEN_ATTR}]`
+      )
+      .forEach((element) => {
+        element.removeAttribute(YT_PLAYER_CAPTIONS_HIDDEN_ATTR);
+        element.removeAttribute(YT_CAPTION_HIDDEN_ATTR);
+      });
+    document.getElementById(YT_CAPTION_STYLE_ID)?.remove();
   }
 
   /**
