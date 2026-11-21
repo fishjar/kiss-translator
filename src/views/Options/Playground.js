@@ -4,8 +4,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ExpandLessIcon, ExpandMoreIcon } from "../../components/icons";
 import { TerminologyFields } from "./TerminologySelect";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -31,7 +30,7 @@ const LS_TERMS_KEY = "kt-playground-terms-draft";
 const LS_AITERMS_KEY = "kt-playground-aiterms-draft";
 // 例句轮换 seed 的持久化键（刷新后轮换状态不丢失，M3）。
 const LS_TERM_SEED_KEY = "kt-playground-term-seed";
-// 双 Tab 草稿竞态防护涉及的全部持久化键（B1）。
+// 双 Tab 草稿竞态防护涉及的全部持久化键。
 const DRAFT_STORAGE_KEYS = [LS_TERMS_KEY, LS_AITERMS_KEY, LS_TERM_SEED_KEY];
 // 文本翻译页签多选接口的持久化键（TranForm 内部读写，刷新/页签往返后回填）。
 const LS_API_SLUGS_KEY = "kt-playground-api-slugs";
@@ -106,7 +105,7 @@ export default function Playgound({ initialSettingsReady = true }) {
   const writeTermsDraft = useMemo(
     () =>
       debounce((v) => {
-        // 带竞态比对的写盘，并同步"自身最后已知 LS 值"（B1）。
+        // 带竞态比对的写盘，并同步"自身最后已知 LS 值"。
         flushDraftIfUnchanged(LS_TERMS_KEY, v);
       }, 200),
     []
@@ -128,7 +127,7 @@ export default function Playgound({ initialSettingsReady = true }) {
   const termsDraftRef = useRef(termsDraft);
   const aiTermsDraftRef = useRef(aiTermsDraft);
   const termSeedRef = useRef(termSeed);
-  // 双 Tab 竞态防护（B1）：每个键的"自身最后已知 LS 值"。同步点覆盖：
+  // 双 Tab 竞态防护：每个键的"自身最后已知 LS 值"。同步点覆盖：
   // 初始读取（挂载 useState 初始化时读取的同值）、自身写盘、storage 事件。
   // 卸载/兜底 flush 写盘前先比对当前 LS 值：仅当仍与自身最后已知值一致才写回，
   // 防止后关闭的 Tab 用旧草稿覆盖另一 Tab 的新草稿。
@@ -182,7 +181,7 @@ export default function Playgound({ initialSettingsReady = true }) {
 
   // 卸载：先同步 flush 最终已提交值（不丢字，硬关闭/崩溃前的最后落盘），再
   // cancel 未决定时器（无幽灵写盘）。refs 由上方 effect 体在 commit 阶段更新，
-  // cleanup 运行时必为最新已提交值。flush 前带 B1 竞态比对。
+  // cleanup 运行时必为最新已提交值。flush 前带竞态比对。
   useEffect(
     () => () => {
       flushAllDrafts();
@@ -195,7 +194,7 @@ export default function Playgound({ initialSettingsReady = true }) {
   );
 
   // 硬关页/刷新兜底（M3）：浏览器关闭/刷新不触发组件卸载 cleanup，
-  // pagehide/beforeunload 时同步落盘三键（B1 比对同样生效）。
+  // pagehide/beforeunload 时同步落盘三键（竞态比对同样生效）。
   useEffect(() => {
     window.addEventListener("pagehide", flushAllDrafts);
     window.addEventListener("beforeunload", flushAllDrafts);
@@ -206,7 +205,7 @@ export default function Playgound({ initialSettingsReady = true }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 双 Tab 草稿同步（B1）：监听 storage 事件，另一 Tab 改写草稿时把新值
+  // 双 Tab 草稿同步：监听 storage 事件，另一 Tab 改写草稿时把新值
   // 归一化后同步进本地草稿 state 与"自身最后已知值"，保证后续写回比对正确。
   useEffect(() => {
     const onStorage = (event) => {

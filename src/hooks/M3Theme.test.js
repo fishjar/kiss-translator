@@ -37,7 +37,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
 
   const themeRoot = container.querySelector(".kt-m3-root");
   expect(themeRoot.dataset.theme).toBe("dark");
-  expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe("#A8C7FA");
+  expect(themeRoot.style.getPropertyValue("--kt-pri")).toBe("#a5bfc5");
   expect(themeRoot.querySelector("style").textContent).toContain(
     "@keyframes kt-m3-pop"
   );
@@ -78,7 +78,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   expect(
     capturedTheme.components.MuiButton.styleOverrides.root["&.Mui-focusVisible"]
   ).toEqual({
-    outline: "3px solid #A8C7FA",
+    outline: "3px solid #a5bfc5",
     outlineOffset: 2,
   });
   expect(capturedTheme.components.MuiCard.styleOverrides.root).toMatchObject({
@@ -92,7 +92,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
     capturedTheme.components.MuiTab.styleOverrides.root["&&.Mui-focusVisible"]
   ).toMatchObject({
     outline: "none",
-    boxShadow: "inset 0 0 0 3px #A8C7FA",
+    boxShadow: "inset 0 0 0 3px #a5bfc5",
   });
   const menuItemRoot = capturedTheme.components.MuiMenuItem.styleOverrides.root;
   expect(menuItemRoot).toMatchObject({
@@ -102,13 +102,13 @@ test("scopes the resolved Material 3 palette to its root", () => {
       "background-color .2s ease, color .2s ease, box-shadow .2s ease",
   });
   expect(menuItemRoot["&.Mui-selected"]).toMatchObject({
-    backgroundColor: "#004A77",
-    color: "#C2E7FF",
+    backgroundColor: "#384143",
+    color: "#abbbbe",
   });
   expect(menuItemRoot["&&.Mui-focusVisible"]).toMatchObject({
     outline: "none",
     backgroundColor: "#2D2F31",
-    boxShadow: "inset 0 0 0 3px #A8C7FA",
+    boxShadow: "inset 0 0 0 3px #a5bfc5",
   });
   const iconButtonRoot =
     capturedTheme.components.MuiIconButton.styleOverrides.root;
@@ -126,39 +126,47 @@ test("scopes the resolved Material 3 palette to its root", () => {
   expect(primaryIconButton.color).toBe(undefined);
   expect(primaryIconButton["&:hover"]).toBe(undefined);
   expect(defaultIconButton["&.Mui-focusVisible"]).toEqual({
-    outline: "3px solid #A8C7FA",
+    outline: "3px solid #a5bfc5",
+    outlineOffset: 2,
+  });
+  const sliderThumb = capturedTheme.components.MuiSlider.styleOverrides.thumb;
+  expect(sliderThumb["&.Mui-focusVisible"]).toMatchObject({
+    outline: "3px solid #a5bfc5",
     outlineOffset: 2,
   });
   expect(
-    capturedTheme.components.MuiSlider.styleOverrides.thumb[
-      "&.Mui-focusVisible"
-    ]
-  ).toMatchObject({ outline: "3px solid #A8C7FA", outlineOffset: 2 });
+    sliderThumb["@supports selector(:has(*))"]["&:has(:focus-visible)"]
+  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 2 });
+  const radioRoot = capturedTheme.components.MuiRadio.styleOverrides.root;
+  expect(radioRoot["&.Mui-focusVisible"]).toMatchObject({
+    outline: "3px solid #a5bfc5",
+    outlineOffset: 0,
+  });
   expect(
-    capturedTheme.components.MuiRadio.styleOverrides.root["&.Mui-focusVisible"]
-  ).toMatchObject({ outline: "3px solid #A8C7FA", outlineOffset: 0 });
+    radioRoot["@supports selector(:has(*))"]["&:has(:focus-visible)"]
+  ).toMatchObject({ outline: "3px solid #a5bfc5", outlineOffset: 0 });
   expect(
     capturedTheme.components.MuiToggleButton.styleOverrides.root[
       "&.Mui-selected"
     ]
   ).toMatchObject({
-    backgroundColor: "#004A77",
-    color: "#C2E7FF",
+    backgroundColor: "#384143",
+    color: "#abbbbe",
   });
   expect(
     capturedTheme.components.MuiListItemButton.styleOverrides.root[
       "&&.Mui-focusVisible"
     ].boxShadow
-  ).toBe("inset 0 0 0 3px #A8C7FA");
+  ).toBe("inset 0 0 0 3px #a5bfc5");
   expect(
     capturedTheme.components.MuiAccordionSummary.styleOverrides.root[
       "&&.Mui-focusVisible"
     ].boxShadow
-  ).toBe("inset 0 0 0 3px #A8C7FA");
+  ).toBe("inset 0 0 0 3px #a5bfc5");
   expect(
     capturedTheme.components.MuiLoadingButton.styleOverrides.loadingIndicator
       .color
-  ).toBe("#A8C7FA");
+  ).toBe("#a5bfc5");
   expect(
     capturedTheme.components.MuiDialog.styleOverrides.paper.borderRadius
   ).toBe(28);
@@ -180,7 +188,7 @@ test("scopes the resolved Material 3 palette to its root", () => {
   expect(
     getComputedStyle(container.querySelector('[aria-label="primary icon"]'))
       .color
-  ).toBe("rgb(168, 199, 250)");
+  ).toBe("rgb(165, 191, 197)");
 
   act(() => root.unmount());
   container.remove();
@@ -285,7 +293,7 @@ test("partial component options preserve M3 button defaults and focus treatment"
         "&.Mui-focusVisible"
       ]
     ).toEqual({
-      outline: "3px solid #A8C7FA",
+      outline: "3px solid #a5bfc5",
       outlineOffset: 2,
     });
   } finally {

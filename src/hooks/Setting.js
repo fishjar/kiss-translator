@@ -4,6 +4,7 @@ import {
   useContext,
   useMemo,
   useEffect,
+  useLayoutEffect,
 } from "react";
 import Alert from "@mui/material/Alert";
 import {
@@ -18,6 +19,8 @@ import { logger } from "../libs/log";
 import { sendBgMsg } from "../libs/msg";
 import { isExt } from "../libs/client";
 import { normalizeStoredSetting } from "../libs/storage";
+import { setIconStyleSnapshot } from "../styles/iconStyleStore";
+import { setIconColorSnapshot } from "../styles/m3";
 import { cloneStorageValue, isSameStorageValue } from "../libs/storageEquality";
 
 // Share settings and their persistence operations with descendant components.
@@ -89,6 +92,20 @@ export function SettingProvider({ children, context }) {
     },
     [updateSetting]
   );
+
+  // 加载期 useStorage 返回默认档，跳过同步以免覆盖其它已挂载根的真实档；
+  // 读盘失败返回空档时同样跳过，避免把共享图标样式快照重置回默认值。
+  useLayoutEffect(() => {
+    if (isLoading || !setting) return;
+    setIconStyleSnapshot(setting.iconStyle);
+  }, [isLoading, setting]);
+
+  // 读盘失败返回空档时同样跳过，避免把共享图标颜色快照重置回默认值；
+  // 门控形态与上方图标样式快照 effect 一致。
+  useLayoutEffect(() => {
+    if (isLoading || !setting) return;
+    setIconColorSnapshot(setting.iconColor);
+  }, [isLoading, setting]);
 
   const value = useMemo(
     () => ({
