@@ -148,7 +148,10 @@ jest.mock("../apis/index.js", () => ({
 }));
 
 jest.mock("../apis/history.js", () => ({ clearMsgHistory: jest.fn() }));
-jest.mock("../libs/docInfo.js", () => ({ getDocInfo: () => ({}) }));
+let mockDocInfo = {};
+jest.mock("../libs/docInfo.js", () => ({
+  getDocInfo: () => ({ ...mockDocInfo }),
+}));
 
 jest.mock("./youtubePlayerUi.js", () => ({
   CONTROLS_SELECTOR: ".controls",
@@ -339,6 +342,7 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     mockDelayAsr = false;
     mockAsrSupported = true;
     mockRealUi = false;
+    mockDocInfo = {};
     mockTrack = { languageCode: "en", vssId: "a.en", kind: "asr" };
     window.history.replaceState({}, "", "/watch?v=video-1");
     document.body.innerHTML =
@@ -1844,5 +1848,73 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
 
     expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
     expect(mockManagers.length).toBeGreaterThan(0);
+  });
+
+  test("still runs AI context enrichment with full transcript when getDocInfo already has a DOM summary", async () => {
+    mockDocInfo = {
+      title: "Sample Video Title",
+      description: "Video description",
+      summary: "Raw YouTube DOM description text",
+    };
+    const longTranscript = Array.from(
+      { length: 1200 },
+      (_, i) => `segment${i}`
+    ).join(" ");
+    expect(longTranscript.length).toBeGreaterThan(8000);
+    prepareTimedTextEvents.mockReturnValue({
+      events: [{ text: longTranscript }],
+      flatEvents: [{ start: 0, end: 600000, text: longTranscript }],
+    });
+    apiSummarizeContext.mockResolvedValueOnce("AI extracted video context");
+
+    create({
+      aiContextSlug: "ai",
+      transApis: [{ apiSlug: "ai", apiType: "openai", apiName: "AI" }],
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(apiSummarizeContext).toHaveBeenCalledTimes(1);
+    expect(apiSummarizeContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: "video-1",
+        title: "Sample Video Title",
+        transcript: longTranscript,
+      })
+    );
+    expect(eventsToSubtitles.mock.calls[0][0].docInfo.summary).toBe(
+      "AI extracted video context"
+    );
+  });
+
+  test("samples head, middle, and tail when transcript exceeds 60000 characters", async () => {
+    const headMarker = "HEAD_TOPIC_NEBULACORE";
+    const middleMarker = "MIDDLE_TOPIC_QUASAR";
+    const tailMarker = "TAIL_TOPIC_HORIZON";
+    const fillerA = "a".repeat(35000);
+    const fillerB = "b".repeat(35000);
+    const oversizedTranscript = `${headMarker} ${fillerA} ${middleMarker} ${fillerB} ${tailMarker}`;
+    expect(oversizedTranscript.length).toBeGreaterThan(60000);
+
+    prepareTimedTextEvents.mockReturnValue({
+      events: [{ text: oversizedTranscript }],
+      flatEvents: [{ start: 0, end: 18000000, text: oversizedTranscript }],
+    });
+    apiSummarizeContext.mockResolvedValueOnce("Sampled context");
+
+    create({
+      aiContextSlug: "ai",
+      transApis: [{ apiSlug: "ai", apiType: "openai", apiName: "AI" }],
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(apiSummarizeContext).toHaveBeenCalledTimes(1);
+    const sentTranscript = apiSummarizeContext.mock.calls[0][0].transcript;
+    expect(sentTranscript.length).toBeLessThanOrEqual(60000);
+    expect(sentTranscript).toContain(headMarker);
+    expect(sentTranscript).toContain(middleMarker);
+    expect(sentTranscript).toContain(tailMarker);
+    expect(sentTranscript).toContain("\n...\n");
   });
 });

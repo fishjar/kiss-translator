@@ -9,6 +9,7 @@ import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
 import { BilingualSubtitleManager } from "./BilingualSubtitleManager.js";
 import { YouTubeSubtitleList } from "./YouTubeSubtitleList.js";
 import { API_SPE_TYPES } from "../config";
+import { supportsApiCapability } from "../config/serviceSelection";
 import { downloadBlobFile } from "../libs/utils.js";
 import { newI18n } from "../config";
 import { buildBilingualVtt } from "./vtt.js";
@@ -50,6 +51,30 @@ import {
   YouTubePlayerUi,
 } from "./youtubePlayerUi.js";
 
+const AI_CONTEXT_TRANSCRIPT_MAX_LENGTH = 60000;
+const AI_CONTEXT_TRANSCRIPT_SEPARATOR = "\n...\n";
+
+function sampleTranscriptForContext(
+  transcript,
+  maxLength = AI_CONTEXT_TRANSCRIPT_MAX_LENGTH
+) {
+  if (transcript.length <= maxLength) {
+    return transcript;
+  }
+
+  const budget = maxLength - AI_CONTEXT_TRANSCRIPT_SEPARATOR.length * 2;
+  const headLength = Math.floor(budget / 3);
+  const middleLength = Math.floor(budget / 3);
+  const tailLength = budget - headLength - middleLength;
+  const middleStart = Math.floor((transcript.length - middleLength) / 2);
+
+  return [
+    transcript.slice(0, headLength),
+    transcript.slice(middleStart, middleStart + middleLength),
+    transcript.slice(-tailLength),
+  ].join(AI_CONTEXT_TRANSCRIPT_SEPARATOR);
+}
+
 /**
  * YouTube 字幕翻译与双语渲染入口。
  * 负责页面生命周期、字幕轨处理调度、异步竞态保护，并把结果交给播放器渲染器。
@@ -62,6 +87,7 @@ export class YouTubeCaptionProvider {
   #captionFinalCues = new Map();
   #captionCacheTimer = null;
   #captionContextPromise = null;
+  #captionContextEnriched = false;
   #bridge;
   #acquirer;
   #asr;
@@ -401,6 +427,7 @@ export class YouTubeCaptionProvider {
     this.#captionCacheTimer = null;
     this.#captionFinalCues.clear();
     this.#captionContextPromise = null;
+    this.#captionContextEnriched = false;
     this.#captionCacheContext = null;
     this.#captionCacheGeneration = null;
     this.#nativeCaptionSnapshot = null;
@@ -663,6 +690,7 @@ export class YouTubeCaptionProvider {
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
     this.#captionContextPromise = null;
+    this.#captionContextEnriched = false;
     this.#startManager();
     this.#subtitleListManager?.setBilingualSubtitles(
       this.#subtitles,
@@ -1278,8 +1306,10 @@ export class YouTubeCaptionProvider {
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
+    this.#captionContextPromise = null;
+    this.#captionContextEnriched = false;
 
-    await this.#enrichDocInfoWithAI(this.#flatEvents, processingVersion);
+    await this.#ensureCaptionContext(processingVersion);
     if (this.#isStaleProcessing(processingVersion)) return;
 
     this.#processEvents({
@@ -1512,6 +1542,7 @@ export class YouTubeCaptionProvider {
       if (this.#isStaleProcessing(processingVersion)) return;
       this.#captionFinalCues.clear();
       this.#captionContextPromise = null;
+      this.#captionContextEnriched = false;
       this.#captionCacheContext = {
         videoId,
         track,
@@ -1720,7 +1751,7 @@ export class YouTubeCaptionProvider {
   }
 
   #ensureCaptionContext(processingVersion) {
-    if (this.#docInfo.summary) return Promise.resolve();
+    if (this.#captionContextEnriched) return Promise.resolve();
     if (!this.#captionContextPromise) {
       this.#captionContextPromise = this.#enrichDocInfoWithAI(
         this.#flatEvents,
@@ -1969,15 +2000,20 @@ export class YouTubeCaptionProvider {
       (api) => api.apiSlug === aiContextSlug
     );
     if (!contextApiSetting) return;
-    if (!API_SPE_TYPES.ai.has(contextApiSetting.apiType)) return;
+    if (
+      !API_SPE_TYPES.ai.has(contextApiSetting.apiType) &&
+      !supportsApiCapability(contextApiSetting, "summarize")
+    )
+      return;
 
-    const transcript = flatEvents
+    const fullTranscript = flatEvents
       .map((e) => e.text)
       .filter(Boolean)
-      .join(" ")
-      .slice(0, 8000);
+      .join(" ");
 
-    if (transcript.length < 200) return;
+    if (fullTranscript.length < 200) return;
+
+    const transcript = sampleTranscriptForContext(fullTranscript);
 
     const videoId = this.#videoId;
     const docInfo = this.#docInfo;
@@ -1999,6 +2035,7 @@ export class YouTubeCaptionProvider {
         !this.#isStaleProcessing(processingVersion)
       ) {
         docInfo.summary = summary;
+        this.#captionContextEnriched = true;
       }
     } catch (err) {
       logger
@@ -2032,6 +2069,7 @@ export class YouTubeCaptionProvider {
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
     this.#captionContextPromise = null;
+    this.#captionContextEnriched = false;
     await this.#ensureCaptionContext(processingVersion);
     if (this.#isStaleProcessing(processingVersion)) return;
     this.#processEvents({
