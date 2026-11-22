@@ -72,7 +72,13 @@ function markDraftTranslations(cues, clearSegmentTranslation) {
  * 最终校验字幕时间轴和原文顺序；兼容 VTT 时也能发现漏词或重复词。
  * 校验失败直接对当前 chunk 全量降级，避免把损坏结果交给播放器。
  */
-function finalizeAiCues(cues, segmentEvents, fromLang, formatSubtitles) {
+function finalizeAiCues(
+  cues,
+  segmentEvents,
+  fromLang,
+  formatSubtitles,
+  onFallback
+) {
   const sorted = [...(cues || [])].sort((a, b) => a.start - b.start);
   const hasInvalidTimeline = sorted.some((cue, index) => {
     const start = Number(cue.start);
@@ -100,6 +106,7 @@ function finalizeAiCues(cues, segmentEvents, fromLang, formatSubtitles) {
     logger
       .child("subtitle")
       .warn("Youtube Provider: AI result validation failed, falling back");
+    onFallback?.({ reason: "failed" });
     return formatSubtitles(segmentEvents, fromLang).sort(
       (a, b) => a.start - b.start
     );
@@ -157,6 +164,132 @@ export function selectPreviousSubtitlesContext(
         : "",
   }));
 }
+
+const DEFAULT_AI_SEGMENT_RETRIES = 1;
+const DEFAULT_AI_SEGMENT_RETRY_DELAY_MS = 600;
+const NON_RETRYABLE_HTTP_STATUSES = new Set([400, 401, 402, 403, 404]);
+const NON_RETRYABLE_ERROR_CODES = new Set([
+  "CAPABILITY_DISABLED",
+  "BAD_REQUEST",
+  "UNAUTHORIZED",
+  "PAYMENT_REQUIRED",
+  "FORBIDDEN",
+  "NOT_FOUND",
+  "INVALID_API_KEY",
+  "INSUFFICIENT_QUOTA",
+]);
+
+function extractHttpStatus(err) {
+  const candidates = [
+    err?.status,
+    err?.statusCode,
+    err?.response?.status,
+    err?.cause?.status,
+  ];
+  for (const value of candidates) {
+    const code = Number(value);
+    if (Number.isInteger(code) && code >= 100 && code < 600) {
+      return code;
+    }
+  }
+  const message = String(err?.message || "").trim();
+  if (message.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(message);
+      const code = Number(parsed?.status ?? parsed?.statusCode);
+      if (Number.isInteger(code) && code >= 100 && code < 600) {
+        return code;
+      }
+    } catch {
+      // ignore non-JSON messages
+    }
+  }
+  const match = message.match(
+    /\b(?:http|status(?:\s+code)?)["']?\s*[:\s]+(400|401|402|403|404)\b/i
+  );
+  return match ? Number(match[1]) : null;
+}
+
+function waitForRetry(ms, signal) {
+  if (!ms || ms <= 0 || signal?.aborted) return Promise.resolve();
+  return new Promise((resolve) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function shouldRetryAiSegmentError(err, signal) {
+  if (signal?.aborted) return false;
+  if (!err) return true;
+  const code = String(err.code || "").toUpperCase();
+  if (NON_RETRYABLE_ERROR_CODES.has(code)) {
+    return false;
+  }
+  const status = extractHttpStatus(err);
+  if (status !== null && NON_RETRYABLE_HTTP_STATUSES.has(status)) {
+    return false;
+  }
+  const message = String(err.message || "");
+  if (
+    /invalid\s+api\s*key|unauthorized|insufficient[_\s]+(quota|balance|credit)/i.test(
+      message
+    )
+  ) {
+    return false;
+  }
+  // 仅在没有外部 signal 且收到 AbortError 时视为取消；
+  // 存在外部 signal 且未被中止时，底层 fetch 抛出的 AbortError 通常是内部 httpTimeout 超时，应允许重试。
+  if (err.name === "AbortError" && !signal) {
+    return false;
+  }
+  return true;
+}
+
+function isTimeoutError(err, signal) {
+  if (!err) return false;
+  if (err.name === "AbortError" && signal && !signal.aborted) {
+    return true;
+  }
+  const code = String(err.code || "").toUpperCase();
+  const name = String(err.name || "");
+  const message = String(err.message || "");
+  return (
+    code.includes("TIMEOUT") ||
+    name === "TimeoutError" ||
+    /timeout|timed out|超时/i.test(message)
+  );
+}
+
+function notifyAiFallback(showNotification, i18n, reason) {
+  if (typeof showNotification !== "function") return;
+  const message =
+    reason === "timeout"
+      ? i18n?.(
+          "ai_segmentation_timeout_fallback",
+          "AI 断句超时，已降级为规则断句"
+        ) || "AI 断句超时，已降级为规则断句"
+      : i18n?.(
+          "ai_segmentation_failed_fallback",
+          "AI 断句失败，已降级为规则断句"
+        ) || "AI 断句失败，已降级为规则断句";
+  showNotification(message, 5000);
+}
+
+function createAiFallbackNotifier(showNotification, i18n) {
+  let notified = false;
+  return (reason) => {
+    if (notified) return;
+    notified = true;
+    notifyAiFallback(showNotification, i18n, reason);
+  };
+}
 export async function aiSegment({
   videoId,
   fromLang,
@@ -169,61 +302,104 @@ export async function aiSegment({
   formatSubtitles,
   clearSegmentTranslation,
   onSubtitleChunk,
+  onFallback,
   signal,
   setting,
+  maxRetries = DEFAULT_AI_SEGMENT_RETRIES,
+  retryDelayMs = DEFAULT_AI_SEGMENT_RETRY_DELAY_MS,
 }) {
   // 调用方已经统一过滤非语音片段，这里只剔除无文本项，避免重复分类和事后回填。
   const segmentEvents = (chunkEvents || []).filter((item) => item?.text);
   if (!segmentEvents.length) return [];
 
+  const chunkSign = `${segmentEvents[0].start} --> ${
+    segmentEvents[segmentEvents.length - 1].end
+  }`;
+  logger.child("subtitle").debug("Youtube Provider: aiSegment events", {
+    videoId,
+    chunkSign,
+    fromLang,
+    toLang,
+    segmentEvents,
+  });
+
+  const resolvedSegApiSetting = resolveApiPromptSettings(
+    segApiSetting,
+    setting?.prompts,
+    setting
+  );
+
+  let subtitles = null;
+  let lastError = null;
+  let hasStreamedChunk = false;
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    if (signal?.aborted) break;
+    const allowStreamChunk = !hasStreamedChunk;
+    try {
+      const candidate = await apiSubtitle({
+        videoId,
+        chunkSign,
+        fromLang,
+        toLang,
+        events: segmentEvents,
+        apiSetting: resolvedSegApiSetting,
+        scene: setting,
+        terminologyTables: setting?.terminologyTables,
+        docInfo,
+        ...(previousCues?.length && { previousCues }),
+        signal,
+        onSubtitleChunk: ({ subtitles }) => {
+          if (!allowStreamChunk || !subtitles?.length || !onSubtitleChunk) {
+            return;
+          }
+
+          hasStreamedChunk = true;
+          const streamedSubtitles = clearSegmentTranslation
+            ? subtitles.map((sub) => ({ ...sub, _isDraftTranslation: true }))
+            : subtitles;
+          // 字幕断句流式回调只上抛已经闭合的完整句子，避免半句扰乱播放器时间轴。
+          onSubtitleChunk({ subtitles: streamedSubtitles });
+        },
+      });
+      if (Array.isArray(candidate) && candidate.length > 0) {
+        subtitles = candidate;
+        lastError = null;
+        break;
+      }
+      if (attempt < maxRetries && !signal?.aborted) {
+        logger
+          .child("subtitle")
+          .info("Youtube Provider: ai segmentation empty, retrying", {
+            attempt: attempt + 1,
+            chunkSign,
+          });
+        await waitForRetry(retryDelayMs * (attempt + 1), signal);
+        if (signal?.aborted) break;
+        continue;
+      }
+      subtitles = candidate;
+    } catch (err) {
+      lastError = err;
+      logger.child("subtitle").info("Youtube Provider: ai segmentation", err);
+      if (attempt < maxRetries && shouldRetryAiSegmentError(err, signal)) {
+        await waitForRetry(retryDelayMs * (attempt + 1), signal);
+        if (signal?.aborted) break;
+        continue;
+      }
+      break;
+    }
+  }
+
   try {
-    const chunkSign = `${segmentEvents[0].start} --> ${
-      segmentEvents[segmentEvents.length - 1].end
-    }`;
-    logger.child("subtitle").debug("Youtube Provider: aiSegment events", {
-      videoId,
-      chunkSign,
-      fromLang,
-      toLang,
-      segmentEvents,
-    });
-
-    const resolvedSegApiSetting = resolveApiPromptSettings(
-      segApiSetting,
-      setting?.prompts,
-      setting
-    );
-
-    const subtitles = await apiSubtitle({
-      videoId,
-      chunkSign,
-      fromLang,
-      toLang,
-      events: segmentEvents,
-      apiSetting: resolvedSegApiSetting,
-      scene: setting,
-      terminologyTables: setting?.terminologyTables,
-      docInfo,
-      ...(previousCues?.length && { previousCues }),
-      signal,
-      onSubtitleChunk: ({ subtitles }) => {
-        if (!subtitles?.length || !onSubtitleChunk) return;
-
-        const streamedSubtitles = clearSegmentTranslation
-          ? subtitles.map((sub) => ({ ...sub, _isDraftTranslation: true }))
-          : subtitles;
-        // 字幕断句流式回调只上抛已经闭合的完整句子，避免半句扰乱播放器时间轴。
-        onSubtitleChunk({ subtitles: streamedSubtitles });
-      },
-    });
     logger
       .child("subtitle")
       .debug("Youtube Provider: aiSegment subtitles", subtitles);
-    if (Array.isArray(subtitles)) {
+    if (Array.isArray(subtitles) && subtitles.length > 0) {
       const initial = takeContinuousCuePrefix(
         markDraftTranslations(subtitles, clearSegmentTranslation),
         segmentEvents.length
       );
+      const notifyValidationFallback = signal?.aborted ? undefined : onFallback;
       if (
         !initial.verifiable ||
         initial.coveredEnd === segmentEvents.length - 1
@@ -232,7 +408,8 @@ export async function aiSegment({
           initial.cues,
           segmentEvents,
           fromLang,
-          formatSubtitles
+          formatSubtitles,
+          notifyValidationFallback
         );
       }
 
@@ -278,11 +455,23 @@ export async function aiSegment({
         [...initial.cues, ...acceptedTail, ...fallbackCues],
         segmentEvents,
         fromLang,
-        formatSubtitles
+        formatSubtitles,
+        notifyValidationFallback
       );
     }
   } catch (err) {
+    lastError = err;
     logger.child("subtitle").info("Youtube Provider: ai segmentation", err);
+  }
+
+  if (
+    !signal?.aborted &&
+    (lastError?.name !== "AbortError" || Boolean(signal))
+  ) {
+    onFallback?.({
+      reason: isTimeoutError(lastError, signal) ? "timeout" : "failed",
+      error: lastError,
+    });
   }
 
   return formatSubtitles(segmentEvents, fromLang).sort(
@@ -359,6 +548,7 @@ export async function eventsToSubtitles({
 
     const firstChunkEvents = eventChunks[0];
     const firstChunkProgressed = Math.floor(100 / eventChunks.length);
+    const notifyFallback = createAiFallbackNotifier(showNotification, i18n);
     const firstBatchSubtitles = await aiSegment({
       videoId,
       chunkEvents: firstChunkEvents,
@@ -369,6 +559,11 @@ export async function eventsToSubtitles({
       docInfo,
       formatSubtitles,
       clearSegmentTranslation: shouldClearSegmentTranslation,
+      onFallback: ({ reason }) => {
+        if (!isStaleProcessing(processingVersion)) {
+          notifyFallback(reason);
+        }
+      },
       signal,
       setting,
       onSubtitleChunk: ({ subtitles }) => {
@@ -423,6 +618,9 @@ export async function eventsToSubtitles({
       docInfo,
       formatSubtitles,
       clearSegmentTranslation: shouldClearSegmentTranslation,
+      showNotification,
+      i18n,
+      notifyFallback,
       onAppendSubtitles,
       onChunkComplete,
       getCurrentVideoId,
@@ -477,6 +675,9 @@ export function createAiChunkScheduler({
   docInfo,
   formatSubtitles,
   clearSegmentTranslation,
+  showNotification,
+  i18n,
+  notifyFallback,
   onAppendSubtitles,
   onChunkComplete,
   getCurrentVideoId,
@@ -490,6 +691,8 @@ export function createAiChunkScheduler({
       completedSubtitlesByIndex.set(Number(k), v);
     }
   }
+  const emitFallbackNotice =
+    notifyFallback || createAiFallbackNotifier(showNotification, i18n);
 
   let active = false;
   let latestWindow = null;
@@ -590,6 +793,14 @@ export function createAiChunkScheduler({
         previousCues: prevCues,
         formatSubtitles,
         clearSegmentTranslation,
+        onFallback: ({ reason }) => {
+          if (
+            videoId === getCurrentVideoId() &&
+            !isStaleProcessing(processingVersion)
+          ) {
+            emitFallbackNotice(reason);
+          }
+        },
         signal,
         setting,
         onSubtitleChunk: ({ subtitles }) => {
@@ -760,10 +971,15 @@ export async function processRemainingChunksAsync({
   docInfo,
   formatSubtitles,
   clearSegmentTranslation,
+  showNotification,
+  i18n,
+  notifyFallback,
   onAppendSubtitles,
   getCurrentVideoId,
   signal,
 }) {
+  const emitFallbackNotice =
+    notifyFallback || createAiFallbackNotifier(showNotification, i18n);
   logger
     .child("subtitle")
     .debug(
@@ -815,6 +1031,14 @@ export async function processRemainingChunksAsync({
         previousCues: prevCues,
         formatSubtitles,
         clearSegmentTranslation,
+        onFallback: ({ reason }) => {
+          if (
+            videoId === getCurrentVideoId() &&
+            !isStaleProcessing(processingVersion)
+          ) {
+            emitFallbackNotice(reason);
+          }
+        },
         signal,
         setting,
         onSubtitleChunk: ({ subtitles }) => {

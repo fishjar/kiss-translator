@@ -78,6 +78,9 @@ describe("handleSubtitle", () => {
 
     const init = fetchData.mock.calls[0][1];
     expect(JSON.parse(init.body).stream).toBe(false);
+    expect(fetchData.mock.calls[0][2]).toEqual(
+      expect.objectContaining({ maxRetries: 0 })
+    );
   });
 
   test("sends subtitle events as a pure JSON array without context wrappers", async () => {

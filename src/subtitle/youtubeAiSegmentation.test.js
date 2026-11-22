@@ -2,6 +2,7 @@ import {
   aiSegment,
   createAiChunkScheduler,
   eventsToSubtitles,
+  processRemainingChunksAsync,
   selectPreviousSubtitlesContext,
 } from "./youtubeAiSegmentation";
 import { mapBoundaryItemToCue } from "./subtitleBoundaryProtocol";
@@ -447,6 +448,332 @@ describe("aiSegment recovery", () => {
       apiSubtitle.mock.calls[0][0].events.map((event) => event.text)
     ).toEqual(["Hello", "world."]);
     expect(result[0].text).toBe("Hello world.");
+  });
+
+  test("retries transient AI segmentation timeout before falling back to rule segmentation", async () => {
+    const events = [
+      { start: 0, end: 1000, text: "hello" },
+      { start: 1000, end: 2000, text: "world" },
+    ];
+    const apiSubtitle = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("Request timed out"))
+      .mockResolvedValueOnce([subtitle]);
+    const formatSubtitles = jest.fn(() => []);
+    const onFallback = jest.fn();
+
+    const result = await aiSegment({
+      videoId: "video-retry-timeout",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      setting: {},
+      retryDelayMs: 0,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(formatSubtitles).not.toHaveBeenCalled();
+    expect(onFallback).not.toHaveBeenCalled();
+    expect(result).toEqual([subtitle]);
+  });
+
+  test("notifies timeout fallback when all AI segmentation retries time out", async () => {
+    const events = [
+      { start: 0, end: 1000, text: "hello" },
+      { start: 1000, end: 2000, text: "world" },
+    ];
+    const apiSubtitle = jest.fn(() =>
+      Promise.reject(new Error("Request timed out"))
+    );
+    const formatSubtitles = jest.fn(() => [
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+    const onFallback = jest.fn();
+
+    const result = await aiSegment({
+      videoId: "video-timeout-fallback",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      setting: {},
+      maxRetries: 2,
+      retryDelayMs: 0,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(3);
+    expect(formatSubtitles).toHaveBeenCalledTimes(1);
+    expect(onFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "timeout" })
+    );
+    expect(result).toEqual([
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+  });
+
+  test("retries internal httpTimeout AbortError when caller signal is not aborted", async () => {
+    const events = [
+      { start: 0, end: 1000, text: "hello" },
+      { start: 1000, end: 2000, text: "world" },
+    ];
+    const controller = new AbortController();
+    const abortErr = new DOMException(
+      "The operation was aborted.",
+      "AbortError"
+    );
+    const apiSubtitle = jest.fn(() => Promise.reject(abortErr));
+    const formatSubtitles = jest.fn(() => [
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+    const onFallback = jest.fn();
+
+    await aiSegment({
+      videoId: "video-internal-timeout-abort",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      signal: controller.signal,
+      setting: {},
+      maxRetries: 2,
+      retryDelayMs: 0,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(3);
+    expect(onFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "timeout" })
+    );
+  });
+
+  test.each([
+    ["HTTP 401", Object.assign(new Error("Unauthorized"), { status: 401 })],
+    ["HTTP 403", new Error("Request failed with HTTP 403 Forbidden")],
+    [
+      "JSON HTTP 403",
+      new Error(
+        JSON.stringify({
+          url: "https://api.example.com/v1/chat/completions",
+          status: 403,
+          statusText: "Forbidden",
+        })
+      ),
+    ],
+    [
+      "HTTP 404",
+      Object.assign(new Error("Model not found"), { statusCode: 404 }),
+    ],
+    ["insufficient quota", new Error("Insufficient balance on account")],
+  ])("does not retry deterministic client error (%s)", async (_, err) => {
+    const events = [{ start: 0, end: 2000, text: "hello world" }];
+    const apiSubtitle = jest.fn().mockRejectedValue(err);
+    const formatSubtitles = jest.fn(() => [
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+    const onFallback = jest.fn();
+
+    await aiSegment({
+      videoId: "video-client-error",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      setting: {},
+      maxRetries: 2,
+      retryDelayMs: 0,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(1);
+    expect(onFallback).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "failed" })
+    );
+  });
+
+  test("stops retrying immediately when signal aborts during retry backoff", async () => {
+    const events = [{ start: 0, end: 2000, text: "hello world" }];
+    const controller = new AbortController();
+    const apiSubtitle = jest.fn(async () => {
+      setTimeout(() => controller.abort(), 10);
+      throw new Error("Request timed out");
+    });
+    const formatSubtitles = jest.fn(() => [
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+    const onFallback = jest.fn();
+
+    await aiSegment({
+      videoId: "video-abort-backoff",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      signal: controller.signal,
+      setting: {},
+      maxRetries: 1,
+      retryDelayMs: 200,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(1);
+    expect(onFallback).not.toHaveBeenCalled();
+  });
+
+  test("notifies fallback when finalizeAiCues rejects invalid AI coverage", async () => {
+    const events = [
+      { start: 0, end: 1000, text: "hello" },
+      { start: 1000, end: 2000, text: "world" },
+    ];
+    const apiSubtitle = jest.fn().mockResolvedValue([
+      {
+        start: 0,
+        end: 2000,
+        text: "completely mismatched text",
+        translation: "不匹配",
+      },
+    ]);
+    const formatSubtitles = jest.fn(() => [
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+    const onFallback = jest.fn();
+
+    const result = await aiSegment({
+      videoId: "video-invalid-coverage",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles,
+      clearSegmentTranslation: false,
+      onFallback,
+      setting: {},
+      retryDelayMs: 0,
+    });
+
+    expect(formatSubtitles).toHaveBeenCalledTimes(1);
+    expect(onFallback).toHaveBeenCalledWith({ reason: "failed" });
+    expect(result).toEqual([
+      { start: 0, end: 2000, text: "hello world", translation: "" },
+    ]);
+  });
+
+  test("suppresses duplicate onSubtitleChunk emissions on retry after partial stream failure", async () => {
+    const events = [
+      { start: 0, end: 1000, text: "hello" },
+      { start: 1000, end: 2000, text: "world" },
+    ];
+    const streamed = [
+      {
+        start: 0,
+        end: 1000,
+        text: "hello",
+        translation: "你好",
+        _si: 0,
+        _ei: 0,
+      },
+    ];
+    const complete = [
+      {
+        start: 0,
+        end: 2000,
+        text: "hello world",
+        translation: "你好世界",
+        _si: 0,
+        _ei: 1,
+      },
+    ];
+    const apiSubtitle = jest
+      .fn()
+      .mockImplementationOnce(async ({ onSubtitleChunk }) => {
+        onSubtitleChunk({ subtitles: streamed });
+        throw new Error("Request timed out");
+      })
+      .mockImplementationOnce(async ({ onSubtitleChunk }) => {
+        onSubtitleChunk({ subtitles: complete });
+        return complete;
+      });
+    const onSubtitleChunk = jest.fn();
+
+    const result = await aiSegment({
+      videoId: "video-stream-retry",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: events,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: jest.fn(() => []),
+      clearSegmentTranslation: false,
+      onSubtitleChunk,
+      setting: {},
+      maxRetries: 1,
+      retryDelayMs: 0,
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(onSubtitleChunk).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(complete);
+  });
+
+  test("deduplicates fallback notifications across multiple failing chunks in one processing lifecycle", async () => {
+    const chunks = [
+      [{ start: 0, end: 1000, text: "chunk one" }],
+      [{ start: 2000, end: 3000, text: "chunk two" }],
+    ];
+    const showNotification = jest.fn();
+    const apiSubtitle = jest
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error("Unauthorized"), { status: 401 })
+      );
+
+    await processRemainingChunksAsync({
+      chunks,
+      startIndex: 0,
+      videoId: "video-dedup-notice",
+      fromLang: "en",
+      toLang: "zh-CN",
+      segApiSetting: { apiSlug: "openai" },
+      setting: {},
+      processingVersion: 1,
+      isStaleProcessing: () => false,
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: (evs) => evs.map((e) => ({ ...e, translation: "" })),
+      clearSegmentTranslation: false,
+      showNotification,
+      i18n: (key) => key,
+      onAppendSubtitles: jest.fn(),
+      getCurrentVideoId: () => "video-dedup-notice",
+    });
+
+    expect(apiSubtitle).toHaveBeenCalledTimes(2);
+    expect(showNotification).toHaveBeenCalledTimes(1);
   });
 
   test("retries an uncovered tail once and falls back only for the remaining events", async () => {
