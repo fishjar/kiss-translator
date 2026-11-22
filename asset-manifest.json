@@ -1,12 +1,12 @@
 {
   "files": {
-    "main.js": "/assets/homepage/main.62adeaf2.js",
+    "main.js": "/assets/homepage/main.d4c74b14.js",
     "options.js": "/options.js",
     "kiss-translator.user.js": "/kiss-translator.user.js",
-    "static/js/89.cab671fb.chunk.js": "/static/js/89.cab671fb.chunk.js",
+    "static/js/89.0da76844.chunk.js": "/static/js/89.0da76844.chunk.js",
     "options.html": "/options.html",
     "index.html": "/index.html",
-    "fileTranslate.js": "/assets/homepage/fileTranslate.9d4b1174.js",
+    "fileTranslate.js": "/assets/homepage/fileTranslate.bb274977.js",
     "assets/homepage/158.be17c1b2.chunk.js": "/assets/homepage/158.be17c1b2.chunk.js",
     "assets/homepage/194.02047bf6.chunk.css": "/assets/homepage/194.02047bf6.chunk.css",
     "assets/homepage/194.0cebdacb.chunk.js": "/assets/homepage/194.0cebdacb.chunk.js",
@@ -304,6 +304,6 @@
     "assets/pdf/cmaps/CNS2-V.bcmap": "/assets/pdf/cmaps/CNS2-V.bcmap"
   },
   "entrypoints": [
-    "assets/homepage/main.62adeaf2.js"
+    "assets/homepage/main.d4c74b14.js"
   ]
 }
