@@ -40,6 +40,7 @@ import {
   builtinSegment,
   formatSubtitles,
   getFromLang,
+  isAsrCaptionTrack,
   prepareTimedTextEvents,
 } from "./youtubeSubtitleProcessing.js";
 import {
@@ -109,6 +110,8 @@ export class YouTubeCaptionProvider {
   #rawSubtitleEvents = [];
   // 展平并排好序的细粒度单词级别字幕流
   #flatEvents = [];
+  // 当前字幕轨是否为自动生成字幕（ASR）
+  #isAsrTrack = false;
   // 翻译处理进度百分比 (0-100)
   #progressedNum = 0;
   // 视频原字幕的源语言编码，默认 auto
@@ -421,6 +424,7 @@ export class YouTubeCaptionProvider {
     this.#events = [];
     this.#rawSubtitleEvents = [];
     this.#flatEvents = [];
+    this.#isAsrTrack = false;
     this.#progressed = 0;
     this.#fromLang = "auto";
     this.#docInfo = {};
@@ -552,6 +556,7 @@ export class YouTubeCaptionProvider {
           this.#destroyManager();
           this.#subtitles = [];
           this.#flatEvents = [];
+          this.#isAsrTrack = false;
           this.#events = [];
           this.#activeTrackKey = null;
           this.#rawSubtitleEvents = [];
@@ -608,6 +613,7 @@ export class YouTubeCaptionProvider {
         events: this.#events,
         rawEvents: this.#rawSubtitleEvents,
         flatEvents: this.#flatEvents,
+        isAsrTrack: this.#isAsrTrack,
         fromLang: this.#fromLang,
         progressed: this.#progressed,
         trackKey: this.#activeTrackKey,
@@ -628,6 +634,7 @@ export class YouTubeCaptionProvider {
     this.#subtitles = [];
     this.#events = [];
     this.#flatEvents = [];
+    this.#isAsrTrack = false;
     this.#rawSubtitleEvents = [];
     this.#acquisitionState = { phase: "off" };
     this.#progressed = 0;
@@ -643,6 +650,7 @@ export class YouTubeCaptionProvider {
     this.#events = snapshot.events;
     this.#rawSubtitleEvents = snapshot.rawEvents;
     this.#flatEvents = snapshot.flatEvents;
+    this.#isAsrTrack = Boolean(snapshot.isAsrTrack);
     this.#fromLang = snapshot.fromLang;
     this.#progressed = snapshot.progressed;
     this.#activeTrackKey = snapshot.trackKey;
@@ -1434,6 +1442,7 @@ export class YouTubeCaptionProvider {
       this.#events = [];
       this.#rawSubtitleEvents = [];
       this.#flatEvents = [];
+      this.#isAsrTrack = false;
       this.#progressed = 0;
       this.#activeTrackKey = null;
       this.#aiChunkScheduler = null;
@@ -1463,9 +1472,11 @@ export class YouTubeCaptionProvider {
         return;
       }
 
+      const isAsr = isAsrCaptionTrack(track);
       const { events: subtitleEvents, flatEvents } = prepareTimedTextEvents(
         events,
-        fromLang
+        fromLang,
+        { isAsr }
       );
       if (!flatEvents?.length) {
         logger
@@ -1477,6 +1488,7 @@ export class YouTubeCaptionProvider {
 
       this.#events = subtitleEvents;
       this.#flatEvents = flatEvents;
+      this.#isAsrTrack = isAsr;
       this.#fromLang = fromLang;
       this.#activeTrackKey = trackKey;
       this.#docInfo = getDocInfo();
@@ -1619,8 +1631,12 @@ export class YouTubeCaptionProvider {
         }
       }
       const processingSetting = this.#hasRuntimeApiOverride
-        ? { ...this.#setting, forceSubtitleRetranslate: true }
-        : this.#setting;
+        ? {
+            ...this.#setting,
+            forceSubtitleRetranslate: true,
+            isAsrTrack: this.#isAsrTrack,
+          }
+        : { ...this.#setting, isAsrTrack: this.#isAsrTrack };
       const [subtitles, progressed, aiChunkScheduler] = await eventsToSubtitles(
         {
           videoId,

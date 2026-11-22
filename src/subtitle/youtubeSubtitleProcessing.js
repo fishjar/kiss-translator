@@ -10,6 +10,10 @@ import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
 const NO_SPACE_LANGUAGES = ["zh", "ja", "ko", "th", "lo", "km", "my"];
 
+export function isAsrCaptionTrack(track) {
+  return track?.kind === "asr" || String(track?.vssId || "").startsWith("a.");
+}
+
 /**
  * YouTube 字幕文本处理层。
  * 只负责语言映射、timedtext 事件清洗、展平、切块和内置断句，不发起 AI 请求，也不触碰页面 DOM。
@@ -112,7 +116,11 @@ function findNextEffectiveEventStart(
  * @param {string} [fromLang="auto"] 字幕源语言代码。
  * @returns {{events:Array<object>, flatEvents:Array<object>, filteredNonSpeechCount:number}}
  */
-export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
+export function prepareTimedTextEvents(
+  rawEvents = [],
+  fromLang = "auto",
+  { isAsr = false } = {}
+) {
   const sourceEvents = Array.isArray(rawEvents) ? rawEvents : [];
   const canExpandCoarseText = !NO_SPACE_LANGUAGES.some((lang) =>
     String(fromLang).startsWith(lang)
@@ -193,10 +201,12 @@ export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
         nextEventStart > start
           ? Math.min(declaredEnd, nextEventStart)
           : declaredEnd;
-      const isAsrSegment = Object.prototype.hasOwnProperty.call(
-        normalizedSegs[index],
-        "acAsrConf"
-      );
+      const isAsrSegment =
+        isAsr ||
+        Object.prototype.hasOwnProperty.call(
+          normalizedSegs[index],
+          "acAsrConf"
+        );
       const expanded =
         isAsrSegment && canExpandCoarseText && text.includes(" ")
           ? expandCoarseTimedText(text, start, effectiveEnd)
@@ -540,6 +550,7 @@ export function builtinSegment(events, flatEvents, fromLang, setting = {}) {
     fromLang,
     mode: setting.useAlgorithmBreaker,
     longSentenceThreshold: setting.longSentenceThreshold,
+    isAsr: Boolean(setting.isAsrTrack),
   });
 }
 
@@ -552,6 +563,7 @@ export function runBuiltinSegmentation({
   fromLang = "auto",
   mode = "rule",
   longSentenceThreshold = 120,
+  isAsr = false,
 } = {}) {
   const toCues = (items) =>
     (items || []).map((item) => ({
@@ -567,6 +579,8 @@ export function runBuiltinSegmentation({
       .debug("Youtube Provider: Sentence break mode: STATISTICAL");
     const result = algorithmicSegment(events, {
       maxChars: longSentenceThreshold,
+      fromLang,
+      isAsr,
     });
     if (result?.length) return toCues(result);
     logger
