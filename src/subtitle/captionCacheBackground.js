@@ -1,5 +1,29 @@
+import {
+  CACHE_NAME,
+  URL_CACHE_CONTEXT,
+  URL_CACHE_SUBTITLE,
+} from "../config/index";
 import { CaptionCacheStore, captionCacheLimit } from "./captionCacheStore";
 import { youtubeVideoId } from "./youtubeCaptionSource";
+
+async function clearSubtitleHttpCaches() {
+  if (typeof caches === "undefined") return;
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    const keys = await cache.keys();
+    await Promise.all(
+      keys
+        .filter(
+          (req) =>
+            req.url.startsWith(URL_CACHE_SUBTITLE) ||
+            req.url.startsWith(URL_CACHE_CONTEXT)
+        )
+        .map((req) => cache.delete(req))
+    );
+  } catch {
+    // CacheStorage 不可用时忽略，避免影响主缓存清理
+  }
+}
 
 export function captionCacheBackend(
   browser,
@@ -44,7 +68,11 @@ export function captionCacheBackend(
     const limit = captionCacheLimit(await getLimit());
     if (action === "lookup") return store.lookup(videoId, limit);
     if (action === "put") return store.put(entry, generation, limit);
-    if (action === "clear") return store.clear().then(() => true);
+    if (action === "clear") {
+      await store.clear();
+      await clearSubtitleHttpCaches();
+      return true;
+    }
     if (action === "stats") return store.stats(limit);
     throw new Error("INVALID_CACHE_ACTION");
   };
