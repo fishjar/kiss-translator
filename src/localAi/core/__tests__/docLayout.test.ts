@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { decodeLayout, maskPolygon, orderRanks } from "../docLayout";
 import { resolveModelTarget } from "../modelTarget";
 import { DOC_MODEL_ID, getCatalogModel } from "../catalog";
@@ -70,4 +70,18 @@ describe("DOC decoding", () => {
       })
     ).toThrow("不一致");
   });
+});
+
+it("uses WASM by default even when WebGPU is present and accepts explicit WebGPU", () => {
+  vi.stubGlobal("navigator", { gpu: {} });
+  try {
+    const target = { modelRef: DOC_MODEL_ID };
+    expect(resolveModelTarget("doc", target).spec.device).toBe("wasm");
+    expect(
+      resolveModelTarget("doc", { ...target, loadSpec: { device: "webgpu" } })
+        .spec.device
+    ).toBe("webgpu");
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

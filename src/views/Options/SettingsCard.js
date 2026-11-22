@@ -177,6 +177,7 @@ export function SettingsSelect({
   options,
   label,
   multiple = false,
+  renderValue,
   disabled = false,
   fullWidth = false,
   hiddenLabel,
@@ -201,7 +202,7 @@ export function SettingsSelect({
       className={`kt-settings-select ${fullWidth ? "kt-settings-select--full" : ""} ${!isHiddenLabel ? "kt-settings-select--with-label" : ""} ${className}`.trim()}
       value={value}
       disabled={disabled}
-      SelectProps={{ multiple, displayEmpty: true }}
+      SelectProps={{ multiple, displayEmpty: true, renderValue }}
       inputProps={{ "aria-label": label }}
       onChange={(event) => onChange(event.target.value)}
       sx={{

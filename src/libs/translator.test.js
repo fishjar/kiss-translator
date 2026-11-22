@@ -37,6 +37,8 @@ const {
 const {
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+  OPT_HIGHLIGHT_WORDS_BOTH,
+  OPT_HIGHLIGHT_WORDS_DISABLE,
 } = require("../config/rules");
 const { Translator } = require("./translator");
 
@@ -326,6 +328,35 @@ describe("Translator rule styles", () => {
     expect(request.signal.aborted).toBe(false);
     expect(apiTranslate).toHaveBeenCalledTimes(1);
   });
+
+  test.each([
+    [undefined, "under_line", ["style_none", "fuzzy", "style_none"]],
+    [["fuzzy", "mine", "style_none"], "fuzzy", ["mine", "style_none", "fuzzy"]],
+    [["mine"], "style_none", ["mine", "mine"]],
+    [[], "under_line", ["under_line"]],
+  ])(
+    "cycles webpage styles in %j from %s",
+    (styleCycle, textStyle, expected) => {
+      const translator = createTranslator(
+        { textStyle, transOpen: "false" },
+        {
+          ...(styleCycle && { styleCycle }),
+          customStyles: [{ styleSlug: "mine", styleCode: "color: red;" }],
+        }
+      );
+      const updateRule = jest.spyOn(translator, "updateRule");
+      let currentStyle = textStyle;
+      for (const nextStyle of expected) {
+        updateRule.mockClear();
+        translator.toggleStyle();
+        expect(translator.rule.textStyle).toBe(nextStyle);
+        expect(updateRule).toHaveBeenCalledTimes(
+          Number(currentStyle !== nextStyle)
+        );
+        currentStyle = nextStyle;
+      }
+    }
+  );
 
   test("late cancellation of an old language request does not replace the new translation", async () => {
     document.body.innerHTML =
@@ -4578,6 +4609,269 @@ describe("Translator rule styles", () => {
     expect(highlight).not.toBeNull();
     expect(requestedText).toBe("Review the <i1>incident response</i1> details");
   });
+
+  test.each([
+    ["true", "<i2><i1>原生</i1></i2>用户界面", true],
+    ["true", "原生用户界面", false],
+    ["false", "原生用户界面", false],
+  ])(
+    "renders favorite highlights with rich text %s and returned text %s",
+    async (hasRichText, trText, translatedHighlight) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target"><strong>native</strong> user interface</p></main>';
+      apiTranslate.mockResolvedValue({ trText, isSame: false });
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          hasRichText,
+          highlightWords: OPT_HIGHLIGHT_WORDS_BOTH,
+          highlightStyle: "color: red;",
+        },
+        { minLength: 0, tranboxSetting: { enDict: OPT_DICT_YOUDAO } },
+        ["native"]
+      );
+      await flushAsync();
+
+      const { highlight, inner } = Translator.KISS_CLASS;
+      const source = document.querySelector(`#target > strong > .${highlight}`);
+      const translation = document.querySelector(`.${inner}`);
+      const favorite = translation.querySelector(`strong > .${highlight}`);
+      expect(apiTranslate.mock.calls[0][0].text).toBe(
+        hasRichText === "true"
+          ? "<i2><i1>native</i1></i2> user interface"
+          : "native user interface"
+      );
+      expect(source.textContent).toBe("native");
+      expect(source.style.color).toBe("red");
+      expect(translation.textContent).toBe("原生用户界面");
+      if (translatedHighlight) {
+        expect(favorite.textContent).toBe("原生");
+        expect(favorite.style.color).toBe("red");
+        favorite.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+        jest.advanceTimersByTime(300);
+        expect(apiYoudaoDict).toHaveBeenCalledWith("native");
+      } else {
+        expect(translation.querySelector(`.${highlight}`)).toBeNull();
+      }
+    }
+  );
+
+  test("rescans across both-highlight mode and ignores an older response", async () => {
+    document.body.innerHTML =
+      '<main id="root"><p id="target">native interface</p></main>';
+    let resolveOld;
+    apiTranslate.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOld = resolve;
+        })
+    );
+    const translator = createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        hasRichText: "true",
+        highlightWords: OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      },
+      { minLength: 0 },
+      ["native"]
+    );
+    await flushAsync();
+
+    const { highlight, inner } = Translator.KISS_CLASS;
+    apiTranslate.mockResolvedValue({
+      trText: "<i1>原生</i1>界面",
+      isSame: false,
+    });
+    translator.updateRule({ highlightWords: OPT_HIGHLIGHT_WORDS_BOTH });
+    await flushMutations();
+    resolveOld({ trText: "旧译文", isSame: false });
+    await flushMutations();
+    expect(document.querySelector(`.${inner} .${highlight}`).textContent).toBe(
+      "原生"
+    );
+    expect(document.getElementById("target").textContent).not.toContain(
+      "旧译文"
+    );
+
+    apiTranslate.mockResolvedValue({ trText: "原生界面", isSame: false });
+    translator.updateRule({ highlightWords: OPT_HIGHLIGHT_WORDS_DISABLE });
+    await flushMutations();
+    expect(apiTranslate.mock.calls.map(([request]) => request.text)).toEqual([
+      "native interface",
+      "<i1>native</i1> interface",
+      "native interface",
+    ]);
+    expect(document.querySelector(`#target .${highlight}`)).toBeNull();
+  });
+
+  test.each(
+    [
+      OPT_HIGHLIGHT_WORDS_BEFORETRANS,
+      OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+      OPT_HIGHLIGHT_WORDS_BOTH,
+    ].flatMap((mode) =>
+      ["false", "true"].map((wrapOriginal) => [mode, wrapOriginal])
+    )
+  )(
+    "updates original favorites for %s (wrapOriginal=%s)",
+    async (mode, wrapOriginal) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">native interface</p></main>';
+      const both = mode === OPT_HIGHLIGHT_WORDS_BOTH;
+      apiTranslate.mockResolvedValue({
+        trText: both ? "<i1>原生</i1>界面" : "原生界面",
+        isSame: false,
+      });
+      const translator = createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          hasRichText: "true",
+          highlightWords: mode,
+          transOnly: "true",
+          wrapOriginal,
+        },
+        { minLength: 0 },
+        ["native"]
+      );
+      await flushAsync();
+      const { highlight, inner, backup, warpper } = Translator.KISS_CLASS;
+      const target = document.getElementById("target");
+      const translation = target.querySelector(`.${inner}`);
+      const favorite = translation.querySelector(`.${highlight}`);
+      const savedOriginal = target.querySelector(`template.${backup}`).content;
+      expect(savedOriginal.querySelector(`.${highlight}`).textContent).toBe(
+        "native"
+      );
+      expect(favorite?.textContent ?? null).toBe(both ? "原生" : null);
+
+      [
+        ["native", false],
+        ["interface", true],
+      ].forEach(([word, isFavorite]) => {
+        document.dispatchEvent(
+          new CustomEvent(EVENT_FAVORITE_WORD_CHANGE, {
+            detail: { word, isFavorite },
+          })
+        );
+      });
+      expect(savedOriginal.querySelector(`.${highlight}`).textContent).toBe(
+        "interface"
+      );
+      translator.updateRule({ transOnly: "false" });
+      await flushMutations();
+      const originalNodes = [...target.childNodes].filter(
+        (node) => !node.classList?.contains(warpper)
+      );
+      expect(originalNodes.map((node) => node.textContent).join("")).toBe(
+        "native interface"
+      );
+      expect(
+        [...target.querySelectorAll(`.${highlight}`)]
+          .filter((node) => !translation.contains(node))
+          .map((node) => node.textContent)
+      ).toEqual(["interface"]);
+      expect(target.querySelector(`.${inner}`)).toBe(translation);
+      expect(translation.querySelector(`.${highlight}`)).toBe(favorite);
+      expect(apiTranslate).toHaveBeenCalledTimes(1);
+
+      apiTranslate.mockResolvedValue({
+        trText: both ? "原生<i1>界面</i1>" : "原生界面",
+        isSame: false,
+      });
+      translator.rescan();
+      await flushMutations();
+      expect(apiTranslate.mock.calls[1][0].text).toBe(
+        both ? "native <i1>interface</i1>" : "native interface"
+      );
+      expect(
+        target.querySelector(`.${inner} .${highlight}`)?.textContent ?? null
+      ).toBe(both ? "界面" : null);
+    }
+  );
+
+  test("applies post-translation highlights to every original node in a group", async () => {
+    document.body.innerHTML = '<main id="root"><p id="target"></p></main>';
+    const target = document.getElementById("target");
+    target.append(
+      document.createTextNode("Use native "),
+      document.createTextNode("library interfaces.")
+    );
+    const translator = createTranslator(
+      {
+        autoScan: "false",
+        selector: "#target",
+        highlightWords: OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+        transOnly: "true",
+      },
+      { minLength: 0 },
+      ["native", "library"]
+    );
+    await flushAsync();
+    translator.updateRule({ transOnly: "false" });
+    await flushMutations();
+
+    const { highlight, warpper } = Translator.KISS_CLASS;
+    expect(
+      [...target.querySelectorAll(`.${highlight}`)].map(
+        (node) => node.textContent
+      )
+    ).toEqual(["native", "library"]);
+    expect(
+      [...target.childNodes]
+        .filter((node) => !node.classList?.contains(warpper))
+        .map((node) => node.textContent)
+        .join("")
+    ).toBe("Use native library interfaces.");
+    expect(apiTranslate).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    [OPT_HIGHLIGHT_WORDS_BEFORETRANS, "true", false],
+    [OPT_HIGHLIGHT_WORDS_AFTERTRANS, "true", false],
+    [OPT_HIGHLIGHT_WORDS_BOTH, "false", false],
+    [OPT_HIGHLIGHT_WORDS_BOTH, "true", true],
+  ])(
+    "preserves inline elements with %s and rich text=%s",
+    async (mode, hasRichText, preserveHighlights) => {
+      document.body.innerHTML =
+        '<main id="root"><p id="target">Use <code>native</code> and <span class="kept">interface</span>.</p></main>';
+      apiTranslate.mockImplementation(async ({ text }) => ({
+        trText: text,
+        isSame: false,
+      }));
+      createTranslator(
+        {
+          autoScan: "false",
+          selector: "#target",
+          hasRichText,
+          highlightWords: mode,
+          keepSelector: ".kept",
+        },
+        { minLength: 0 },
+        ["native", "interface"]
+      );
+      await flushAsync();
+
+      const { highlight, inner } = Translator.KISS_CLASS;
+      const translation = document.querySelector(`.${inner}`);
+      expect(translation.textContent).toBe("Use native and interface.");
+      expect(translation.querySelector("span.kept").textContent).toBe(
+        "interface"
+      );
+      if (hasRichText === "true") {
+        expect(translation.querySelector("code").textContent).toBe("native");
+      }
+      expect(
+        [...translation.querySelectorAll(`.${highlight}`)].map(
+          (node) => node.textContent
+        )
+      ).toEqual(preserveHighlights ? ["native", "interface"] : []);
+      expect(apiTranslate.mock.calls[0][0].text).not.toContain("interface");
+    }
+  );
 
   test("updates current-page highlights without retranslating", async () => {
     document.body.innerHTML = `

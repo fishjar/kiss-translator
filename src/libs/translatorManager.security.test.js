@@ -1,15 +1,4 @@
 // Exercise the real Manager -> Translator -> Sval boundary without UI or network.
-jest.mock(
-  "./shadowDomManager",
-  () =>
-    class {
-      show() {}
-      destroy() {}
-    }
-);
-jest.mock("../components/TouchTranslateControl", () => ({
-  TouchTranslateStatus: () => null,
-}));
 jest.mock("./tranbox", () => ({
   TransboxManager: class {
     isEnabled() {

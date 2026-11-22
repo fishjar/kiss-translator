@@ -46,11 +46,13 @@ export const OPT_SPLIT_PARAGRAPH_ALL = [
 // --- 生词本生词高亮高频词的高亮策略 ---
 export const OPT_HIGHLIGHT_WORDS_DISABLE = "highlight_disable"; // 不对生词进行高亮
 export const OPT_HIGHLIGHT_WORDS_BEFORETRANS = "highlight_beforetrans"; // 在翻译前（即原文中）高亮生词
-export const OPT_HIGHLIGHT_WORDS_AFTERTRANS = "highlight_aftertrans"; // 在翻译后（即译文中）高亮生词
+export const OPT_HIGHLIGHT_WORDS_AFTERTRANS = "highlight_aftertrans"; // 译文生成后高亮原文生词
+export const OPT_HIGHLIGHT_WORDS_BOTH = "highlight_both"; // 原文与译文均高亮生词
 export const OPT_HIGHLIGHT_WORDS_ALL = [
   OPT_HIGHLIGHT_WORDS_DISABLE,
   OPT_HIGHLIGHT_WORDS_BEFORETRANS,
   OPT_HIGHLIGHT_WORDS_AFTERTRANS,
+  OPT_HIGHLIGHT_WORDS_BOTH,
 ];
 
 // 默认的待翻译元素选择器：包含主要的标题、列表、段落及引用块

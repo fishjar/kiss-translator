@@ -1,14 +1,3 @@
-jest.mock(
-  "./shadowDomManager",
-  () =>
-    class {
-      show = jest.fn();
-      destroy = jest.fn();
-    }
-);
-jest.mock("../components/TouchTranslateControl", () => ({
-  TouchTranslateStatus: () => null,
-}));
 const mockTranslatorInstances = [];
 const mockTranslatorArgs = [];
 const mockTransboxInstances = [];

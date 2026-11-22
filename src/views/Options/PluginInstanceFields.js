@@ -5,6 +5,7 @@ import { useConfirm } from "../../hooks/Confirm";
 import {
   ServiceTestCard,
   ServiceTestResult,
+  useServiceTestTiming,
   ServiceFormHeader,
   BooleanServiceOption,
   serviceTransportFeatures,
@@ -41,7 +42,6 @@ import {
   MenuItem,
   Stack,
   TextField,
-  Typography,
 } from "@mui/material";
 import { useSetting } from "../../hooks/Setting";
 import { usePromptList } from "../../hooks/Prompt";
@@ -90,6 +90,7 @@ export default function PluginInstanceFields({
   const [testError, setTestError] = useState("");
   const active = useRef(null);
   const [call, setCall] = useState(null);
+  const [timing, startTiming] = useServiceTestTiming();
   const [quickBusy, setQuickBusy] = useState(false);
   const [audioUrl, setAudioUrl] = useState("");
   const draft = useMemo(
@@ -177,6 +178,7 @@ export default function PluginInstanceFields({
       });
   };
   const test = async () => {
+    const finishTiming = startTiming();
     setTestError("");
     setAudioUrl("");
     // A test may be cancelled while loading saved configuration,
@@ -228,6 +230,7 @@ export default function PluginInstanceFields({
       assets.clear();
       if (active.current === job) {
         active.current = null;
+        finishTiming();
         setCall(null);
       }
     }
@@ -284,12 +287,6 @@ export default function PluginInstanceFields({
   return (
     <Stack spacing={3} useFlexGap>
       <Stack className="kt-service-card kt-service-configuration" spacing={2}>
-        {Boolean(draft.provider?.permissions?.originRewrite?.length) && (
-          <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
-            {i18n("plugin_origin_rewrite", "Origin 重写域名")}:{" "}
-            {draft.provider.permissions.originRewrite.join("、")}
-          </Typography>
-        )}
         <ServiceFormHeader
           api={draft}
           onChange={(name, value) =>
@@ -493,6 +490,7 @@ export default function PluginInstanceFields({
         </Menu>
       </Stack>
       <ServiceTestCard
+        timing={timing}
         actions={
           <>
             <Button
@@ -616,14 +614,16 @@ export function ProviderSettings({
       return (
         <Autocomplete
           key={field.key}
-          freeSolo
+          freeSolo={service?.allowCustomModel !== false}
+          disableClearable={service?.allowCustomModel === false}
           forcePopupIcon
           size="small"
           options={(service?.models || []).map((model) => model.id)}
           value={values[field.key] || ""}
           onChange={(_, value) => onChange(field.key, value || "")}
           onInputChange={(_, value, reason) => {
-            if (reason === "input") onChange(field.key, value);
+            if (reason === "input" && service?.allowCustomModel !== false)
+              onChange(field.key, value);
           }}
           renderOption={(props, id) => {
             const model = service?.models?.find((item) => item.id === id);

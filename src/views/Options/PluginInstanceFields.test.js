@@ -99,7 +99,7 @@ test("services can be tested without local authorization", async () => {
   expect(button("执行测试").disabled).toBe(false);
 });
 
-test("declared Origin rewriting domains are visible without changing settings", async () => {
+test("service configuration hides declared Origin rewriting domains", async () => {
   await render({
     ...api,
     provider: {
@@ -110,7 +110,7 @@ test("declared Origin rewriting domains are visible without changing settings", 
       },
     },
   });
-  expect(container.textContent).toContain("https://api.invalid");
+  expect(container.textContent).not.toContain("https://api.invalid");
   expect(mockUpdateSetting).not.toHaveBeenCalled();
 });
 
@@ -182,6 +182,7 @@ test("the cancel button still cancels an active service test", async () => {
   await act(async () => button("执行测试").click());
   expect(invokeService).toHaveBeenCalledTimes(1);
   expect(button("测试中…").disabled).toBe(true);
+  expect(container.textContent).toContain("已用");
   expect(
     button("测试中…").querySelector('[role="progressbar"]')
   ).not.toBeNull();
@@ -189,6 +190,7 @@ test("the cancel button still cancels an active service test", async () => {
   expect(cancel).toHaveBeenCalledTimes(1);
   expect(button("执行测试").disabled).toBe(false);
   expect(container.querySelector('[role="progressbar"]')).toBeNull();
+  expect(container.textContent).toContain("总耗时");
 });
 
 test.each(["success", "failure"])(

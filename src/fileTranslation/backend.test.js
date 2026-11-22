@@ -107,7 +107,7 @@ test("DOC bridge consumes a completed owned upload and restricts task and backen
   await expect(
     executeFileMethod(
       "analyzeLayout",
-      { uploadId: "owned", modelId: "pp-doclayout-v3-onnx", device: "webgpu" },
+      { uploadId: "owned", modelId: "pp-doclayout-v3-onnx", device: "webnn" },
       signal,
       uploads
     )
@@ -142,6 +142,53 @@ test("DOC bridge consumes a completed owned upload and restricts task and backen
       uploads
     )
   ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+});
+
+test("DOC bridge uses the backend saved on the selected layout service", async () => {
+  getSettingWithDefault.mockResolvedValue({
+    transApis: [
+      {
+        apiSlug: "Layout",
+        apiType: "LocalAI",
+        modelRef: "pp-doclayout-v3-onnx",
+        device: "webgpu",
+        enabledCapabilities: ["analyzeLayout"],
+      },
+    ],
+  });
+  runtimeHost.request.mockResolvedValue({ regions: [], backend: "webgpu" });
+  const uploads = new Map([
+    [
+      "owned",
+      {
+        received: 3,
+        size: 3,
+        type: "image/png",
+        chunks: [new Uint8Array([1, 2, 3])],
+      },
+    ],
+  ]);
+  const signal = new AbortController().signal;
+  await expect(
+    executeFileMethod(
+      "analyzeLayout",
+      { uploadId: "owned", serviceId: "Layout", device: "wasm" },
+      signal,
+      uploads
+    )
+  ).resolves.toMatchObject({ backend: "webgpu" });
+  expect(runtimeHost.request).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      service: "doc",
+      method: "analyze",
+      payload: {
+        blob: expect.any(Blob),
+        modelRef: "pp-doclayout-v3-onnx",
+        loadSpec: { device: "webgpu" },
+      },
+    }),
+    { signal }
+  );
 });
 
 test("document decision bridge accepts bounded evidence with backend-owned instructions", async () => {

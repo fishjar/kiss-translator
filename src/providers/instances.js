@@ -203,6 +203,9 @@ export function createServiceInstance(
       defaultPrompts: copy(service.defaultPrompts),
     }),
     ...(service.modelField && { modelField: service.modelField }),
+    ...(service.allowCustomModel !== undefined && {
+      allowCustomModel: service.allowCustomModel,
+    }),
     ...(service.models && {
       models: copy(service.models),
       modelField: service.modelField || "model",
@@ -252,7 +255,8 @@ export function createServiceInstance(
       fields
         .filter((field) => isSettingVisible(field, enabled))
         .map((field) => ({ ...field, required: false })),
-      candidate.pluginConfig
+      candidate.pluginConfig,
+      provider
     ),
   };
   return {
@@ -289,7 +293,7 @@ export function projectInstanceConfig(instance) {
 }
 
 /** Create and edit use the same validation, so saving cannot bypass template constraints. */
-export function validateConfig(fields, values) {
+export function validateConfig(fields, values, service) {
   const config = {};
   for (const field of fields) {
     const value = values?.[field.key] ?? field.defaultValue;
@@ -324,6 +328,12 @@ export function validateConfig(fields, values) {
           "INVALID_CONFIG",
           `Invalid selection: ${field.key}`
         );
+      if (
+        service?.allowCustomModel === false &&
+        field.key === (service.modelField || "model") &&
+        !service.models?.some((model) => model.id === value)
+      )
+        throw providerError("INVALID_CONFIG", `Invalid model: ${field.key}`);
     }
   }
   return config;
@@ -348,16 +358,21 @@ export function getSettingOptions(field) {
 }
 
 export function validateModels(service, fields) {
-  if (service.models === undefined) return;
+  if (
+    service.allowCustomModel !== undefined &&
+    typeof service.allowCustomModel !== "boolean"
+  )
+    throw providerError("INVALID_MANIFEST", "Invalid allowCustomModel.");
+  if (service.models === undefined && service.allowCustomModel !== false)
+    return;
+  const field = fields.find(
+    (field) => field.key === (service.modelField || "model")
+  );
   if (
     !Array.isArray(service.models) ||
     !service.models.length ||
-    !fields.some(
-      (field) =>
-        field.key === (service.modelField || "model") &&
-        !field.isSecret &&
-        field.type === "text"
-    )
+    field?.type !== "text" ||
+    field.isSecret
   )
     throw providerError(
       "INVALID_MANIFEST",
@@ -374,6 +389,12 @@ export function validateModels(service, fields) {
       );
     ids.add(model.id);
   }
+  if (
+    service.allowCustomModel === false &&
+    field.defaultValue !== undefined &&
+    !ids.has(field.defaultValue)
+  )
+    throw providerError("INVALID_MANIFEST", "Default model must be in models.");
 }
 
 export function validateServiceConfig(
@@ -393,7 +414,8 @@ export function validateServiceConfig(
       (service.settings || []).filter((field) =>
         isSettingVisible(field, enabled)
       ),
-      values
+      values,
+      service
     ),
   };
   return config;

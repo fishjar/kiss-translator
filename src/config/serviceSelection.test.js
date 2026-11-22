@@ -1,8 +1,10 @@
 import { OPT_TRANS_BUILTINAI } from "./api";
 import {
   availableApiForScene,
+  enabledApiCapabilities,
   isApiAvailableFor,
   normalizeApiCapabilities,
+  supportedApiCapabilities,
   supportsApiCapability,
 } from "./serviceSelection";
 import { createBuiltinInstance } from "../builtin-plugins";
@@ -64,7 +66,7 @@ test("installed native models only appear in scenes matching their actual task",
   ).toBe(false);
 });
 
-test("an installed layout model cannot advertise an unsupported compute backend", () => {
+test("an installed layout model offers layout analysis on both supported backends", () => {
   const api = {
     apiType: "LocalAI",
     sourceType: "local",
@@ -73,10 +75,16 @@ test("an installed layout model cannot advertise an unsupported compute backend"
     device: "webgpu",
   };
   const context = { installedModels: new Set([api.modelRef]) };
-  expect(isApiAvailableFor(api, "analyzeLayout", context)).toBe(false);
+  expect(isApiAvailableFor(api, "analyzeLayout", context)).toBe(true);
   expect(
     isApiAvailableFor({ ...api, device: "wasm" }, "analyzeLayout", context)
   ).toBe(true);
+  expect(
+    isApiAvailableFor({ ...api, device: "webnn" }, "analyzeLayout", context)
+  ).toBe(false);
+  const disabled = { ...api, enabledCapabilities: [] };
+  expect(supportedApiCapabilities(disabled)).toEqual(["analyzeLayout"]);
+  expect(enabledApiCapabilities(disabled)).toEqual([]);
 });
 
 test("native snapshots restrict scene features while preserving legacy tags", () => {

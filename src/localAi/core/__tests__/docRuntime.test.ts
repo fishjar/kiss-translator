@@ -10,12 +10,14 @@ function setup() {
   const mgr = new RuntimeManager({
     workerFactories: {
       createDocWorker: () => {
+        let backend = "wasm";
         const w: any = {
           onmessage: null,
           onerror: null,
           terminate: vi.fn(),
           postMessage: vi.fn((msg: any) => {
             if (hold) return;
+            if (msg.type === "load") backend = msg.spec.device;
             queueMicrotask(() =>
               w.onmessage?.({
                 data: {
@@ -23,7 +25,7 @@ function setup() {
                   type: "result",
                   result:
                     msg.type === "load"
-                      ? { backend: "wasm" }
+                      ? { backend }
                       : {
                           regions: [
                             {
@@ -37,7 +39,7 @@ function setup() {
                           ],
                           readingOrder: ["r"],
                           imageSize: { width: 1, height: 2 },
-                          backend: "wasm",
+                          backend,
                           elapsedMs: 1,
                         },
                 },
@@ -121,6 +123,29 @@ describe("DOC runtime lifecycle", () => {
     await request(mgr, "dispose", {});
     expect(workers[0].terminate).toHaveBeenCalledOnce();
   });
+  it("switches workers when the same layout model is requested on a different backend", async () => {
+    const { mgr, workers } = setup();
+    const blob = new Blob(["image"], { type: "image/png" });
+    expect(await request(mgr, "analyze", { ...target, blob })).toMatchObject({
+      ok: true,
+      result: { backend: "wasm" },
+    });
+    expect(
+      await request(mgr, "analyze", {
+        ...target,
+        loadSpec: { device: "webgpu" },
+        blob,
+      })
+    ).toMatchObject({ ok: true, result: { backend: "webgpu" } });
+    expect(workers).toHaveLength(2);
+    expect(workers[0].terminate).toHaveBeenCalledOnce();
+    expect(workers[1].postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "load",
+        spec: expect.objectContaining({ device: "webgpu" }),
+      })
+    );
+  });
   it("cancels running inference by terminating the worker and reloads next time", async () => {
     const s = setup();
     await request(s.mgr, "load");
@@ -160,13 +185,11 @@ describe("DOC runtime lifecycle", () => {
     });
     expect(s.workers).toHaveLength(0);
     expect(
-      (
-        await request(s.mgr, "load", {
-          ...target,
-          loadSpec: { device: "webgpu" },
-        })
-      ).ok
-    ).toBe(false);
+      await request(s.mgr, "load", {
+        ...target,
+        loadSpec: { device: "webnn" },
+      })
+    ).toMatchObject({ ok: false, error: { code: "INVALID_MODEL" } });
     vi.mocked(s.mgr.modelManager.get).mockReturnValue({
       manifest: CATALOG.find((m) => m.id === DOC_MODEL_ID)!,
       state: "not-installed",

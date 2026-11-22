@@ -2,7 +2,13 @@ import {
   getCapabilityDescriptor,
   supportsProviderCapability,
 } from "./capabilities";
-import { validateModels, validateServiceConfig } from "./instances";
+import {
+  createServiceInstance,
+  validateModels,
+  validateServiceConfig,
+} from "./instances";
+import { packageServiceCatalog } from "./packageCatalog";
+import { invokeInstance } from "./runtime";
 
 const provider = {
   apiVersion: 1,
@@ -53,6 +59,98 @@ test("catalogue models without restrictions and custom IDs use the declared serv
   expect(() => validateServiceConfig(service, { model: " " })).toThrow(
     "Required"
   );
+});
+
+const fixedModels = {
+  ...provider,
+  id: "fixed-models",
+  name: "Fixed models",
+  implementation: { kind: "script", entry: "service.js" },
+  allowCustomModel: false,
+  modelField: "engine",
+  settings: [{ key: "engine", label: "Model", type: "text", required: true }],
+};
+
+test("invocation rejects a fixed model ID outside the service list", async () => {
+  const instance = {
+    apiSlug: "model-instance",
+    provider: fixedModels,
+    pluginConfig: { engine: "unknown" },
+  };
+  await expect(
+    invokeInstance(
+      instance,
+      "chat",
+      { messages: [{ role: "user", content: "Hello" }] },
+      {}
+    ).result
+  ).rejects.toMatchObject({
+    code: "INVALID_CONFIG",
+    message: "Invalid model: engine",
+  });
+});
+
+test.each([{}, { defaultValue: "large" }])(
+  "fixed models use the field default or first model and preserve the rule in snapshots (%j)",
+  (field) => {
+    const service = {
+      ...fixedModels,
+      settings: [{ ...fixedModels.settings[0], ...field }],
+    };
+    const manifest = {
+      apiVersion: 1,
+      id: "model-plugin",
+      name: "Model plugin",
+      version: "1.0.0",
+      services: [service],
+    };
+    const create = (values) =>
+      createServiceInstance(
+        manifest,
+        service.id,
+        "exports.chat = () => {};",
+        values,
+        "model-instance"
+      );
+    const instance = create({});
+    const engine = field.defaultValue || "small";
+    expect(instance.pluginConfig.engine).toBe(engine);
+    expect(instance.provider).toMatchObject({
+      models: service.models,
+      modelField: "engine",
+      allowCustomModel: false,
+    });
+    expect(packageServiceCatalog(manifest)[0].models).toEqual(service.models);
+    expect(validateServiceConfig(instance.provider, { engine })).toEqual({
+      engine,
+    });
+    expect(() => create({ engine: "custom" })).toThrow("Invalid model");
+    expect(() =>
+      validateServiceConfig(instance.provider, { engine: "custom" })
+    ).toThrow("Invalid model");
+    expect(
+      createServiceInstance(
+        { ...manifest, services: [{ ...service, allowCustomModel: true }] },
+        service.id,
+        "exports.chat = () => {};",
+        { engine: "custom" },
+        "custom-instance"
+      ).pluginConfig.engine
+    ).toBe("custom");
+  }
+);
+
+test.each([
+  { allowCustomModel: "false" },
+  { models: undefined },
+  { models: [] },
+  { models: [{ id: "small" }, { id: "small" }] },
+  { settings: [{ key: "engine", type: "select" }] },
+  { settings: [{ key: "engine", type: "text", isSecret: true }] },
+  { settings: [{ key: "engine", type: "text", defaultValue: "unknown" }] },
+])("rejects invalid fixed model declarations (%j)", (override) => {
+  const service = { ...fixedModels, ...override };
+  expect(() => validateModels(service, service.settings)).toThrow();
 });
 test.each([
   {},

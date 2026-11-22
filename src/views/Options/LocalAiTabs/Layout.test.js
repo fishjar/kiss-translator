@@ -24,7 +24,7 @@ jest.mock("../../../localAi/core/catalog", () => ({
       name: "PP-DocLayoutV3 (ONNX · 文档布局)",
       task: "doc-layout",
       runtime: "onnx",
-      backend: ["wasm"],
+      backend: ["wasm", "webgpu"],
       files: [],
     },
   ],
@@ -56,7 +56,11 @@ jest.mock("../../../localAi/core/docClient", () => ({
 jest.mock("./RuntimeControls", () => ({
   ModelStatus: () => null,
   UnloadModelButton: () => null,
-  useRuntimeService: () => ({ busy: false, loaded: true, matches: true }),
+  useRuntimeService: (_service, target) => ({
+    busy: false,
+    loaded: target.loadSpec.device === "wasm" || mockLoad.mock.calls.length > 0,
+    matches: true,
+  }),
 }));
 jest.mock("./LogViewer", () => ({
   __esModule: true,
@@ -135,33 +139,56 @@ test("renders standardized 3 cards layout with model controls and actions", () =
   expect(button("开始分析")).toBeTruthy();
 });
 
-test("uploads an image, performs layout analysis, and displays stats and regions", async () => {
-  const file = {
-    name: "doc_page.png",
-    size: 2048,
-    type: "image/png",
-  };
-  const input = container.querySelector('input[type="file"]');
-  await act(async () => {
-    Simulate.change(input, { target: { files: [file] } });
-  });
+test.each(["wasm", "webgpu"])(
+  "analyzes an image with %s and displays regions",
+  async (device) => {
+    const modelRef = "pp-doclayout-v3-onnx";
+    if (device === "webgpu") {
+      const select = Array.from(
+        container.querySelectorAll('[role="combobox"]')
+      ).find((element) =>
+        element.getAttribute("aria-labelledby").includes("doc-backend-label")
+      );
+      await act(async () => Simulate.mouseDown(select, { button: 0 }));
+      const option = document.querySelector(
+        '[role="option"][data-value="webgpu"]'
+      );
+      mockLoad.mockResolvedValue({ backend: "webgpu" });
+      await act(async () => Simulate.click(option));
+      expect(button("加载模型").disabled).toBe(false);
+      await act(async () => Simulate.click(button("加载模型")));
+      expect(mockLoad).toHaveBeenCalledWith(
+        { device: "webgpu" },
+        { modelRef, loadSpec: { device: "webgpu" } }
+      );
+    }
+    const file = {
+      name: "doc_page.png",
+      size: 2048,
+      type: "image/png",
+    };
+    const input = container.querySelector('input[type="file"]');
+    await act(async () => {
+      Simulate.change(input, { target: { files: [file] } });
+    });
 
-  expect(mockValidateInputFile).toHaveBeenCalledWith(file, "image");
-  expect(container.textContent).toContain("doc_page.png");
+    expect(mockValidateInputFile).toHaveBeenCalledWith(file, "image");
+    expect(container.textContent).toContain("doc_page.png");
 
-  const runBtn = button("开始分析");
-  expect(runBtn.disabled).toBe(false);
+    const runBtn = button("开始分析");
+    expect(runBtn.disabled).toBe(false);
 
-  await act(async () => {
-    Simulate.click(runBtn);
-  });
+    await act(async () => {
+      Simulate.click(runBtn);
+    });
 
-  expect(mockAnalyze).toHaveBeenCalledWith(
-    file,
-    expect.objectContaining({ device: "wasm" })
-  );
-  expect(container.textContent).toContain("88 ms");
-  expect(container.textContent).toContain("2 个区域");
-  expect(container.textContent).toContain("标题 1");
-  expect(container.textContent).toContain("段落正文 1");
-});
+    expect(mockAnalyze).toHaveBeenCalledWith(file, {
+      device,
+      modelId: modelRef,
+    });
+    expect(container.textContent).toContain("88 ms");
+    expect(container.textContent).toContain("2 个区域");
+    expect(container.textContent).toContain("标题 1");
+    expect(container.textContent).toContain("段落正文 1");
+  }
+);

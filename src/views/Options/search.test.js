@@ -84,6 +84,7 @@ test.each([
   ["模型", "apis", "api_model"],
   ["API KEY", "apis", "api_key"],
   ["深色", "appearance", "settings_appearance_mode"],
+  ["快捷切换样式", "appearance", "settings_style_cycle"],
   ["DARK", "appearance", "settings_appearance_mode", "en"],
   ["批量", "apis", "batch_size"],
   ["ｒｅｑｕｅｓｔ　ｔｉｍｅｏｕｔ", "apis", "http_timeout", "en"],

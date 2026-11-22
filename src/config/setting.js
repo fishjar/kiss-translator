@@ -20,7 +20,11 @@ import {
 } from "./prompt";
 import { GLOBAL_KEY } from "./rules";
 import { defaultServices } from "./defaultServices";
-import { DEFAULT_CUSTOM_STYLES } from "./styles";
+import {
+  DEFAULT_CUSTOM_STYLES,
+  OPT_STYLE_FUZZY,
+  OPT_STYLE_NONE,
+} from "./styles";
 
 // --- 默认系统快捷键映射 ---
 export const OPT_SHORTCUT_TRANSLATE = "toggleTranslate"; // 切换整页双语翻译
@@ -407,4 +411,5 @@ export const DEFAULT_SETTING = {
   logLevel: LogLevel.INFO.value, // 扩展运行时的全局调试日志级别
   rootMargin: 500, // 滚动翻译机制触发时，段落距离屏幕视口边界的触发高度 (px)
   customStyles: DEFAULT_CUSTOM_STYLES, // 用于个性化译文表现的自定义 CSS 样式规则列表
+  styleCycle: [OPT_STYLE_NONE, OPT_STYLE_FUZZY],
 };

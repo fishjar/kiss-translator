@@ -32,6 +32,7 @@ const {
 } = require("../config");
 const {
   getSettingWithDefault,
+  normalizeStoredSetting,
   runDataMigration,
   saveEdit,
 } = require("./storage");
@@ -59,6 +60,36 @@ function loadGmStorageModule() {
 }
 
 describe("settings storage migration", () => {
+  test("defaults missing style cycles and preserves saved selection order and empty cycles", async () => {
+    const customStyles = [{ styleSlug: "mine", styleCode: "color: red" }];
+    const setting = { version: CURRENT_SETTINGS_VERSION, customStyles };
+    expect(normalizeStoredSetting(setting).styleCycle).toEqual([
+      "style_none",
+      "fuzzy",
+    ]);
+
+    const storeCycle = (styleCycle) =>
+      window.localStorage.setItem(
+        STOKEY_SETTING,
+        JSON.stringify({ ...setting, styleCycle })
+      );
+    storeCycle(["mine", "fuzzy", "missing", "mine", "style_none"]);
+    expect((await getSettingWithDefault()).styleCycle).toEqual([
+      "mine",
+      "fuzzy",
+      "style_none",
+    ]);
+    storeCycle([]);
+    expect((await getSettingWithDefault()).styleCycle).toEqual([]);
+    expect(
+      normalizeStoredSetting({
+        ...setting,
+        customStyles: [],
+        styleCycle: ["mine"],
+      }).styleCycle
+    ).toEqual([]);
+  });
+
   test("existing service instances and scene choices are not supplemented by new install defaults", async () => {
     const existing = {
       version: CURRENT_SETTINGS_VERSION,

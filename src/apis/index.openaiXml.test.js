@@ -21,11 +21,19 @@ jest.mock("../libs/docInfo", () => ({
   getDocInfo: () => ({}),
 }));
 
+jest.mock("../libs/detect", () => ({ tryDetectLang: async () => "en" }));
+jest.mock("../libs/cache", () => ({
+  getHttpCachePolyfill: jest.fn(),
+  putHttpCachePolyfill: jest.fn(),
+}));
+
 import { apiTranslate } from "./index";
 import { fetchData, fetchStream } from "../libs/fetch";
 import { DEFAULT_API_LIST, OPT_TRANS_OPENAI } from "../config";
 import { getBuiltinServiceDefinition } from "../builtin-plugins/definitions";
 import { clearAllBatchQueue } from "../libs/batchQueue";
+import { putHttpCachePolyfill } from "../libs/cache";
+import { Translator } from "../libs/translator";
 
 const getOpenAiApiSetting = () => ({
   ...DEFAULT_API_LIST.find((api) => api.apiType === OPT_TRANS_OPENAI),
@@ -49,6 +57,107 @@ describe("apiTranslate OpenAI XML", () => {
     jest.restoreAllMocks();
     clearAllBatchQueue();
   });
+
+  test.each([
+    ["segment", false],
+    ["segment", true],
+    ["realtime", false],
+  ])(
+    "renders a restored XML segment in %s mode before the batch settles (fails: %s)",
+    async (streamRenderMode, fails) => {
+      jest.useFakeTimers();
+      const observer = global.IntersectionObserver;
+      global.IntersectionObserver = class {
+        constructor(callback) {
+          this.callback = callback;
+        }
+        observe(target) {
+          this.callback([{ target, isIntersecting: true }]);
+        }
+        unobserve() {}
+        disconnect() {}
+      };
+      const api = {
+        ...getOpenAiApiSetting(),
+        isDisabled: false,
+        useStream: true,
+        streamRenderMode,
+        batchSize: 2,
+        batchPromptSlug: "batch-translation-xml",
+        placeholder: "{{ }}",
+        placetag: "i",
+      };
+      document.body.innerHTML =
+        '<main id="root"><p>Visit <a href="/docs">our docs</a> for <code>npm</code>.</p><p>Second paragraph.</p></main>';
+      let finishStream;
+      const remaining = new Promise((resolve) => (finishStream = resolve));
+      const delta = (content) =>
+        JSON.stringify({ choices: [{ delta: { content } }] });
+      fetchStream.mockImplementationOnce(async function* () {
+        const openingTag = '<root><t id="0">';
+        const completedSegment = "请访问 <i1>文档</i1>，了解 {{1}}。</t>";
+        if (streamRenderMode === "realtime") {
+          yield delta(openingTag);
+          yield delta(completedSegment);
+        } else {
+          yield delta(openingTag + completedSegment);
+        }
+        await remaining;
+        if (fails) throw new Error("stream interrupted");
+        yield delta('<t id="1">第二段译文。</t></root>');
+      });
+      if (fails) fetchData.mockRejectedValueOnce(new Error("fallback failed"));
+      const translator = new Translator({
+        rule: {
+          apiSlug: api.apiSlug,
+          transOpen: "true",
+          rootsSelector: "#root",
+          selector: "p",
+          autoScan: "false",
+          fromLang: "en",
+          toLang: "zh-CN",
+          hasRichText: "true",
+          transTitle: "false",
+        },
+        setting: { transApis: [api], transInterval: 0 },
+      });
+      const flush = async () => {
+        for (let i = 0; i < 10; i++) {
+          jest.advanceTimersByTime(16);
+          for (let j = 0; j < 20; j++) await Promise.resolve();
+        }
+      };
+      try {
+        await flush();
+        expect(fetchStream).toHaveBeenCalledTimes(1);
+        const [first, second] = document.querySelectorAll(
+          ".kiss-translator-inner"
+        );
+        expect(first.textContent).toBe("请访问 文档，了解 npm。");
+        expect(first.querySelector("a").getAttribute("href")).toBe("/docs");
+        expect(first.querySelector("code").textContent).toBe("npm");
+        expect(second.textContent).not.toContain("第二段译文");
+        expect(putHttpCachePolyfill).not.toHaveBeenCalled();
+
+        finishStream();
+        await flush();
+        if (fails) {
+          expect(first.querySelector(".kiss-translator-retry")).not.toBeNull();
+          expect(putHttpCachePolyfill).not.toHaveBeenCalled();
+        } else {
+          expect(first.textContent).toBe("请访问 文档，了解 npm。");
+          expect(second.textContent).toBe("第二段译文。");
+          expect(putHttpCachePolyfill).toHaveBeenCalledTimes(2);
+        }
+      } finally {
+        finishStream();
+        translator.stop();
+        global.IntersectionObserver = observer;
+        document.body.replaceChildren();
+        jest.useRealTimers();
+      }
+    }
+  );
 
   test("splits queued paragraphs at the declared eight-item limit", async () => {
     const definition = getBuiltinServiceDefinition(OPT_TRANS_OPENAI);
