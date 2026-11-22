@@ -4,7 +4,11 @@ import { subscribeStorageInvalidation } from "../libs/storageEvents";
 jest.mock("../libs/storageEvents", () => ({
   subscribeStorageInvalidation: jest.fn(),
 }));
-import { apiSubtitle, apiSummarizeContext } from "../apis/index.js";
+import {
+  apiSubtitle,
+  apiSummarizeContext,
+  apiSummarizeContextAndVideo,
+} from "../apis/index.js";
 import { YouTubeCaptionProvider } from "./YouTubeCaptionProvider.js";
 import { eventsToSubtitles } from "./youtubeAiSegmentation.js";
 import { prepareTimedTextEvents } from "./youtubeSubtitleProcessing.js";
@@ -145,6 +149,7 @@ jest.mock("../config", () => ({
 jest.mock("../apis/index.js", () => ({
   apiSubtitle: jest.fn(),
   apiSummarizeContext: jest.fn(),
+  apiSummarizeContextAndVideo: jest.fn(),
 }));
 
 jest.mock("../apis/history.js", () => ({ clearMsgHistory: jest.fn() }));
@@ -1777,5 +1782,44 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
 
     // 防抖后只执行一次重译
     expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
+  });
+
+  test("combines AI context with video summary in one streaming request when enabled", async () => {
+    const longTranscript = Array.from(
+      { length: 1200 },
+      (_, i) => `segment${i}`
+    ).join(" ");
+    expect(longTranscript.length).toBeGreaterThan(8000);
+    prepareTimedTextEvents.mockReturnValue({
+      events: [{ text: longTranscript }],
+      flatEvents: [{ start: 0, end: 600000, text: longTranscript }],
+    });
+    apiSummarizeContextAndVideo.mockResolvedValueOnce({
+      context: "Combined context briefing",
+      summary: "Combined markdown video summary",
+    });
+
+    create({
+      aiContextSlug: "ai",
+      summaryApiSlug: "ai",
+      combineContextAndVideoSummary: true,
+      toLang: "zh-CN",
+      transApis: [{ apiSlug: "ai", apiType: "openai", apiName: "AI" }],
+    });
+    await flushPromises();
+    await flushPromises();
+
+    expect(apiSummarizeContext).not.toHaveBeenCalled();
+    expect(apiSummarizeContextAndVideo).toHaveBeenCalledTimes(1);
+    expect(apiSummarizeContextAndVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        videoId: "video-1",
+        transcript: longTranscript,
+        to: "zh-CN",
+      })
+    );
+    expect(eventsToSubtitles.mock.calls[0][0].docInfo.summary).toBe(
+      "Combined context briefing"
+    );
   });
 });
