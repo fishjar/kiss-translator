@@ -466,6 +466,7 @@ export class YouTubeCaptionProvider {
       this.#acquisitionVersion++;
       this.#subtitleAbortController?.abort();
       this.#processingVersion++;
+      this.#processingId = null;
       this.#destroyManager();
       this.#subtitleListManager?.destroy();
       this.#subtitleListManager = null;
@@ -553,6 +554,7 @@ export class YouTubeCaptionProvider {
           this.#acquisitionVersion++;
           this.#subtitleAbortController?.abort();
           this.#processingVersion++;
+          this.#processingId = null;
           this.#destroyManager();
           this.#subtitles = [];
           this.#flatEvents = [];
@@ -938,6 +940,7 @@ export class YouTubeCaptionProvider {
       this.#acquirer?.cancel();
       this.#bridge?.clear();
       this.#processingVersion++;
+      this.#processingId = null;
       this.#subtitleAbortController?.abort();
       this.#aiChunkScheduler = null;
       this.#destroyManager();
@@ -1088,6 +1091,7 @@ export class YouTubeCaptionProvider {
 
   async #restartWithTerminology(previousApiSlug = null) {
     const version = ++this.#processingVersion;
+    this.#processingId = null;
     this.#subtitleAbortController?.abort();
     const restartAsr =
       !!this.#asr &&
@@ -1926,6 +1930,7 @@ export class YouTubeCaptionProvider {
     this.#playerUi.showNotification(this.#i18n("starting_reprocess_events"));
 
     const processingVersion = (this.#processingVersion += 1);
+    this.#processingId = null;
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
     this.#aiChunkScheduler = null;
@@ -2019,6 +2024,7 @@ export class YouTubeCaptionProvider {
     if (!videoId || !flatEvents.length) return;
 
     const processingVersion = (this.#processingVersion += 1);
+    this.#processingId = null;
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
     this.#aiChunkScheduler = null;
