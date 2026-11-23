@@ -300,6 +300,9 @@ const userscriptWebpack = (config, env) => {
 // @connect       127.0.0.1
 // @run-at        document-end
 // ==/UserScript==
+// Includes icon path data from Lucide (ISC License,
+// Copyright (c) 2026 Lucide Icons and Contributors) and from Feather Icons
+// (MIT License, Copyright (c) 2013-present Cole Bemis).
 
 `;
 
@@ -331,7 +334,11 @@ const userscriptWebpack = (config, env) => {
             pure_funcs: ["console.debug"],
           },
           format: {
-            comments: false, // 移除所有其他代码注释
+            // 仅保留 /*! 法律注释（生成物的 Lucide ISC / Feather MIT 声明），
+            // 其余注释剥除：油猴分发件无 .license.txt 兜底，法律声明必须
+            // 内联存活。
+            comments: (_node, comment) =>
+              /^!|@license|@preserve|^\**@/.test(comment.value),
             preamble: banner, // 头部强制置入油猴 Meta 信息
           },
         },

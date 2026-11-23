@@ -5,9 +5,11 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import {
+  ContentCopyIcon,
+  ReplayRoundedIcon,
+  VolumeUpIcon,
+} from "../../components/icons";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { apiTranslate } from "../../apis";
@@ -19,7 +21,7 @@ import {
   OPT_TRANS_BUILTINAI,
   OPT_TRANS_GOOGLE,
 } from "../../config";
-import { useI18n } from "../../hooks/I18n";
+import { getI18n, useI18n } from "../../hooks/I18n";
 import { parseMathInText } from "../../libs/mathParse";
 import CopyBtn from "./CopyBtn";
 import { BrowserTtsBtn } from "./AudioBtn";
@@ -243,6 +245,7 @@ const translateBuiltinText = async (
  * @param {HTMLElement|null} [props.actionContainer=null] Host for single-provider popup actions.
  * @param {boolean} [props.waitForSourceDetection=false] Whether the target requires completed source detection.
  * @param {number} [props.requestRevision=0] Explicit submission revision for retrying unchanged input.
+ * @param {Function} [props.onErrorChange] Reports (apiSlug, failed) whenever this provider's error state flips.
  * @param {Function} [props.onActionPointerDown] Host focus policy for result actions.
  * @returns {JSX.Element|null} Result view for one translation provider.
  */
@@ -264,6 +267,7 @@ export default function TranCont({
   showProvider = true,
   actionContainer = null,
   requestRevision = 0,
+  onErrorChange,
   onActionPointerDown,
   ttsApiSlug = "",
   translationContext = "",
@@ -425,7 +429,16 @@ export default function TranCont({
         }
 
         if (active) {
-          setError(err.message);
+          // 空 Error/非 Error 拒绝值会让 error 存成空串，失败态随之丢失
+          // （onErrorChange 依赖非空 error）——通用文案兜底保证失败态成立。
+          setError(
+            err?.message ||
+              getI18n(
+                i18n.language,
+                "popup_text_failed",
+                "Translation failed. Please retry."
+              )
+          );
         }
       } finally {
         if (active) {
@@ -463,6 +476,20 @@ export default function TranCont({
   useEffect(() => {
     if (!requestPendingRef.current) setAttemptRevision(requestRevision);
   }, [requestRevision]);
+
+  // Report error-state transitions so hosts can keep a retry entry available
+  // when a failed request leaves the submitted text unchanged. The reporting
+  // effect fires only on real state flips; the unmount cleanup clears the
+  // host's record on its own effect so an error flip never interleaves a
+  // transient cleared report before the failed one.
+  const onErrorChangeRef = useRef(onErrorChange);
+  useEffect(() => {
+    onErrorChangeRef.current = onErrorChange;
+  });
+  useEffect(() => {
+    onErrorChangeRef.current?.(apiSlug, Boolean(error));
+  }, [apiSlug, error]);
+  useEffect(() => () => onErrorChangeRef.current?.(apiSlug, false), [apiSlug]);
 
   if (!apiSetting) {
     return null;

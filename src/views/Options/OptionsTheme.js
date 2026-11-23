@@ -37,6 +37,7 @@ const OPTIONS_THEME = {
           disableScrollLock: true,
           TransitionComponent: Fade,
           transitionDuration: { enter: 90, exit: 0 },
+          MenuListProps: { className: "kt-settings-select__menu" },
           PaperProps: {
             sx: (theme) => ({
               ...dropdownPaper({ theme }),

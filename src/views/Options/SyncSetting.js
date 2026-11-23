@@ -31,15 +31,17 @@ import { useAlert } from "../../hooks/Alert";
 import { useConfirm } from "../../hooks/Confirm";
 import { useSetting } from "../../hooks/Setting";
 import { logger } from "../../libs/log";
-import SyncIcon from "@mui/icons-material/Sync";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ContentPasteIcon from "@mui/icons-material/ContentPaste";
-import EditIcon from "@mui/icons-material/Edit";
-import CloudSyncRoundedIcon from "@mui/icons-material/CloudSyncRounded";
-import FolderSharedRoundedIcon from "@mui/icons-material/FolderSharedRounded";
-import CodeRoundedIcon from "@mui/icons-material/CodeRounded";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import {
+  CloudSyncRoundedIcon,
+  CodeRoundedIcon,
+  ContentCopyIcon,
+  ContentPasteIcon,
+  EditIcon,
+  FolderSharedRoundedIcon,
+  SyncIcon,
+  VisibilityIcon,
+  VisibilityOffIcon,
+} from "../../components/icons";
 
 const SYNC_METHOD_METADATA = {
   [OPT_SYNCTYPE_WEBDAV]: {

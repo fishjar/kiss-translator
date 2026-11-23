@@ -1,9 +1,11 @@
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import DragIndicatorRoundedIcon from "@mui/icons-material/DragIndicatorRounded";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import CropRoundedIcon from "@mui/icons-material/CropRounded";
-import InsertDriveFileRoundedIcon from "@mui/icons-material/InsertDriveFileRounded";
+import {
+  CloseRoundedIcon,
+  CropRoundedIcon,
+  DragIndicatorRoundedIcon,
+  InsertDriveFileRoundedIcon,
+  OpenInNewRoundedIcon,
+  SettingsRoundedIcon,
+} from "../../components/icons";
 import IconButton from "@mui/material/IconButton";
 import SupportButton from "./SupportButton";
 import Logo from "../../components/Logo";

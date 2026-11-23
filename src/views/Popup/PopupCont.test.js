@@ -1,12 +1,15 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 import { act, StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Simulate } from "react-dom/test-utils";
 import PopupCont from "./PopupCont";
+import { POPUP_STYLES } from "./styles";
 import { getVisibleServices } from "./services";
 import { tryClearCaches } from "../../libs/cache";
 import { saveRule } from "../../libs/rules";
 import { isCurrentPopupDocument } from "../../libs/popupDocument";
 import { getRulesWithDefault } from "../../libs/storage";
+import * as focusModality from "../../hooks/focusModality";
 import {
   MSG_RULE_EDITOR,
   MSG_SAVE_RULE,
@@ -37,7 +40,9 @@ jest.mock("../../hooks/MouseHover", () => ({
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const DANGEROUS_STYLE_CODE = "position: fixed; inset: 0; z-index: 2147483647;";
+// 选择器列表形态：compileCss 作用域闸整份判无效（危险样式经共享编译路径
+// 无法泄漏全局规则；纯声明式危险代码会被作用域包裹，走 valid 编译分支）
+const DANGEROUS_STYLE_CODE = "&, body { color: red }";
 const mockStyles = Array.from({ length: 7 }, (_, index) => {
   const isBuiltin = index < 5;
   return {
@@ -117,8 +122,8 @@ async function flushEffects() {
   });
 }
 
-function styleChoices() {
-  return [...document.body.querySelectorAll(".kt-popup-style-chip")];
+function styleChoices(root = document.body) {
+  return [...root.querySelectorAll('.kt-popup-style-menu [role="option"]')];
 }
 
 function openStyleMenu(container) {
@@ -147,9 +152,25 @@ async function selectScope(container, pattern) {
   await act(async () => choice.click());
 }
 
-function renderPopupCont(props = {}, { statefulRule = false } = {}) {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
+function renderPopupCont(
+  props = {},
+  { statefulRule = false, shadow = false } = {}
+) {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  let container;
+  if (shadow) {
+    // 生产拓扑（tranbox.js/shadowDomManager.js 同款）：light 宿主 div 自身无
+    // class、无 .kt-m3-root；扩展 UI 与 .kt-m3-root 全部挂在 host.shadowRoot 内。
+    const shadowRoot = host.attachShadow({ mode: "open" });
+    const shadowBox = document.createElement("div");
+    shadowBox.className = "kt-m3-root";
+    shadowRoot.appendChild(shadowBox);
+    container = document.createElement("div");
+    shadowBox.appendChild(container);
+  } else {
+    container = host;
+  }
   const root = createRoot(container);
   const setting = {
     transApis: [
@@ -214,6 +235,8 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
 
   return {
     container,
+    host,
+    focusRoot: container.getRootNode(),
     updateRuntimeSetting(nextSetting) {
       act(() => updateLiveSetting(nextSetting));
     },
@@ -222,7 +245,7 @@ function renderPopupCont(props = {}, { statefulRule = false } = {}) {
     },
     cleanup() {
       act(() => root.unmount());
-      container.remove();
+      host.remove();
     },
   };
 }
@@ -1167,22 +1190,75 @@ describe("PopupCont capability parity", () => {
     view.cleanup();
   });
 
-  test("shows all style choices in a portal menu and keeps the selected custom style", async () => {
+  test("shows all style choices in a portal listbox menu and keeps the selected custom style", async () => {
     const processActions = jest.fn(({ args }) => ({ rule: args }));
     const view = renderPopupCont({ processActions }, { statefulRule: true });
     try {
       await flushEffects();
       const trigger = view.container.querySelector(".kt-popup-style-select");
-      expect(trigger.textContent).toContain("Style 6");
+      // 入口语义：listbox + aria-controls + 可访问名称含当前样式名（预览值
+      // aria-hidden，名称须暴露选中值——WCAG 4.1.2 name/value）
+      expect(trigger.getAttribute("aria-haspopup")).toBe("listbox");
+      // aria-controls 仅在列表挂载（打开）时输出：关闭态不残留悬空引用
+      //（与样式卡 aria-controls 展开态口径一致）
+      expect(trigger.getAttribute("aria-controls")).toBeNull();
+      expect(trigger.getAttribute("aria-label")).toBe(
+        "text_style_alt: Style 6"
+      );
+      // 入口显示预览-only：当前样式为 custom Style 6（选择器列表判
+      // unsupported）→ 显式 css_unsupported 提示（读屏可达），样式名不进入口
+      expect(trigger.textContent).not.toContain("Style 6");
+      expect(trigger.textContent).toContain("css_unsupported");
+      // 编译失败状态进可及描述：aria-label 只有样式名，读屏须经
+      // aria-describedby 感知失败态（textContent 不构成可及名/描述语义）
+      const describedBy = trigger.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+      expect(document.getElementById(describedBy).textContent).toContain(
+        "css_unsupported"
+      );
       expect(styleChoices()).toHaveLength(0);
       openStyleMenu(view.container);
       const choices = styleChoices();
       expect(choices).toHaveLength(7);
+      // 菜单语义：数据单选（listbox 容器 + option 行 + aria-selected）
+      const listbox = document.body.querySelector(
+        ".kt-popup-style-menu [role='listbox']"
+      );
+      expect(listbox?.id).toBe("kt-popup-style-list");
+      expect(trigger.getAttribute("aria-controls")).toBe("kt-popup-style-list");
+      // 宽度钳制经 paperMaxWidth 内联生效（窄视口受 calc(100vw - 24px) 约束）
+      const paper = document.body.querySelector(".kt-popup-style-menu");
+      expect(paper.style.maxWidth).toBe("min(280px, calc(100vw - 24px))");
+      const selected = choices.find(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      expect(selected.textContent).toContain("Style 6");
+      expect(selected.className).toContain("kt-popup-style-option--selected");
+      // 无 aria-pressed、无 chip/grid 结构、无动作菜单勾选图标
+      expect(choices.some((item) => item.hasAttribute("aria-pressed"))).toBe(
+        false
+      );
+      expect(document.body.querySelector(".kt-popup-style-chip")).toBeNull();
+      expect(document.body.querySelector(".kt-popup-style-grid")).toBeNull();
       expect(
-        choices.find((item) => item.getAttribute("aria-pressed") === "true")
-          .textContent
-      ).toContain("Style 6");
-      expect(view.container.querySelector(".kt-popup-style-chip")).toBeNull();
+        document.body.querySelector(".kt-popup-style-menu [role='group']")
+      ).toBeNull();
+      // custom 样式行预览真实渲染：合法 custom → 作用域编译 + <style> 注入
+      const validCustom = choices.find((item) =>
+        item.textContent.includes("Style 5")
+      );
+      expect(validCustom.querySelector("style")).toBeTruthy();
+      expect(
+        validCustom.querySelector('span[aria-hidden="true"]')?.className
+      ).toContain("kt-scope-style_5");
+      expect(validCustom.textContent).not.toContain("css_invalid");
+      // 危险 CSS custom → css_invalid 提示，无 <style> 注入
+      const invalidCustom = choices.find((item) =>
+        item.textContent.includes("Style 6")
+      );
+      expect(invalidCustom.textContent).toContain("css_unsupported");
+      expect(invalidCustom.querySelector("style")).toBeNull();
+      // builtin 预览走 PopupStylePreview（emotion class 路径）
       expect(JSON.stringify(mockCss.mock.calls)).toContain(
         mockStyles[0].styleCode
       );
@@ -1192,14 +1268,147 @@ describe("PopupCont capability parity", () => {
       const nextStyle = choices.find((item) =>
         item.textContent.includes("Style 5")
       );
-      await act(async () => nextStyle.click());
+      await act(async () => {
+        nextStyle.click();
+        // scriptFocus 经 setTimeout(0) 交回入口本体
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
       expect(processActions).toHaveBeenCalledWith({
         action: MSG_TRANS_PUTRULE,
         args: { textStyle: "style_5" },
       });
-      expect(trigger.textContent).toContain("Style 5");
+      // 键盘/指针选择后焦点落回入口本体，不掉落 body
+      expect(document.activeElement).toBe(trigger);
+      // 选中合法 custom 后入口预览切换为作用域编译演示，名称仍不出现在入口
+      expect(trigger.textContent).not.toContain("Style 5");
+      expect(trigger.textContent).not.toContain("css_invalid");
+      expect(trigger.textContent).toContain("translated_text");
       expect(trigger.getAttribute("aria-expanded")).toBe("false");
+      // 可访问名称随选中值同步更新
+      expect(trigger.getAttribute("aria-label")).toBe(
+        "text_style_alt: Style 5"
+      );
+      // 合法样式：无失败提示，不残留 aria-describedby 引用
+      expect(trigger.getAttribute("aria-describedby")).toBeNull();
       expect(view.container.querySelector(".MuiSnackbar-root")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("keeps the style listbox roving tabindex on the active option", async () => {
+    const processActions = jest.fn(({ args }) => ({ rule: args }));
+    const view = renderPopupCont({ processActions }, { statefulRule: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      const choices = styleChoices();
+      // roving tabindex：仅当前激活项 tabIndex=0（选中项优先），其余 -1——
+      // 打开的 listbox 内必须有 Tab 停靠点（Tab 进入点＝当前激活项），
+      // 全 -1 形态令 AT 可交互项枚举缺一腿
+      const initial = choices.filter((item) => item.tabIndex === 0);
+      expect(initial).toHaveLength(1);
+      expect(initial[0].getAttribute("aria-selected")).toBe("true");
+      // 方向键交接后 tab 停靠点随焦点翻转：焦点落在任一未选项上，激活项
+      // 即翻转到该项（恰一个 0 恒成立）
+      act(() => {
+        Simulate.focus(choices[0]);
+      });
+      const after = choices.filter((item) => item.tabIndex === 0);
+      expect(after).toHaveLength(1);
+      expect(after[0]).toBe(choices[0]);
+      act(() => {
+        Simulate.focus(choices[3]);
+      });
+      const last = choices.filter((item) => item.tabIndex === 0);
+      expect(last).toHaveLength(1);
+      expect(last[0]).toBe(choices[3]);
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("locks M3 listbox geometry, selected state color and entry open-state styling", () => {
+    // 3 列 chip 网格与开态环规则键不存在
+    expect(POPUP_STYLES).not.toContain("kt-popup-style-chip");
+    expect(POPUP_STYLES).not.toContain("kt-popup-style-grid");
+    expect(POPUP_STYLES).not.toMatch(
+      /\.kt-popup-style-select\[aria-expanded="true"\]\s*\{[^}]*box-shadow/
+    );
+    // 行几何：行高 48、padding 16、容器圆角 4dp
+    const optionRule = POPUP_STYLES.match(
+      /\.kt-popup-style-option \{[^}]*\}/
+    )?.[0];
+    expect(optionRule).toContain("height: 48px");
+    expect(optionRule).toContain("padding: 0 16px");
+    expect(optionRule).toContain("border-radius: 4px");
+    // 选中行 secondary-container 底色，无勾选标记形状
+    const selectedRule = POPUP_STYLES.match(
+      /\.kt-popup-style-option--selected \{[^}]*\}/
+    )?.[0];
+    expect(selectedRule).toContain("background: var(--kt-secc)");
+    // 菜单宽度钳制
+    const menuRule = POPUP_STYLES.match(
+      /\.kt-popup-style-menu\.MuiPaper-root \{[^}]*\}/
+    )?.[0];
+    expect(menuRule).toContain("min-width: 112px");
+    expect(menuRule).toContain("max-width: min(280px, calc(100vw - 24px))");
+    expect(menuRule).toContain("width: max-content");
+    // option 行瞬时 State Layer 反馈保留（on 主题色叠加，暗色模式不失效）
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-style-option:hover \{[^}]*color-mix\(in srgb, var\(--kt-on\) 8%/
+    );
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-style-option:active \{[^}]*color-mix\(in srgb, var\(--kt-on\) 12%/
+    );
+    // 入口预览槽：flex 居中 + 高度钳制须容得下下划线系偏移（0.3em offset
+    // + 2px thickness 在 13px 字号下最低需 ~22px，20px 会裁掉下划装饰）
+    // 装饰带预算：max-height 32px 容得下装饰带（行盒 16px + 下探余量）
+    const valueRule = POPUP_STYLES.match(
+      /\.kt-popup-style-value \{[^}]*\}/
+    )?.[0];
+    expect(valueRule).toContain("display: flex");
+    expect(valueRule).toContain("justify-content: center");
+    expect(valueRule).toContain("max-height: 32px");
+    // 聚焦环形态：option 内嵌环（相邻行互不压盖，实测外扩环两两垂直压盖
+    // 10px）、菜单纸容器零环（容器非语义停靠点）
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-style-option:focus-visible \{[^}]*outline: none\; box-shadow: inset 0 0 0 2px var\(--kt-pri\)/
+    );
+    expect(POPUP_STYLES).toMatch(
+      /\.kt-popup-style-menu\.MuiPaper-root:focus,\n?\.kt-popup-style-menu\.MuiPaper-root:focus-visible \{ outline: none/
+    );
+  });
+
+  test("returns keyboard focus to the style entry after Escape closes the listbox", async () => {
+    const view = renderPopupCont();
+    try {
+      await flushEffects();
+      const trigger = view.container.querySelector(".kt-popup-style-select");
+      openStyleMenu(view.container);
+      // 初始焦点入列表：聚焦选中 option 本体
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      });
+      const selectedOption = styleChoices().find(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      expect(document.activeElement).toBe(selectedOption);
+      // Escape 收起后焦点回退入口本体
+      act(() =>
+        document.activeElement.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(document.body.querySelector(".kt-popup-style-menu")).toBeNull();
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+      expect(document.activeElement).toBe(trigger);
     } finally {
       view.cleanup();
     }
@@ -2096,24 +2305,166 @@ describe("PopupCont capability parity", () => {
         ).textContent
       ).toBe("popup_translation_only");
       openStyleMenu(view.container);
-      const choices = styleChoices();
-      choices[0].focus();
+      // 初始焦点入列表：聚焦选中 option 本体，非容器停靠
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      });
+      const selectedOption = styleChoices().find(
+        (item) => item.getAttribute("aria-selected") === "true"
+      );
+      expect(document.activeElement).toBe(selectedOption);
+      // MenuList roving 导航：ArrowUp 聚焦相邻 option
       act(() =>
-        choices[0].dispatchEvent(
+        document.activeElement.dispatchEvent(
           new KeyboardEvent("keydown", {
-            key: "ArrowDown",
+            key: "ArrowUp",
             bubbles: true,
             cancelable: true,
           })
         )
       );
-      expect(document.activeElement).toBe(choices[3]);
+      expect(styleChoices()).toContain(document.activeElement);
+      expect(document.activeElement).not.toBe(selectedOption);
       expect(processActions).toHaveBeenCalledTimes(2);
-      await act(async () => document.activeElement.click());
+      // 键盘激活：Enter 经真实 keydown 选中聚焦项（禁止 click() 伪造路径）
+      await act(async () =>
+        document.activeElement.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Enter",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
       expect(processActions).toHaveBeenLastCalledWith({
         action: MSG_TRANS_PUTRULE,
-        args: { textStyle: "style_3" },
+        args: { textStyle: "style_5" },
       });
+      expect(document.body.querySelector(".kt-popup-style-menu")).toBeNull();
+      // 空格激活：重开菜单后 Space 同样经真实 keydown 选中聚焦项
+      openStyleMenu(view.container);
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      });
+      act(() =>
+        document.activeElement.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "ArrowUp",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      await act(async () =>
+        document.activeElement.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: " ",
+            bubbles: true,
+            cancelable: true,
+          })
+        )
+      );
+      expect(processActions).toHaveBeenLastCalledWith({
+        action: MSG_TRANS_PUTRULE,
+        args: { textStyle: "style_4" },
+      });
+      expect(document.body.querySelector(".kt-popup-style-menu")).toBeNull();
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("style menu hands initial focus to the selected option and keeps arrow-key navigation", async () => {
+    const view = renderPopupCont({}, { statefulRule: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      // openStyleMenu() 后用 rAF 冲刷两轮，锁定最终焦点归属：
+      // 聚焦 attempt（placement 布尔依赖）与 focusMenuTarget 兜底都挂 rAF。
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const selected = document.activeElement;
+      expect(selected.getAttribute("role")).toBe("option");
+      expect(selected.getAttribute("aria-selected")).toBe("true");
+      // 方向键在 listbox 内纵向巡航（activeElement 守卫不得把焦点抢回 MenuList）。
+      act(() => {
+        selected.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })
+        );
+      });
+      // 相邻 option 按下标确定性断言：option 清单即 styleChoices() 返回的
+      // .kt-popup-style-menu [role="option"] DOM 序（源自 mockStyles 七项固定
+      // 清单 style_0..style_6）；选中项经 aria-selected 结构选取，不做字面量固化。
+      const choices = styleChoices();
+      const selectedIndex = choices.indexOf(selected);
+      expect(document.activeElement).toBe(
+        choices[(selectedIndex - 1 + choices.length) % choices.length]
+      );
+    } finally {
+      view.cleanup();
+    }
+  });
+
+  test("style menu initial focus hands the selected option to scriptFocus", async () => {
+    // 契约：初始交接唯一入口 = focusMenuTarget → scriptFocus 聚焦选中
+    // option；滚动所有权在 menuFocus 内部（paper.scrollTop 视口增量，
+    // 已由 menuFocus/PopupMenu 套件锁定），宿主页面滚动不得被触碰。
+    const focusSpy = jest.spyOn(focusModality, "scriptFocus");
+    const view = renderPopupCont({}, { statefulRule: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const call = focusSpy.mock.calls.find(
+        ([el]) =>
+          el?.getAttribute?.("role") === "option" &&
+          el?.getAttribute?.("aria-selected") === "true"
+      );
+      expect(call).toBeDefined();
+    } finally {
+      focusSpy.mockRestore();
+      view.cleanup();
+    }
+  });
+
+  test("style menu keeps focus on the selected option inside a shadow tree (production topology)", async () => {
+    // tranbox/shadowDomManager 生产拓扑下 .kt-m3-root 位于 host.shadowRoot
+    // 内，document.activeElement 被重定向为 host，light 夹具（renderPopupCont 默认
+    // 直接挂 body）永远测不出该重定向。本用例复刻生产挂载形态，锁定守卫在
+    // shadow 域同样不得把焦点从选中 option 抢回 MenuList。
+    const view = renderPopupCont({}, { statefulRule: true, shadow: true });
+    try {
+      await flushEffects();
+      openStyleMenu(view.container);
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      const focused = view.focusRoot.activeElement;
+      expect(focused.getAttribute("role")).toBe("option");
+      expect(focused.getAttribute("aria-selected")).toBe("true");
+      expect(document.activeElement).toBe(view.host);
+      act(() => {
+        focused.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true })
+        );
+      });
+      const choices = styleChoices(view.host.shadowRoot);
+      const selectedIndex = choices.indexOf(focused);
+      expect(view.focusRoot.activeElement).toBe(
+        choices[(selectedIndex - 1 + choices.length) % choices.length]
+      );
     } finally {
       view.cleanup();
     }
@@ -2489,9 +2840,15 @@ describe("PopupCont capability parity", () => {
       expect(
         view.container.querySelector('.kt-popup-service[aria-checked="true"]')
       ).toBeNull();
-      expect(
-        view.container.querySelector(".kt-popup-style-select").textContent
-      ).toContain("Style 6");
+      // 入口预览-only：失败回退后的选中样式经菜单 aria-selected 核证
+      if (control === "style") {
+        openStyleMenu(view.container);
+        expect(
+          styleChoices().find(
+            (item) => item.getAttribute("aria-selected") === "true"
+          ).textContent
+        ).toContain("Style 6");
+      }
       expect(languageValues(view.container)).toEqual(["en", "fr"]);
       expect(view.container.textContent).toContain("popup_action_failed");
       view.cleanup();
@@ -2589,8 +2946,12 @@ describe("PopupCont capability parity", () => {
       view.container.querySelector('.kt-popup-service[aria-checked="true"]')
         .textContent
     ).toContain("google");
+    // 入口预览-only：并发样式改动（style_0）经菜单 aria-selected 核证
+    openStyleMenu(view.container);
     expect(
-      view.container.querySelector(".kt-popup-style-select").textContent
+      styleChoices().find(
+        (item) => item.getAttribute("aria-selected") === "true"
+      ).textContent
     ).toContain("Style 0");
     expect(view.container.textContent).toContain("popup_action_failed");
     view.cleanup();

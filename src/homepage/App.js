@@ -1,25 +1,27 @@
 import React, { useEffect, useMemo } from "react";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import BoltIcon from "@mui/icons-material/Bolt";
-import Brightness4Icon from "@mui/icons-material/Brightness4";
-import Brightness7Icon from "@mui/icons-material/Brightness7";
-import CodeIcon from "@mui/icons-material/Code";
-import ExtensionIcon from "@mui/icons-material/Extension";
-import GitHubIcon from "@mui/icons-material/GitHub";
-import InputIcon from "@mui/icons-material/Input";
-import IntegrationInstructionsIcon from "@mui/icons-material/IntegrationInstructions";
-import LanguageIcon from "@mui/icons-material/Language";
-import MemoryIcon from "@mui/icons-material/Memory";
-import MenuBookIcon from "@mui/icons-material/MenuBook";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import RuleIcon from "@mui/icons-material/Rule";
-import SettingsIcon from "@mui/icons-material/Settings";
-import SubtitlesIcon from "@mui/icons-material/Subtitles";
-import SyncIcon from "@mui/icons-material/Sync";
-import TelegramIcon from "@mui/icons-material/Telegram";
-import TerminalIcon from "@mui/icons-material/Terminal";
-import TranslateIcon from "@mui/icons-material/Translate";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import {
+  AutoAwesomeIcon,
+  BoltIcon,
+  Brightness4Icon,
+  Brightness7Icon,
+  CodeIcon,
+  ExtensionIcon,
+  GitHubIcon,
+  InputIcon,
+  IntegrationInstructionsIcon,
+  LanguageIcon,
+  MemoryIcon,
+  MenuBookIcon,
+  OpenInNewIcon,
+  RuleIcon,
+  SettingsIcon,
+  SubtitlesIcon,
+  SyncIcon,
+  TelegramIcon,
+  TerminalIcon,
+  TranslateIcon,
+  VisibilityIcon,
+} from "../components/icons";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
