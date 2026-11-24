@@ -157,8 +157,27 @@ export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
     events.push(canonicalEvent);
     lastVisibleEventKey = eventKey;
 
-    for (let index = 0; index < normalizedSegs.length; index += 1) {
-      const { utf8 = "", tOffsetMs = 0 } = normalizedSegs[index];
+    // 没有 tOffsetMs 的后续 seg 与前一个 seg 共用起点（例如行内斜体或旧式 ASR 短语），
+    // 无法单独定时，合并进前一个 seg，避免除末尾 seg 外的文本被静默丢弃。
+    const timedSegs = [];
+    normalizedSegs.forEach((seg, segIndex) => {
+      const previous = timedSegs[timedSegs.length - 1];
+      if (
+        previous &&
+        segIndex > 0 &&
+        seg.tOffsetMs === undefined &&
+        seg.utf8 &&
+        previous.utf8 &&
+        !isLineBreak
+      ) {
+        previous.utf8 = `${previous.utf8}${canExpandCoarseText ? " " : ""}${seg.utf8}`;
+        return;
+      }
+      timedSegs.push({ ...seg });
+    });
+
+    for (let index = 0; index < timedSegs.length; index += 1) {
+      const { utf8 = "", tOffsetMs = 0 } = timedSegs[index];
       const text = cleanTimedText(utf8);
       const start = tStartMs + (Number(tOffsetMs) || 0);
 
@@ -177,9 +196,9 @@ export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
 
       flushBuffer(start);
       const nextOffset =
-        index === normalizedSegs.length - 1
+        index === timedSegs.length - 1
           ? dDurationMs
-          : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
+          : Number(timedSegs[index + 1]?.tOffsetMs) || 0;
       const declaredEnd = tStartMs + nextOffset;
       const nextEventStart = findNextEffectiveEventStart(
         sourceEvents,
@@ -188,13 +207,13 @@ export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
         start
       );
       const effectiveEnd =
-        index === normalizedSegs.length - 1 &&
+        index === timedSegs.length - 1 &&
         Number.isFinite(nextEventStart) &&
         nextEventStart > start
           ? Math.min(declaredEnd, nextEventStart)
           : declaredEnd;
       const isAsrSegment = Object.prototype.hasOwnProperty.call(
-        normalizedSegs[index],
+        timedSegs[index],
         "acAsrConf"
       );
       const expanded =
@@ -208,7 +227,7 @@ export function prepareTimedTextEvents(rawEvents = [], fromLang = "auto") {
       }
 
       buffer = { text, start };
-      if (index === normalizedSegs.length - 1) {
+      if (index === timedSegs.length - 1) {
         buffer.end = tStartMs + dDurationMs;
       }
     }

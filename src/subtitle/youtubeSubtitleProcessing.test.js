@@ -175,6 +175,44 @@ describe("youtubeSubtitleProcessing", () => {
     ]);
   });
 
+  test("keeps the text of every seg when a multi-seg event has no tOffsetMs", () => {
+    const prepared = prepareTimedTextEvents([
+      {
+        tStartMs: 1000,
+        dDurationMs: 2000,
+        segs: [
+          { utf8: "a layperson who doesn't\nwant to " },
+          { utf8: "admit", pPenId: 1 },
+          { utf8: " they don't comprehend this" },
+        ],
+      },
+    ]);
+
+    expect(prepared.flatEvents).toEqual([
+      {
+        text: "a layperson who doesn't want to admit they don't comprehend this",
+        start: 1000,
+        end: 3000,
+      },
+    ]);
+  });
+
+  test("keeps every ASR phrase seg that carries no tOffsetMs", () => {
+    const words = prepareTimedTextEvents([
+      {
+        tStartMs: 0,
+        dDurationMs: 4000,
+        segs: [
+          { utf8: "a lay person", acAsrConf: 0 },
+          { utf8: "looked at this", acAsrConf: 0 },
+          { utf8: "and sees a mess", acAsrConf: 0 },
+        ],
+      },
+    ]).flatEvents.map((item) => item.text);
+
+    expect(words.join(" ")).toBe("a lay person looked at this and sees a mess");
+  });
+
   test("filters a non-speech segment inside a mixed event and keeps its time gap", () => {
     const prepared = prepareTimedTextEvents([
       {
