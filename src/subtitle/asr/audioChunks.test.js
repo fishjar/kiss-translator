@@ -16,8 +16,8 @@ const tone = (seconds, amplitude = 0.2) =>
     { length: seconds * ASR_SAMPLE_RATE },
     (_, i) => amplitude * Math.sin((i * 2 * Math.PI * 220) / ASR_SAMPLE_RATE)
   );
-const collect = (audio, size, limit = 3) => {
-  const chunker = new AsrAudioChunker(limit);
+const collect = (audio, size, limit = 3, options = {}) => {
+  const chunker = new AsrAudioChunker(limit, 0, options);
   const chunks = [];
   for (let offset = 0; offset < audio.length; offset += size)
     chunks.push(...chunker.push(audio.subarray(offset, offset + size)));
@@ -27,9 +27,11 @@ const collect = (audio, size, limit = 3) => {
 
 test("pause boundaries and retained tails do not depend on downloaded fragment sizes", () => {
   const audio = pcm(tone(1.4), new Float32Array(8000), tone(2.4));
-  const chunks = collect(audio, 177);
+  const chunks = collect(audio, 177, 3, { earlySilenceSplit: true });
   expect(chunks.map((chunk) => chunk.endSample)).toEqual(
-    collect(audio, 12347).map((chunk) => chunk.endSample)
+    collect(audio, 12347, 3, { earlySilenceSplit: true }).map(
+      (chunk) => chunk.endSample
+    )
   );
   expect(chunks[0].endSample / ASR_SAMPLE_RATE).toBeCloseTo(1.6);
   expect(pcm(...chunks.map((chunk) => chunk.audio))).toEqual(audio);
@@ -39,7 +41,14 @@ test("pause boundaries and retained tails do not depend on downloaded fragment s
   });
 });
 
-test.each([1, 2, 30, 300])(
+test("timestamped chunks do not split early on short pauses before the target window", () => {
+  const audio = pcm(tone(1.4), new Float32Array(8000), tone(2.4));
+  const chunks = collect(audio, 1024, 10);
+  expect(chunks).toHaveLength(1);
+  expect(chunks[0].endSample).toBe(audio.length);
+});
+
+test.each([1, 2, 30, 300, 600])(
   "continuous speech strictly respects %s seconds",
   (limit) => {
     const chunks = collect(tone(limit + 0.1), 1103, limit);
@@ -62,9 +71,9 @@ test("silence is covered without becoming an ASR request; EOF preserves a partia
   expect(short[0].silent).toBe(false);
 });
 
-test("the default is 30 seconds; invalid limits and discontinuous identities are not repaired", () => {
+test("the default is 20 seconds; invalid limits and discontinuous identities are not repaired", () => {
   expect(new AsrAudioChunker().limit).toBe(20 * ASR_SAMPLE_RATE);
-  for (const limit of [0, 301, 1.1, NaN, "30", null])
+  for (const limit of [0, 601, 1.1, NaN, "30", null])
     expect(() => new AsrAudioChunker(limit)).toThrow();
   expect(() => new AsrAudioChunker(30, -1)).toThrow();
   const chunker = new AsrAudioChunker(1, 16000);
@@ -75,10 +84,15 @@ test("the default is 30 seconds; invalid limits and discontinuous identities are
 });
 
 test("model and file budgets split below the configured maximum rather than truncate", () => {
-  const model = new AsrAudioChunker(300, 0, { maxModelDurationSeconds: 30 });
+  const model = new AsrAudioChunker(600, 0, { maxModelDurationSeconds: 30 });
   expect(model.limit).toBe(30 * ASR_SAMPLE_RATE);
-  const file = new AsrAudioChunker(300, 0, { maxBytes: 65536 });
+  const file = new AsrAudioChunker(600, 0, { maxBytes: 65536 });
   expect(file.limit * 2 + 44).toBeLessThanOrEqual(65536);
+  const compressed = new AsrAudioChunker(600, 0, {
+    maxBytes: 65536,
+    compressed: true,
+  });
+  expect(compressed.limit).toBe(600 * ASR_SAMPLE_RATE);
   const input = tone(4);
   const chunks = [...file.push(input), ...file.finish()];
   expect(pcm(...chunks.map((chunk) => chunk.audio))).toEqual(input);

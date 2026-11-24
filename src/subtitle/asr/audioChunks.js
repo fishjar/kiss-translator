@@ -1,7 +1,7 @@
 import { asrMaxDurationSeconds } from "../../providers/asrLimits";
 
 export const ASR_SAMPLE_RATE = 16000;
-export const ASR_MAX_WAV_BYTES = 8 * 1024 * 1024;
+export const ASR_MAX_WAV_BYTES = 16 * 1024 * 1024;
 const FRAME_SAMPLES = 320; // 20 ms, independent of downloaded media boundaries.
 
 /** Feed contiguous, resampled mono PCM. Drain each iterator before feeding more. */
@@ -13,6 +13,8 @@ export class AsrAudioChunker {
       maxBytes = ASR_MAX_WAV_BYTES,
       maxModelDurationSeconds = Infinity,
       boundaryPaddingSeconds = 0,
+      compressed = false,
+      earlySilenceSplit = false,
     } = {}
   ) {
     if (
@@ -23,11 +25,14 @@ export class AsrAudioChunker {
       boundaryPaddingSeconds < 0
     )
       throw new Error("Invalid ASR input limits.");
+    const wavSampleLimit = compressed
+      ? Infinity
+      : Math.floor(
+          (Math.min(maxBytes, ASR_MAX_WAV_BYTES) - 44) / 2 / FRAME_SAMPLES
+        ) * FRAME_SAMPLES;
     this.limit = Math.min(
       asrMaxDurationSeconds(maxDurationSeconds) * ASR_SAMPLE_RATE,
-      Math.floor(
-        (Math.min(maxBytes, ASR_MAX_WAV_BYTES) - 44) / 2 / FRAME_SAMPLES
-      ) * FRAME_SAMPLES,
+      wavSampleLimit,
       Math.floor((maxModelDurationSeconds * ASR_SAMPLE_RATE) / FRAME_SAMPLES) *
         FRAME_SAMPLES
     );
@@ -45,6 +50,7 @@ export class AsrAudioChunker {
     }
     if (!Number.isSafeInteger(startSample) || startSample < 0)
       throw new Error("Invalid audio start sample.");
+    this.earlySilenceSplit = Boolean(earlySilenceSplit);
     this.start = startSample;
     this.buffer = new Float32Array(this.limit);
     this.length = 0;
@@ -96,7 +102,10 @@ export class AsrAudioChunker {
   }
 
   boundary() {
-    if (this.length >= ASR_SAMPLE_RATE) {
+    const minSilenceSplitLength = this.earlySilenceSplit
+      ? ASR_SAMPLE_RATE
+      : Math.max(ASR_SAMPLE_RATE, Math.floor(this.limit * 0.8));
+    if (this.length >= minSilenceSplitLength) {
       let silenceStart = this.analyzed;
       for (let i = this.frames.length - 1; i >= 0; i--) {
         if (this.frames[i].speech) break;

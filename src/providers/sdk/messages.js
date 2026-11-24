@@ -37,7 +37,7 @@ export async function prepareMessages(messages, readAsset) {
       const buffer = await readAsset(ref);
       if (
         Object.prototype.toString.call(buffer) !== "[object ArrayBuffer]" ||
-        buffer.byteLength > 8 * 1024 * 1024
+        buffer.byteLength > 16 * 1024 * 1024
       )
         throw providerError(
           "RESOURCE_BUDGET_EXCEEDED",

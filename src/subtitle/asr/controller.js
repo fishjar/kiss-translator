@@ -34,6 +34,7 @@ export class YoutubeAsrController {
     onState,
     onSubtitles,
     onTasks = () => {},
+    getAsrContext,
     bridge,
     cache,
     languagePreferences = asrLanguagePreferences,
@@ -45,6 +46,7 @@ export class YoutubeAsrController {
       getVideo,
       onState,
       onSubtitles,
+      getAsrContext,
       createSession,
       languagePreferences,
       translationPreferences,
@@ -413,6 +415,7 @@ export class YoutubeAsrController {
           ? (limits) => signatures(limits, selected, targetLanguage)
           : () => signatures,
       getLimits: effectiveAsrLimits,
+      getAsrContext: this.getAsrContext,
       textProcessor: createAsrTextProcessor(setting, {
         ...identity,
         sourceLanguage: language,

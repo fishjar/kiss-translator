@@ -307,7 +307,7 @@ export function AsrDurationSetting({
           value={value ?? ""}
           error={invalid}
           helperText={i18n("service_asr_max_duration_hint")}
-          inputProps={{ min: 1, max: 300, step: 1 }}
+          inputProps={{ min: 1, max: 600, step: 1 }}
           onChange={(event) =>
             onChange(
               event.target.value === "" ? "" : Number(event.target.value)

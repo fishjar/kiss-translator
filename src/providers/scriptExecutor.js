@@ -88,10 +88,10 @@ export function createScriptExecutor(
             result = await ctx.secrets.sign(data.args.ref, data.args.options);
           else if (data.method === "asset.read") {
             const blob = ctx.assets.get(data.args);
-            if (blob.size > 8 * 1024 * 1024)
+            if (blob.size > 16 * 1024 * 1024)
               throw providerError(
                 "RESOURCE_BUDGET_EXCEEDED",
-                "Asset exceeds 8 MiB."
+                "Asset exceeds 16 MiB."
               );
             result = await blob.arrayBuffer();
           } else if (data.method === "stream.start") {

@@ -341,8 +341,35 @@ test("same-language and aborted work do not call a translation service", async (
 });
 test("network services retain the bridge file budget without loading local AI settings", async () => {
   expect(await effectiveAsrLimits({ apiType: "OpenAI" })).toEqual({
-    maxBytes: 8 * 1024 * 1024,
+    maxBytes: 16 * 1024 * 1024,
   });
+});
+
+test("setContextSummary reuses precomputed context without duplicate summarization", async () => {
+  apiSummarizeContext.mockClear();
+  apiTranslate.mockResolvedValue({ trText: ["translated"] });
+  const processor = createAsrTextProcessor(
+    {
+      ...setting,
+      aiContextSlug: "context",
+      transApis: [{ apiSlug: "context", apiType: "OpenAI" }],
+    },
+    identity
+  );
+  processor.setContextSummary("precomputed smart context");
+  const signal = new AbortController().signal;
+  await processor.translate(
+    [{ start: 0, end: 1000, text: "Hello", translation: "" }],
+    signal
+  );
+  expect(apiSummarizeContext).not.toHaveBeenCalled();
+  expect(apiTranslate).toHaveBeenCalledWith(
+    expect.objectContaining({
+      docInfo: expect.objectContaining({
+        summary: "precomputed smart context",
+      }),
+    })
+  );
 });
 
 test("audio-block translation enriches context without invoking segmentation", async () => {

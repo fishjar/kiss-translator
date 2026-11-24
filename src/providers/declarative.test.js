@@ -367,7 +367,7 @@ test("protocol format runs through capability routing, applies image prompts and
   });
   const oversized = ctx.assets.put({
     type: "image/png",
-    size: 8 * 1024 * 1024 + 1,
+    size: 16 * 1024 * 1024 + 1,
   });
   await expect(invoke({ image: oversized })).rejects.toMatchObject({
     code: "RESOURCE_BUDGET_EXCEEDED",

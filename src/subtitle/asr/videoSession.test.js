@@ -1727,7 +1727,140 @@ test("remote recognition prepares M4A from original cached segments with the sam
   expect(cropAacSentence).toHaveBeenCalled();
   expect(cropAacSentence.mock.calls.at(-1)[3]).toMatchObject({
     signal: expect.anything(),
-    maxBytes: 8 * 1024 * 1024,
+    maxBytes: 16 * 1024 * 1024,
   });
   expect(test.download.acquire).toHaveBeenCalledTimes(1);
+});
+
+test("remote ASR splits oversized failing chunks in half and retries automatically", async () => {
+  const test = setup({
+    durationMs: 24000,
+    asrService: {
+      apiSlug: "remote",
+      apiType: "Plugin",
+      asrTimestampSupport: "supported",
+      asrMaxDurationSeconds: 60,
+    },
+  });
+  const seenSpans = [];
+  test.recognize.mockImplementation(async (_service, chunk) => {
+    const durationSec = (chunk.endSample - chunk.startSample) / 16000;
+    seenSpans.push(durationSec);
+    if (durationSec > 15) {
+      throw Object.assign(new Error("HTTP 413 Payload Too Large"), {
+        code: "HTTP_ERROR",
+      });
+    }
+    return {
+      startSample: chunk.startSample,
+      endSample: chunk.endSample,
+      silent: false,
+      timingSource: "asr",
+      segments: [
+        {
+          start: chunk.startSample / 16000,
+          end: chunk.endSample / 16000,
+          text: `seg-${chunk.startSample}`,
+        },
+      ],
+    };
+  });
+  await test.session.start();
+  await until(() => test.session.state.phase === "complete");
+  expect(seenSpans[0]).toBeGreaterThan(15);
+  expect(seenSpans.slice(1)).toEqual([12, 12]);
+  expect(test.session.chunkDurationSeconds).toBeLessThanOrEqual(12);
+});
+
+test("passes base context and rolling previous transcript to ASR, and disables prompt after promptUnsupported", async () => {
+  const getAsrContext = jest.fn(async () => ({
+    basePrompt: "Title: Space Demo\nTerms: NebulaCore",
+    summary: "Smart summary for Space Demo",
+  }));
+  const test = setup({
+    durationMs: 18000,
+    asrService: {
+      apiSlug: "remote",
+      apiType: "Plugin",
+      asrTimestampSupport: "supported",
+      asrMaxDurationSeconds: 6,
+    },
+    getAsrContext,
+  });
+  const seenContexts = [];
+  let callIndex = 0;
+  test.recognize.mockImplementation(async (_service, chunk, options) => {
+    seenContexts.push(options.context);
+    callIndex++;
+    return {
+      startSample: chunk.startSample,
+      endSample: chunk.endSample,
+      silent: false,
+      timingSource: "asr",
+      ...(callIndex === 2 && { promptUnsupported: true }),
+      segments: [
+        {
+          start: chunk.startSample / 16000,
+          end: chunk.endSample / 16000,
+          text: `Line ${callIndex} about NebulaCore.`,
+        },
+      ],
+    };
+  });
+  await test.session.start();
+  await until(() => test.session.state.phase === "complete");
+  expect(getAsrContext).toHaveBeenCalledTimes(1);
+  expect(seenContexts[0]).toBe("Title: Space Demo\nTerms: NebulaCore");
+  expect(seenContexts[1]).toContain("Title: Space Demo\nTerms: NebulaCore");
+  expect(seenContexts[1]).toContain(
+    "Previous transcript: Line 1 about NebulaCore."
+  );
+  expect(seenContexts[2]).toBeUndefined();
+});
+
+test("recognized ASR blocks stay hidden until streamed or translated cues arrive", async () => {
+  let finishSegment;
+  let emitStreamUpdate;
+  const test = setup({
+    durationMs: 4000,
+    asrService: {
+      apiSlug: "remote",
+      apiType: "Plugin",
+      asrTimestampSupport: "supported",
+      asrMaxDurationSeconds: 10,
+    },
+  });
+  test.textProcessor.segment.mockImplementationOnce(
+    (_segments, _signal, _wait, onUpdate) =>
+      new Promise((resolve) => {
+        emitStreamUpdate = onUpdate;
+        finishSegment = resolve;
+      })
+  );
+  await test.session.start();
+  await until(() => typeof finishSegment === "function");
+  expect(test.session.subtitles()).toEqual([]);
+  emitStreamUpdate([
+    { start: 0, end: 2000, text: "First sentence.", translation: "第一句。" },
+  ]);
+  expect(test.session.subtitles()).toEqual([
+    expect.objectContaining({
+      start: 0,
+      end: 2000,
+      text: "First sentence.",
+      translation: "第一句。",
+    }),
+  ]);
+  finishSegment([
+    { start: 0, end: 2000, text: "First sentence.", translation: "第一句。" },
+    {
+      start: 2000,
+      end: 4000,
+      text: "Second sentence.",
+      translation: "第二句。",
+    },
+  ]);
+  await until(() => test.session.state.phase === "complete");
+  expect(test.session.subtitles()).toHaveLength(2);
+  expect(test.session.streamingSubtitles.size).toBe(0);
 });

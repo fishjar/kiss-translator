@@ -802,6 +802,29 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
       global.MutationObserver = NativeObserver;
     }
   });
+  test("ASR opens the sidebar when showList is enabled and first cues arrive", async () => {
+    mockDelayAsr = true;
+    mockAcquire.mockReturnValue(new Promise(() => {}));
+    create({ asrApiSlug: "asr", showList: "on" });
+    await act(async () => flushPromises());
+    props().asrActions.start();
+    const asr = mockAsrControllers[0];
+    expect(asr.start).toHaveBeenCalledTimes(1);
+    expect(YouTubeSubtitleList).not.toHaveBeenCalled();
+    asr.options.onSubtitles(
+      [{ start: 0, end: 1000, text: "audio", translation: "语音" }],
+      { recognition: { percent: 10 } }
+    );
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+    expect(props().subtitleListVisible).toBe(true);
+    YouTubeSubtitleList.mock.calls[0][2].onClose();
+    expect(props().subtitleListVisible).toBe(false);
+    asr.options.onSubtitles(
+      [{ start: 0, end: 1000, text: "audio", translation: "语音" }],
+      { recognition: { percent: 20 } }
+    );
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+  });
   test("ASR start does not open the sidebar, and the list switch can reopen it during recognition", async () => {
     mockDelayAsr = true;
     create({ asrApiSlug: "asr", showList: "off" });
@@ -1129,15 +1152,15 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
     }
   );
 
-  test("configured ASR does not open a list during caption loading or when manually started cues arrive", async () => {
+  test("configured ASR does not open a list during caption loading, and opens when manually started cues arrive", async () => {
     mockAcquire.mockReturnValue(new Promise(() => {}));
     create({ showList: "on", asrApiSlug: "asr" });
     await flushPromises();
     expect(YouTubeSubtitleList).not.toHaveBeenCalled();
     props().asrActions.start();
     expect(mockManagers.at(-1).formattedSubtitles[0].text).toBe("audio");
-    expect(YouTubeSubtitleList).not.toHaveBeenCalled();
-    expect(props().subtitleListVisible).toBe(false);
+    expect(YouTubeSubtitleList).toHaveBeenCalledTimes(1);
+    expect(props().subtitleListVisible).toBe(true);
   });
 
   test("manual empty list reopens immediately after translation resumes without ASR support", async () => {
@@ -1777,5 +1800,49 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
 
     // 防抖后只执行一次重译
     expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
+  });
+
+  test("starting ASR keeps in-flight smart context running and reuses it without duplicate requests", async () => {
+    const longTranscript = Array.from(
+      { length: 40 },
+      (_, i) => `Synthetic line ${i} discussing NebulaCore architecture.`
+    ).join(" ");
+    prepareTimedTextEvents.mockReturnValue({
+      events: [{ text: longTranscript }],
+      flatEvents: [{ start: 0, end: 5000, text: longTranscript }],
+    });
+
+    let resolveSummary;
+    apiSummarizeContext.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSummary = resolve;
+        })
+    );
+
+    mockDelayAsr = true;
+    create({
+      asrApiSlug: "asr",
+      aiContextSlug: "ai-ctx",
+      transApis: [
+        { apiSlug: "ai-ctx", apiType: "openai", model: "gpt-4o-mini" },
+      ],
+    });
+    await flushPromises();
+    await flushPromises();
+    expect(apiSummarizeContext).toHaveBeenCalledTimes(1);
+
+    props().asrActions.start();
+    await flushPromises();
+
+    expect(apiSummarizeContext).toHaveBeenCalledTimes(1);
+
+    const asr = mockAsrControllers[0];
+    const ctxPromise = asr.options.getAsrContext(new AbortController().signal);
+    resolveSummary("NebulaCore glossary and topic summary");
+    const ctx = await ctxPromise;
+    expect(ctx.summary).toBe("NebulaCore glossary and topic summary");
+    expect(ctx.basePrompt).toContain("NebulaCore glossary and topic summary");
+    expect(apiSummarizeContext).toHaveBeenCalledTimes(1);
   });
 });

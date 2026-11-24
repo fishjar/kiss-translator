@@ -1,7 +1,7 @@
 import { providerError } from "./capabilities";
 
 // Each packet is 64 KiB of bytes. Total assets are bounded before IPC allocation.
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 16 * 1024 * 1024;
 const CHUNK_BYTES = 64 * 1024;
 /** Encode one slice at a time; backpressure must arrive before allocating the next slice. */
 export async function* assetMessages(store, ids) {
@@ -12,7 +12,7 @@ export async function* assetMessages(store, ids) {
   )
     throw providerError(
       "INPUT_LIMIT_EXCEEDED",
-      "Assets exceed 8 files or 8 MiB."
+      "Assets exceed 8 files or 16 MiB."
     );
   for (const [assetId, blob] of entries) {
     const ref = {
