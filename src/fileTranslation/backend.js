@@ -22,6 +22,7 @@ import {
 } from "../config/prompt";
 import { providerCacheSignature } from "../providers/cache";
 import { prepareImage } from "../localAi/core/inputLimits";
+import { imageDecodePlan } from "./imageDimensions";
 import {
   getSettingWithDefault,
   normalizeStoredSetting,
@@ -378,7 +379,8 @@ export async function executeFileMethod(
         const prepared = await prepareImage(
           new Blob(upload.chunks, { type: upload.type }),
           await inputSettings(),
-          signal
+          signal,
+          { validateFile: true }
         );
         const result = await invokeImageProvider(
           api,
@@ -425,6 +427,7 @@ export async function executeFileMethod(
     uploads.delete(params.uploadId);
     clearTimeout(upload.timer);
     const file = new Blob(upload.chunks, { type: upload.type });
+    await imageDecodePlan(file);
     // This complete-result bridge needs no client state observer. Reuse the
     // shared runtime directly; never add a per-page listener or unload its model.
     return runtimeHost.request(
@@ -616,7 +619,8 @@ export async function executeFileMethod(
     const prepared = await prepareImage(
       new Blob(upload.chunks, { type: upload.type }),
       await inputSettings(),
-      signal
+      signal,
+      { validateFile: true }
     );
     if (params.kind !== undefined && !["image", "pdf"].includes(params.kind))
       throw fileError("INVALID_INPUT", "Invalid image scene.");

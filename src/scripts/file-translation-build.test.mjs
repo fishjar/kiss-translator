@@ -10,6 +10,30 @@ const exists = async (file) =>
     () => false
   );
 const sites = await readJson("src/config/fileTranslationSites.json");
+const zipEntries = ["src/libs/epub/epubArchive.js", "src/libs/zipOutput.js"];
+
+test("file translation ZIP modules run on the standalone website", async () => {
+  const homepage = await readJson("tmp/build-analysis/homepage-modules.json");
+  for (const entry of zipEntries) assert.ok(homepage.includes(entry), entry);
+
+  function* moduleNames(modules) {
+    for (const module of modules) {
+      if (module.name) yield module.name.replaceAll("\\", "/");
+      if (module.modules) yield* moduleNames(module.modules);
+    }
+  }
+  for (const target of ["chrome", "firefox"]) {
+    const { modules } = await readJson(`tmp/build-analysis/${target}-webpack.json`);
+    assert.ok(modules.length, `${target} module graph is empty`);
+    for (const name of moduleNames(modules)) {
+      assert.ok(
+        !zipEntries.some((entry) => name.includes(entry)) &&
+          !name.includes("@zip.js/zip.js") && !name.includes("@zip.js+zip.js"),
+        `${target} contains standalone ZIP module ${name}`
+      );
+    }
+  }
+});
 
 test("homepage compilation excludes extension services and executable AI assets", async () => {
   const modules = await readJson("tmp/build-analysis/homepage-modules.json");

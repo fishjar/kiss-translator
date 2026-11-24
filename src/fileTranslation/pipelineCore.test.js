@@ -324,7 +324,33 @@ describe("pipelineCore", () => {
     prepareImage.mockImplementation(
       jest.requireActual("../localAi/core/inputLimits").prepareImage
     );
-    const blob = new Blob(["image"], { type: "image/png" });
+    const png = Uint8Array.of(
+      137,
+      80,
+      78,
+      71,
+      13,
+      10,
+      26,
+      10,
+      0,
+      0,
+      0,
+      13,
+      73,
+      72,
+      68,
+      82,
+      0,
+      0,
+      1,
+      144,
+      0,
+      0,
+      1,
+      44
+    );
+    const blob = new Blob([png], { type: "image/png" });
     blob.arrayBuffer = async () => new ArrayBuffer(5);
     HTMLCanvasElement.prototype.toBlob.mockImplementation((callback) =>
       callback(blob)
@@ -358,7 +384,8 @@ describe("pipelineCore", () => {
     expect(prepareImage).toHaveBeenLastCalledWith(
       blob,
       expect.objectContaining({ maxImageEdge: expect.any(Number) }),
-      expect.anything()
+      expect.anything(),
+      { validateFile: true }
     );
   });
 

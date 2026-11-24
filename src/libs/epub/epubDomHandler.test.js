@@ -59,6 +59,36 @@ describe("epubDomHandler 测试套件", () => {
     expect(unmasked).toContain("请参见注脚");
   });
 
+  test("bilingual navigation keeps labels and nested ordered lists in their original elements", () => {
+    const doc = parseXhtmlToDoc(`
+      <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+        <body><nav epub:type="toc"><ol><li id="parent"><span>Part one</span>
+          <ol><li id="child"><a href="chapter.xhtml#section">First chapter</a></li></ol>
+        </li></ol></nav></body>
+      </html>`);
+    const units = extractTranslatableUnits(doc);
+    expect(units.map(({ maskedText }) => maskedText)).toEqual([
+      "Part one",
+      "First chapter",
+    ]);
+    units[0].targetHtml = "第一部分";
+    units[1].targetHtml = "第一章";
+    applyTranslationToDoc(units);
+    const parent = doc.getElementById("parent");
+    const child = doc.getElementById("child");
+    expect(Array.from(parent.children, (node) => node.localName)).toEqual([
+      "span",
+      "ol",
+    ]);
+    expect(child.children).toHaveLength(1);
+    expect(child.firstElementChild.getAttribute("href")).toBe(
+      "chapter.xhtml#section"
+    );
+    expect(child.querySelector("a .kt-bilingual-target").textContent).toBe(
+      "第一章"
+    );
+  });
+
   test("双语行内插入模式应用", () => {
     const xhtml = `<html><body><p>Hello world.</p></body></html>`;
     const doc = parseXhtmlToDoc(xhtml);

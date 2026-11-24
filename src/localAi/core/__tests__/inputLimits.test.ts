@@ -5,6 +5,11 @@ import { checkFileSize, cropAudio, cropTtsText, imageDimensions, prepareImage } 
 
 afterEach(() => vi.unstubAllGlobals());
 
+const pngHeader = new Blob([Uint8Array.of(
+  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13,
+  73, 72, 68, 82, 0, 0, 11, 184, 0, 0, 7, 208
+)], { type: "image/png" });
+
 describe("input limits", () => {
   it("migrates missing and invalid limits while preserving valid values", () => {
     expect(normalizeSettings({})).toMatchObject(DEFAULT_SETTINGS);
@@ -61,7 +66,7 @@ describe("input limits", () => {
       getContext() { return { drawImage }; }
       convertToBlob = vi.fn(async (opts) => { expect(opts.type).toBe("image/png"); return output; });
     });
-    const result = await prepareImage(new Blob(["source"]), DEFAULT_SETTINGS, new AbortController().signal);
+    const result = await prepareImage(pngHeader, DEFAULT_SETTINGS, new AbortController().signal);
     expect(result.blob).toBe(output);
     expect(result.original).toEqual({ width: 3000, height: 2000 });
     expect(result.size).toEqual({ width: 1536, height: 1024 });
@@ -83,7 +88,7 @@ describe("input limits", () => {
       controller.abort("REQUEST_CANCELLED: cancelled");
       return { width: 10, height: 10, close };
     }));
-    await expect(prepareImage(new Blob(), DEFAULT_SETTINGS, controller.signal)).rejects.toThrow("REQUEST_CANCELLED");
+    await expect(prepareImage(pngHeader, DEFAULT_SETTINGS, controller.signal)).rejects.toThrow("REQUEST_CANCELLED");
     expect(close).toHaveBeenCalledOnce();
   });
 });

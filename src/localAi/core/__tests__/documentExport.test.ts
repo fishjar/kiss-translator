@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { unzipSync, strFromU8 } from "fflate";
 import { exportDocument } from "../../../libs/document/export";
+import { writeFileChunks, writeFileDownload } from "../../../fileTranslation/fileOutput";
 import { parseDocumentMarkdown, translateDocumentBlocks } from "../../../libs/document/markdown";
 function read(blob: Blob, binary = false): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -33,6 +34,89 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("document export resources", () => {
+  it("fails an export when a completed block has lost its stored translation", async () => {
+    setup();
+    const blocks = parseDocumentMarkdown("Original paragraph");
+    Object.assign(blocks[0], { status: "done", storedTranslation: "missing" });
+    const loadTranslation = vi.fn(async () => undefined);
+    await expect(exportDocument(blocks, "target", [], [], "document", "md", {
+      loadTranslation,
+    })).rejects.toThrow("找不到已保存的文档译文");
+    expect(loadTranslation).toHaveBeenCalledWith("missing");
+    await expect(exportDocument(blocks, "bilingual", [], [], "document", "md"))
+      .rejects.toThrow("找不到已保存的文档译文");
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
+    const original = await exportDocument(blocks, "source", [], [], "document", "md");
+    expect(await read(original as Blob)).toContain("Original paragraph");
+  });
+
+  it("does not begin writing when a save picker resolves after cancellation", async () => {
+    const abort = new AbortController();
+    const createWritable = vi.fn();
+    let accept!: (handle: { createWritable: typeof createWritable }) => void;
+    vi.stubGlobal("showSaveFilePicker", vi.fn(() => new Promise((resolve) => {
+      accept = resolve;
+    })));
+    const write = vi.fn();
+    const saving = writeFileDownload("test.txt", "text/plain", write, {
+      large: true,
+      signal: abort.signal,
+    });
+    abort.abort();
+    accept({ createWritable });
+    await expect(saving).rejects.toMatchObject({ name: "AbortError" });
+    expect(createWritable).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("keeps the OPFS download available past 30 seconds", async () => {
+    setup();
+    vi.useFakeTimers();
+    vi.stubGlobal("crypto", { randomUUID: () => "export-test" });
+    const removeEntry = vi.fn(async () => {});
+    const directory = {
+      async *entries() {},
+      removeEntry,
+      async getFileHandle() {
+        return {
+          async createWritable() { return new WritableStream(); },
+          async getFile() { return new Blob(["abc"], { type: "text/plain" }); },
+        };
+      },
+    };
+    vi.stubGlobal("navigator", {
+      storage: { async getDirectory() {
+        return { async getDirectoryHandle() { return directory; } };
+      } },
+    });
+    try {
+      await writeFileDownload("test.txt", "text/plain", (output) =>
+        writeFileChunks(output, [new TextEncoder().encode("abc")]), { large: true }
+      );
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(31_000);
+      expect(removeEntry).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(24 * 60 * 60 * 1000);
+      expect(removeEntry).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("streams archived PDF assets one at a time from the session store", async () => {
+    setup();
+    const image = asset();
+    const loadAsset = vi.fn(async () => image.blob);
+    const blocks = parseDocumentMarkdown("Before ![crop](assets/page-1.png) after");
+    const output = await exportDocument(
+      blocks, "source", [], [{ name: image.name, storedBlob: "asset:1", size: 3 }],
+      "stored", "zip", { loadAsset }
+    );
+    const files = unzipSync(new Uint8Array(await read(output, true)));
+    expect(loadAsset).toHaveBeenCalledWith("asset:1");
+    expect(files["assets/page-1.png"]).toEqual(new Uint8Array([1, 2, 3]));
+    expect(strFromU8(files["stored.source.md"])).toContain("assets/page-1.png");
+  });
+
   it("embeds inline formula fallback crops without losing surrounding prose", async () => {
     setup();
     const output = await exportDocument(parseDocumentMarkdown("Before ![原公式](blob:original-page) after"),
@@ -55,6 +139,22 @@ describe("document export resources", () => {
     expect(text).toContain("data:image/png;base64,AQID");
     expect(text).not.toContain("blob:original-page");
     expect(text).toContain("检查图表");
+  });
+  it("embeds repeated links once per chunk and leaves unlinked resource names alone", async () => {
+    setup();
+    const image = asset();
+    const loadAsset = vi.fn(async () => image.blob);
+    const blocks = parseDocumentMarkdown(
+      "Text assets/page-1.png ![A](assets/page-1.png) ![B](blob:original-page)"
+    );
+    const output = await exportDocument(blocks, "source", [], [
+      { name: image.name, url: image.url, storedBlob: "used", size: 3 },
+      { name: "unlinked.png", storedBlob: "unused", size: 3 },
+    ], "paper", "md", { loadAsset });
+    const text = await read(output as Blob);
+    expect(text).toContain("Text assets/page-1.png");
+    expect(text.match(/data:image\/png;base64,AQID/g)).toHaveLength(2);
+    expect(loadAsset.mock.calls).toEqual([["used"]]);
   });
   it("packages ZIP resources under assets with matching Markdown paths", async () => {
     setup();

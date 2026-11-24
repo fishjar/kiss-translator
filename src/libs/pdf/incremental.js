@@ -1,11 +1,25 @@
 import { mergeAcrossPages } from "./structure";
 
+function mayContinue(block, page) {
+  const last = block?.fragments.at(-1);
+  return (
+    block?.source === "native" &&
+    last?.bbox[3] > page?.height * 0.82 &&
+    ((block.type === "paragraph" &&
+      !/[.!?:;。！？：；]$/.test(block.text.trim())) ||
+      (block.type === "table" &&
+        block.cells?.length &&
+        /^\|/.test(block.markdown || "")))
+  );
+}
+
 // Merge only contiguous completed pages. The final open boundary is not stable yet.
 export function incrementalPdfBlocks(
   pageBlocks,
   pages,
   completedPages,
-  numPages
+  numPages,
+  firstIndex = 0
 ) {
   const completed = new Set(completedPages),
     output = [];
@@ -17,14 +31,7 @@ export function incrementalPdfBlocks(
       last = tail?.fragments.at(-1);
     const page = pages.find((item) => item.page === last?.page);
     const open = last && last.page < numPages && !completed.has(last.page + 1);
-    const continuation =
-      tail?.source === "native" &&
-      last?.bbox[3] > page?.height * 0.82 &&
-      ((tail.type === "paragraph" &&
-        !/[.!?:;。！？：；]$/.test(tail.text.trim())) ||
-        (tail.type === "table" &&
-          tail.cells?.length &&
-          /^\|/.test(tail.markdown || "")));
+    const continuation = mayContinue(tail, page);
     output.push(
       ...merged.map((block) => ({
         ...block,
@@ -33,7 +40,7 @@ export function incrementalPdfBlocks(
     );
     run = [];
   };
-  for (let index = 0; index < pageBlocks.length; index++) {
+  for (let index = firstIndex; index < pageBlocks.length; index++) {
     if (completed.has(index + 1)) run.push(...(pageBlocks[index] || []));
     else {
       flush();
@@ -47,4 +54,49 @@ export function incrementalPdfBlocks(
   }
   flush();
   return output;
+}
+
+// Publish each stable prefix once. Only the unconfirmed boundary is carried
+// forward, including a table or paragraph that extends over several pages.
+export function createPdfReadingSnapshot(convert, numPages) {
+  let index = 0;
+  let stable = [];
+  let boundary;
+  return (pageBlocks, pages, completed) => {
+    if (index && !completed.has(index)) {
+      index = 0;
+      stable = [];
+      boundary = undefined;
+    }
+    while (completed.has(index + 1)) {
+      const next = pageBlocks[index] || [];
+      const merged = mergeAcrossPages(
+        boundary ? [boundary, ...next] : next,
+        [pages[index - 1], pages[index]].filter(Boolean)
+      );
+      const tail = merged.at(-1);
+      boundary = undefined;
+      if (
+        index + 1 < numPages &&
+        tail?.fragments.at(-1)?.page === index + 1 &&
+        mayContinue(tail, pages[index])
+      ) {
+        boundary = merged.pop();
+      }
+      for (const block of convert(
+        merged.map((block) => ({ ...block, translationReady: true }))
+      ))
+        stable.push(block);
+      index++;
+    }
+    const pending = boundary ? [{ ...boundary, translationReady: false }] : [];
+    const remaining = incrementalPdfBlocks(
+      pageBlocks,
+      pages.filter(Boolean),
+      completed,
+      numPages,
+      index
+    );
+    return [...stable, ...convert([...pending, ...remaining])];
+  };
 }

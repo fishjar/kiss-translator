@@ -109,7 +109,7 @@ export function getEpubFooterHtml(lang = "zh") {
   const formatted = template
     .replace("{0}", EPUB_FOOTER_BRAND_HTML)
     .replace("{brand}", EPUB_FOOTER_BRAND_HTML);
-  return `<div class="kt-epub-footer" align="center" style="display: flex; align-items: center; justify-content: center; margin: 3.5em auto 2em auto; padding: 0; text-align: center !important; clear: both; width: 100%;"><span class="kt-epub-footer-line" style="display: inline-block; width: 48px; height: 1px; background-color: #d1d5db; vertical-align: middle; margin-right: 14px; flex-shrink: 0;"></span><span class="kt-epub-footer-text" style="display: inline-block; margin: 0 14px; padding: 0; font-size: 0.82em; color: #888888; vertical-align: middle; white-space: nowrap; text-align: center !important;">${formatted}</span><span class="kt-epub-footer-line" style="display: inline-block; width: 48px; height: 1px; background-color: #d1d5db; vertical-align: middle; margin-left: 14px; flex-shrink: 0;"></span></div>`;
+  return `<div class="kt-epub-footer" style="display: flex; align-items: center; justify-content: center; margin: 3.5em auto 2em auto; padding: 0; text-align: center !important; clear: both; width: 100%;"><span class="kt-epub-footer-line" style="display: inline-block; width: 48px; height: 1px; background-color: #d1d5db; vertical-align: middle; margin-right: 14px; flex-shrink: 0;"></span><span class="kt-epub-footer-text" style="display: inline-block; margin: 0 14px; padding: 0; font-size: 0.82em; color: #888888; vertical-align: middle; white-space: nowrap; text-align: center !important;">${formatted}</span><span class="kt-epub-footer-line" style="display: inline-block; width: 48px; height: 1px; background-color: #d1d5db; vertical-align: middle; margin-left: 14px; flex-shrink: 0;"></span></div>`;
 }
 
 /**
@@ -133,8 +133,12 @@ export function injectFooterIntoXhtml(xhtmlContent, langOrCustomHtml = "zh") {
       : getEpubFooterHtml(langOrCustomHtml || "zh");
 
   // 1. 标准情况：存在 </body> 闭合标签
-  if (/<\/body>/i.test(xhtmlContent)) {
-    return xhtmlContent.replace(/<\/body>/i, `  ${footerHtml}\n</body>`);
+  if (/<\/(?:[\w.-]+:)?body\s*>/i.test(xhtmlContent)) {
+    return xhtmlContent.replace(
+      /<\/([\w.-]+:)?body\s*>/i,
+      (tag, prefix) =>
+        `  ${prefix ? footerHtml.replace("<div", '<div xmlns="http://www.w3.org/1999/xhtml"') : footerHtml}\n${tag}`
+    );
   }
 
   // 2. 自闭合 body 标签（如空章节 <body/> 或 <body class="..."/>）：展开并在其内部注入 footer
@@ -453,7 +457,9 @@ export function extractTitleMapFromChapterStates(
         const links = navDoc.querySelectorAll("a[href]");
         links.forEach((a) => {
           const href = a.getAttribute("href");
-          const text = a.textContent?.trim();
+          const text =
+            a.querySelector(".kt-bilingual-target")?.textContent?.trim() ||
+            a.textContent?.trim();
           if (href && text) {
             const [cleanHref, rawHash = ""] = href.split("#");
             const fullPath = normalizePath(navDir + safeDecodeURI(cleanHref));

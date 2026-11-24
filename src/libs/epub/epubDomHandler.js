@@ -3,6 +3,10 @@
  */
 import { normalizePath, safeDecodeURI } from "./epubParser";
 import DOMPurify from "dompurify";
+import {
+  imageDecodePlan,
+  resizeFileTranslationImage,
+} from "../../fileTranslation/imageDimensions";
 
 // 块级标签集合（对齐插件 Translator.TAGS.BLOCK，使用小写以兼容严格 XML 文档查询）
 export const BLOCK_TAGS = new Set([
@@ -601,12 +605,35 @@ export function unmaskEpubInlineElements(text, masks = []) {
  * @param {Array<Element>} leaves 收集结果
  * @returns {Array<Element>}
  */
-function collectLeafBlocks(node, leaves = []) {
+function collectLeafBlocks(node, leaves = [], navigation = false) {
   if (!node || node.nodeType !== 1) return leaves;
   if (isIgnoredNode(node)) return leaves;
 
   const tag = node.tagName.toLowerCase();
   const isDocRoot = tag === "html" || tag === "body";
+  navigation ||=
+    tag === "nav" &&
+    (node.hasAttribute("epub:type") || node.getAttribute("role") === "doc-toc");
+
+  if (navigation && tag === "li") {
+    const collectLabel = (element) => {
+      if (isIgnoredNode(element)) return;
+      const name = element.localName;
+      if (
+        name === "a" ||
+        (name === "span" && !element.querySelector("a, ol, ul"))
+      ) {
+        const text = element.textContent?.trim();
+        if (text && !isPureNoise(text)) leaves.push(element);
+      } else if (name === "ol" || name === "ul") {
+        collectLeafBlocks(element, leaves, navigation);
+      } else {
+        for (const child of element.children) collectLabel(child);
+      }
+    };
+    for (const child of node.children) collectLabel(child);
+    return leaves;
+  }
 
   if (isDocRoot || hasBlockChildren(node)) {
     // 存在子块：若同时包含直接非空白文本节点，进行混合内容包裹
@@ -615,7 +642,7 @@ function collectLeafBlocks(node, leaves = []) {
     }
     // 按照文档严格前序递归遍历所有子元素
     for (const child of Array.from(node.children)) {
-      collectLeafBlocks(child, leaves);
+      collectLeafBlocks(child, leaves, navigation);
     }
   } else {
     // 不包含任何块级子元素：若为块级元素或动态叶子块，且包含有效文本，则认定为叶子块容器
@@ -1088,9 +1115,86 @@ export function getMimeTypeByExt(path = "") {
  * @param {Object} filesMap 解压出来的 filesMap 文件字典
  * @returns {Array<string>} 本次解析生成的 Blob URLs 数组，供组件在卸载时 revokeObjectURL 释放
  */
+const XLINK = "http://www.w3.org/1999/xlink";
+
+function clearEpubImageReference(image) {
+  image.removeAttribute("href");
+  image.removeAttribute("xlink:href");
+  image.removeAttributeNS(XLINK, "href");
+}
+
+export async function readEpubImages(
+  doc,
+  chapterFullPath,
+  archive,
+  signal,
+  preview = false
+) {
+  const files = Object.create(null);
+  const failures = new Map();
+  let bytesRemaining = 16 * 1024 ** 2;
+  const chapterDir = chapterFullPath.slice(
+    0,
+    chapterFullPath.lastIndexOf("/") + 1
+  );
+  for (const image of doc.querySelectorAll("img[src], image")) {
+    const value =
+      image.getAttribute("src") ||
+      image.getAttributeNS(XLINK, "href") ||
+      image.getAttribute("xlink:href") ||
+      image.getAttribute("href");
+    if (!value || /^(?:[\w+.-]+:|\/\/)/i.test(value.trim())) continue;
+    const name = value.split(/[?#]/)[0];
+    const decoded = normalizePath(chapterDir + safeDecodeURI(name));
+    const path = archive.has(decoded)
+      ? decoded
+      : normalizePath(chapterDir + name);
+    if (files[path]) continue;
+    try {
+      if (failures.has(path)) throw failures.get(path);
+      if (!archive.has(path) || archive.size(path) > bytesRemaining) {
+        if (!preview) continue;
+        throw new Error("EPUB 插图不可用或超过预览预算");
+      }
+      const bytes = await archive.read(path, {
+        cache: false,
+        signal,
+        maxBytes: bytesRemaining,
+      });
+      bytesRemaining -= bytes.byteLength;
+      if (preview && /\.(?:png|jpe?g|webp)$/i.test(path)) {
+        const blob = new Blob([bytes], { type: getMimeTypeByExt(path) });
+        const plan = await imageDecodePlan(blob);
+        files[path] = plan.resize
+          ? await resizeFileTranslationImage(blob, signal)
+          : blob;
+      } else files[path] = bytes;
+    } catch (error) {
+      if (signal?.aborted || !preview) throw error;
+      failures.set(path, error);
+      image.removeAttribute("src");
+      clearEpubImageReference(image);
+      image.setAttribute("alt", image.getAttribute("alt") || error.message);
+    }
+  }
+  return files;
+}
+
 export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
   const createdUrls = [];
   if (!doc || !filesMap) return createdUrls;
+  const urlsByBytes = new Map();
+  const imageUrl = (bytes, path) => {
+    if (urlsByBytes.has(bytes)) return urlsByBytes.get(bytes);
+    const url = URL.createObjectURL(
+      bytes instanceof Blob
+        ? bytes
+        : new Blob([bytes], { type: getMimeTypeByExt(path) })
+    );
+    urlsByBytes.set(bytes, url);
+    createdUrls.push(url);
+    return url;
+  };
 
   const chapterDir = chapterFullPath.includes("/")
     ? chapterFullPath.slice(0, chapterFullPath.lastIndexOf("/") + 1)
@@ -1118,10 +1222,7 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
     const bytes =
       filesMap[imageFullPath] || filesMap[normalizePath(chapterDir + cleanSrc)];
     if (bytes && typeof URL !== "undefined" && URL.createObjectURL) {
-      const mime = getMimeTypeByExt(imageFullPath);
-      const blob = new Blob([bytes], { type: mime });
-      const objectUrl = URL.createObjectURL(blob);
-      createdUrls.push(objectUrl);
+      const objectUrl = imageUrl(bytes, imageFullPath);
       img.setAttribute("src", objectUrl);
     }
   });
@@ -1136,8 +1237,7 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
     if (!rawHref) return;
     // 阻断远程矢量图片请求
     if (/^(?:https?:)?\/\//i.test(rawHref.trim())) {
-      img.removeAttribute("xlink:href");
-      img.removeAttribute("href");
+      clearEpubImageReference(img);
       return;
     }
     if (rawHref.startsWith("data:") || rawHref.startsWith("blob:")) {
@@ -1149,10 +1249,8 @@ export function resolveEpubImages(doc, chapterFullPath = "", filesMap = {}) {
       filesMap[imageFullPath] ||
       filesMap[normalizePath(chapterDir + cleanHref)];
     if (bytes && typeof URL !== "undefined" && URL.createObjectURL) {
-      const mime = getMimeTypeByExt(imageFullPath);
-      const blob = new Blob([bytes], { type: mime });
-      const objectUrl = URL.createObjectURL(blob);
-      createdUrls.push(objectUrl);
+      const objectUrl = imageUrl(bytes, imageFullPath);
+      clearEpubImageReference(img);
       img.setAttribute("href", objectUrl);
       img.setAttribute("xlink:href", objectUrl);
     }
@@ -1261,8 +1359,7 @@ export function embedEpubImagesAsDataUrls(
       img.getAttributeNS("http://www.w3.org/1999/xlink", "href");
     if (!rawHref) return;
     if (/^(?:https?:)?\/\//i.test(rawHref.trim())) {
-      img.removeAttribute("xlink:href");
-      img.removeAttribute("href");
+      clearEpubImageReference(img);
       return;
     }
     if (rawHref.startsWith("data:")) {
@@ -1276,6 +1373,7 @@ export function embedEpubImagesAsDataUrls(
     if (bytes) {
       const mime = getMimeTypeByExt(imageFullPath);
       const dataUrl = toDataUrl(bytes, mime);
+      clearEpubImageReference(img);
       img.setAttribute("href", dataUrl);
       img.setAttribute("xlink:href", dataUrl);
     }

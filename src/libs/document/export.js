@@ -1,6 +1,12 @@
-import { zipSync, strToU8 } from "fflate";
+import { BlobReader, Uint8ArrayReader } from "@zip.js/zip.js";
+import {
+  writeFileChunks,
+  writeFileDownload,
+} from "../../fileTranslation/fileOutput";
+import { writeZipOutput } from "../zipOutput";
 import {
   DOCUMENT_CSS,
+  blockMarkdown,
   documentMarkdown,
   renderDocumentMarkdown,
 } from "./markdown";
@@ -12,6 +18,17 @@ function dataUrl(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+async function zipBlobReader(blob) {
+  if (typeof blob.slice(0, 0).arrayBuffer === "function")
+    return new BlobReader(blob);
+  const buffer = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+  return new Uint8ArrayReader(new Uint8Array(buffer));
 }
 let mathCssPromise;
 async function embeddedMathCss() {
@@ -46,44 +63,161 @@ export async function exportDocument(
   warnings,
   assets,
   name,
-  format
+  format,
+  { loadTranslation, loadAsset, signal } = {}
 ) {
-  let markdown = documentMarkdown(blocks, mode, warnings);
-  const files = {};
+  const check = () => {
+    if (signal?.aborted) throw signal.reason;
+  };
+  if (
+    mode !== "source" &&
+    !loadTranslation &&
+    blocks.some((block) => block.storedTranslation)
+  )
+    throw new Error("找不到已保存的文档译文");
+  const estimatedText = blocks.reduce(
+    (sum, block) =>
+      sum + (block.bilingualRaw?.length || block.raw?.length || 0),
+    0
+  );
+  const bytes = (assets || []).reduce(
+    (sum, asset) => sum + (asset.blob?.size ?? asset.size ?? 0),
+    estimatedText * 3
+  );
+  const large = bytes >= 32 * 1024 ** 2;
+  const title = name.replace(/[<>&"']/g, "");
+  const fileName = name + "." + mode + "." + format;
+  const encoder = new TextEncoder();
+  const assetLinks = new Map();
   for (const asset of assets || []) {
-    const path = `assets/${asset.name}`,
-      replacement = format === "html" ? await dataUrl(asset.blob) : path;
-    if (asset.url) markdown = markdown.split(asset.url).join(replacement);
-    markdown = markdown.split(path).join(replacement);
-    files[path] = new Uint8Array(await asset.blob.arrayBuffer());
+    assetLinks.set("assets/" + asset.name, asset);
+    if (asset.url) assetLinks.set(asset.url, asset);
   }
-  let blob;
-  if (format === "html") {
-    const html = renderDocumentMarkdown(markdown),
-      css = await embeddedMathCss();
-    const title = name.replace(/[<>&"']/g, "");
-    blob = new Blob(
-      [
-        `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${DOCUMENT_CSS}\n${css}</style></head><body>${html}</body></html>`,
-      ],
-      { type: "text/html;charset=utf-8" }
+  async function assetData(asset) {
+    const data = asset.blob || (await loadAsset?.(asset.storedBlob));
+    if (!data) throw new Error(`找不到 PDF 资源：${asset.name}`);
+    return data;
+  }
+  const encode = (text) => encoder.encode(text);
+  const type =
+    format === "zip"
+      ? "application/zip"
+      : format === "html"
+        ? "text/html;charset=utf-8"
+        : "text/markdown;charset=utf-8";
+  const encapsulate = async function* () {
+    const css = await embeddedMathCss();
+    check();
+    yield encode(
+      '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' +
+        title +
+        "</title><style>" +
+        DOCUMENT_CSS +
+        "\n" +
+        css +
+        "</style></head><body>"
     );
-  } else if (format === "zip") {
-    files[`${name}.${mode}.md`] = strToU8(markdown);
-    blob = new Blob([zipSync(files)], { type: "application/zip" });
-  } else {
-    // A standalone Markdown must not refer to a transient blob URL or a missing assets folder.
-    for (const asset of assets || [])
-      markdown = markdown
-        .split(`assets/${asset.name}`)
-        .join(await dataUrl(asset.blob));
-    blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    yield* chunks();
+    yield encode("</body></html>");
+  };
+  async function* chunks(exportSignal = signal) {
+    const checkExport = () => {
+      if (exportSignal?.aborted) throw exportSignal.reason;
+    };
+    async function render(markdown) {
+      const parts = [];
+      const rendered = new Map();
+      let start = 0;
+      const links =
+        /((?:\]\(|^ {0,3}\[[^\]\n]+\]:)[ \t]*<?|\b(?:src|href)\s*=\s*["'])([^\s"'<>)]{1,})/gm;
+      for (const match of markdown.matchAll(links)) {
+        const asset = assetLinks.get(match[2]);
+        if (!asset) continue;
+        checkExport();
+        if (!rendered.has(asset)) {
+          rendered.set(
+            asset,
+            format === "zip"
+              ? "assets/" + asset.name
+              : await dataUrl(await assetData(asset))
+          );
+        }
+        const position = match.index + match[1].length;
+        parts.push(markdown.slice(start, position), rendered.get(asset));
+        start = position + match[2].length;
+      }
+      if (start) {
+        parts.push(markdown.slice(start));
+        markdown = parts.join("");
+      }
+      checkExport();
+      return format === "html" ? renderDocumentMarkdown(markdown) : markdown;
+    }
+
+    // Preserve the complete Markdown context for small standalone documents.
+    if (!large && !loadTranslation && format !== "zip") {
+      yield encode(await render(documentMarkdown(blocks, mode, warnings)));
+      return;
+    }
+    let first = true;
+    for (const block of blocks) {
+      checkExport();
+      const result =
+        mode !== "source" && block.storedTranslation
+          ? await loadTranslation?.(block.storedTranslation)
+          : null;
+      if (mode !== "source" && block.storedTranslation && !result)
+        throw new Error("找不到已保存的文档译文");
+      const markdown = blockMarkdown(
+        result ? { ...block, ...result } : block,
+        mode
+      );
+      yield encode(
+        (first || format === "html" ? "" : "\n\n") +
+          (await render(markdown || block.raw))
+      );
+      first = false;
+    }
+    const notes = documentMarkdown([], mode, warnings);
+    if (notes) yield encode(await render(notes));
   }
-  const url = URL.createObjectURL(blob),
-    anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `${name}.${mode}.${format}`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  return blob;
+  return writeFileDownload(
+    fileName,
+    type,
+    async (writable) => {
+      check();
+      if (format !== "zip") {
+        await writeFileChunks(
+          writable,
+          format === "html" ? encapsulate() : chunks()
+        );
+        return;
+      }
+      await writeZipOutput(writable, signal, async (writer, exportSignal) => {
+        for (const asset of assets || []) {
+          if (exportSignal.aborted) throw exportSignal.reason;
+          await writer.add(
+            "assets/" + asset.name,
+            await zipBlobReader(await assetData(asset)),
+            { signal: exportSignal }
+          );
+        }
+        const iterator = chunks(exportSignal);
+        const source = new ReadableStream({
+          async pull(controller) {
+            const value = await iterator.next();
+            if (value.done) controller.close();
+            else controller.enqueue(value.value);
+          },
+          cancel() {
+            return iterator.return();
+          },
+        });
+        await writer.add(name + "." + mode + ".md", source, {
+          signal: exportSignal,
+        });
+      });
+    },
+    { large, signal }
+  );
 }
