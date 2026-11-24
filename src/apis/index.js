@@ -1106,6 +1106,7 @@ const executeApiSubtitle = async ({
   events = [],
   apiSetting,
   docInfo,
+  previousCues,
   onSubtitleChunk,
   signal,
 }) => {
@@ -1190,6 +1191,7 @@ const executeApiSubtitle = async ({
     to: toLang,
     apiSetting,
     docInfo,
+    ...(previousCues?.length && { previousCues }),
     onSubtitleChunk,
     signal,
   });

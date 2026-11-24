@@ -17,6 +17,8 @@ jest.mock("../libs/docInfo", () => ({
 
 import {
   buildSubtitleSystemPrompt,
+  buildSubtitleUserPrompt,
+  compactUserMsgForHistory,
   detectSubtitleProtocol,
   formatIndexSubtitleEvents,
   handleSubtitle,
@@ -504,5 +506,81 @@ describe("buildSubtitleSystemPrompt", () => {
         aiTerms: "Flow: 工作流",
       })
     ).toContain("Video title|Video description|Video summary|formal|-");
+  });
+
+  test("buildSubtitleUserPrompt returns pure JSON without previousCues and prepends capped references with previousCues", () => {
+    const formattedEvents = [
+      { id: 0, text: "Next" },
+      { id: 1, text: "line" },
+    ];
+    expect(buildSubtitleUserPrompt({ formattedEvents })).toBe(
+      JSON.stringify(formattedEvents)
+    );
+    expect(buildSubtitleUserPrompt({ formattedEvents, previousCues: [] })).toBe(
+      JSON.stringify(formattedEvents)
+    );
+
+    const previousCues = Array.from({ length: 7 }, (_, i) => ({
+      text: `Sentence ${i + 1}`,
+      translation: i === 6 ? "" : `句子 ${i + 1}`,
+    }));
+    const prompt = buildSubtitleUserPrompt({ formattedEvents, previousCues });
+
+    expect(prompt).toContain("Previous translated subtitles (reference only");
+    expect(prompt).not.toContain("Sentence 1");
+    expect(prompt).not.toContain("Sentence 2");
+    expect(prompt).toContain("- Sentence 3 => 句子 3");
+    expect(prompt).toContain("- Sentence 6 => 句子 6");
+    expect(prompt).toContain("- Sentence 7");
+    expect(prompt).not.toContain("- Sentence 7 =>");
+    expect(prompt.endsWith(JSON.stringify(formattedEvents))).toBe(true);
+  });
+
+  test("compactUserMsgForHistory strips repeated context from content strings and parts arrays and falls back when empty", () => {
+    const docInfo = {
+      title: "NebulaCore Overview",
+      description: "Architecture walkthrough",
+      summary: "Key terms: NebulaCore -> 星云核心",
+    };
+
+    const compactedContent = compactUserMsgForHistory(
+      {
+        role: "user",
+        content:
+          "Title: NebulaCore Overview\nDescription: Architecture walkthrough\nSummary: Key terms: NebulaCore -> 星云核心\n\nTranslate this line.",
+      },
+      docInfo
+    );
+    expect(compactedContent).toEqual({
+      role: "user",
+      content: "Translate this line.",
+    });
+
+    const compactedParts = compactUserMsgForHistory(
+      {
+        role: "user",
+        parts: [
+          {
+            text: "Title: NebulaCore Overview\nSummary: Key terms: NebulaCore -> 星云核心\n\nActual payload",
+          },
+          { inlineData: { mimeType: "text/plain", data: "abc" } },
+        ],
+      },
+      docInfo
+    );
+    expect(compactedParts).toEqual({
+      role: "user",
+      parts: [
+        { text: "Actual payload" },
+        { inlineData: { mimeType: "text/plain", data: "abc" } },
+      ],
+    });
+
+    const onlyContext = {
+      role: "user",
+      content:
+        "Title: NebulaCore Overview\nDescription: Architecture walkthrough\nSummary: Key terms: NebulaCore -> 星云核心",
+    };
+    expect(compactUserMsgForHistory(onlyContext, docInfo)).toEqual(onlyContext);
   });
 });

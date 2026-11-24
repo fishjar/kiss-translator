@@ -54,8 +54,9 @@ export const BUILTIN_PLACEHOLDERS = ["{{ }}", "{ }", "[ ]", "[[ ]]"];
 export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"];
 export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
 
-export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
-export const defaultNobatchUserPrompt = `# Context
+export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.
+
+# Context
 Title: ${INPUT_PLACE_TITLE}
 Description: ${INPUT_PLACE_DESCRIPTION}
 Summary: ${INPUT_PLACE_SUMMARY}
@@ -63,9 +64,8 @@ ${INPUT_PLACE_CONTEXT}
 Tone: ${INPUT_PLACE_TONE}
 
 # Glossary:
-${INPUT_PLACE_GLOSSARY}
-
-# Task
+${INPUT_PLACE_GLOSSARY}`;
+export const defaultNobatchUserPrompt = `# Task
 Translate the Source Text below to ${INPUT_PLACE_TO}.
 1. Use the Context to ensure accuracy.
 2. Adapt the wording to match the specified Tone.
@@ -107,34 +107,34 @@ Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLangua
 
 Fail-safe: On any error, return {"translations":[]}.`;
 
-export const defaultSystemPromptXml = `Act as a professional machine translation engine. Output raw XML format only (<root><t id="0">...</t></root>). No Markdown fences, no conversational filler.`;
-
-export const defaultSystemPromptLines = `Act as a professional machine translation engine. Output raw text lines in "ID | Text" format strictly. No Markdown fences, no conversational filler.`;
-
-export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.`;
-
-export const defaultBatchUserPromptLines = `${INPUT_PLACE_CONTEXT}
-${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
-${INPUT_PLACE_SEGMENTS}`;
-
-export const defaultBatchUserPromptXml = `${INPUT_PLACE_TITLE}
+export const defaultSystemPromptXml = `Act as a professional machine translation engine. Output raw XML format only (<root><t id="0">...</t></root>). No Markdown fences, no conversational filler.
+${INPUT_PLACE_TITLE}
 ${INPUT_PLACE_DESCRIPTION}
 ${INPUT_PLACE_SUMMARY}
 ${INPUT_PLACE_CONTEXT}
 ${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate the text within each <t id="..."> tag below into ${INPUT_PLACE_TO}. Maintain the exact <t id="..."> tag structure and id attributes. Preserve all internal HTML-like tags. Output ONLY the translated XML result without any additional explanation:
-${INPUT_PLACE_SEGMENTS}`;
+${INPUT_PLACE_TONE}`;
 
-export const defaultBatchUserPromptJson = `${INPUT_PLACE_TITLE}
+export const defaultSystemPromptLines = `Act as a professional machine translation engine. Output raw text lines in "ID | Text" format strictly. No Markdown fences, no conversational filler.
+${INPUT_PLACE_CONTEXT}
+${INPUT_PLACE_GLOSSARY}
+${INPUT_PLACE_TONE}`;
+
+export const defaultSystemPromptJson = `Act as a professional machine translation engine. Output a raw JSON array strictly. No Markdown fences, no conversational filler.
+${INPUT_PLACE_TITLE}
 ${INPUT_PLACE_DESCRIPTION}
 ${INPUT_PLACE_SUMMARY}
 ${INPUT_PLACE_CONTEXT}
 ${INPUT_PLACE_GLOSSARY}
-${INPUT_PLACE_TONE}
-Translate the text field of each object in the JSON array below into ${INPUT_PLACE_TO}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:
+${INPUT_PLACE_TONE}`;
+
+export const defaultBatchUserPromptLines = `Translate each numbered line below into ${INPUT_PLACE_TO}. Maintain the exact "{id} | {translation}" format for each line. Preserve all HTML-like tags, and keep <br> for internal newlines. Output ONLY the translated result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
+
+export const defaultBatchUserPromptXml = `Translate the text within each <t id="..."> tag below into ${INPUT_PLACE_TO}. Maintain the exact <t id="..."> tag structure and id attributes. Preserve all internal HTML-like tags. Output ONLY the translated XML result without any additional explanation:
+${INPUT_PLACE_SEGMENTS}`;
+
+export const defaultBatchUserPromptJson = `Translate the text field of each object in the JSON array below into ${INPUT_PLACE_TO}. Keep the id unchanged and output a raw JSON array. Output ONLY the translated JSON result without any additional explanation:
 ${INPUT_PLACE_SEGMENTS}`;
 
 // const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.

@@ -2,6 +2,7 @@ import {
   aiSegment,
   createAiChunkScheduler,
   eventsToSubtitles,
+  selectPreviousSubtitlesContext,
 } from "./youtubeAiSegmentation";
 import { mapBoundaryItemToCue } from "./subtitleBoundaryProtocol";
 import {
@@ -812,5 +813,44 @@ describe("createAiChunkScheduler", () => {
       progressed: 66,
       chunkNum: 2,
     });
+  });
+});
+
+describe("selectPreviousSubtitlesContext", () => {
+  test("returns up to maxCount recent cues within 15s and omits draft translations", () => {
+    const previousSubtitles = [
+      { start: 0, end: 2000, text: "cue 1", translation: "句 1" },
+      { start: 2000, end: 4000, text: "cue 2", translation: "句 2" },
+      { start: 4000, end: 6000, text: "cue 3", translation: "句 3" },
+      {
+        start: 6000,
+        end: 8000,
+        text: "cue 4",
+        translation: "草稿 4",
+        _isDraftTranslation: true,
+      },
+      { start: 8000, end: 10000, text: "cue 5", translation: "句 5" },
+    ];
+
+    expect(selectPreviousSubtitlesContext(previousSubtitles, 15000)).toEqual([
+      { text: "cue 2", translation: "句 2" },
+      { text: "cue 3", translation: "句 3" },
+      { text: "cue 4", translation: "" },
+      { text: "cue 5", translation: "句 5" },
+    ]);
+  });
+
+  test("returns empty array when chunk gap exceeds 15000ms or timestamps are out of order", () => {
+    const previousSubtitles = [
+      { start: 10000, end: 12000, text: "earlier cue", translation: "前一句" },
+    ];
+
+    expect(selectPreviousSubtitlesContext(previousSubtitles, 27001)).toEqual(
+      []
+    );
+    expect(selectPreviousSubtitlesContext(previousSubtitles, 10000)).toEqual(
+      []
+    );
+    expect(selectPreviousSubtitlesContext(previousSubtitles, 9000)).toEqual([]);
   });
 });
