@@ -74,6 +74,7 @@ export class AsrVideoSession {
     targetMs = 0,
     signatures,
     getLimits = async () => ({}),
+    getAsrContext,
     recognize = transcribeAudioChunk,
     createDownload = (options) => new AudioDownloadManager(options),
     createDecoder = (callback, signal) =>
@@ -102,6 +103,7 @@ export class AsrVideoSession {
       onTask,
       signatureInput: signatures,
       getLimits,
+      getAsrContext,
       recognize,
       createDownload,
       createDecoder,
@@ -126,6 +128,7 @@ export class AsrVideoSession {
       Math.max(0, Math.round(targetMs * 16))
     );
     this.blocks = new Map();
+    this.streamingSubtitles = new Map();
     this.chunkIndex = new Map();
     this.mediaWaiters = new Set();
     this.postFailures = new Set();
@@ -133,7 +136,143 @@ export class AsrVideoSession {
     this.postRetries = new Set();
     this.writes = Promise.resolve();
     this.cacheFailed = audioLookup === false;
+    this.promptUnsupported = false;
+    this.asrContextPromise = null;
+    this.asrContextData = null;
     this.state = { phase: "restoring", audio: { phase: "missing" } };
+  }
+  async resolveAsrPrompt(chunk, signal) {
+    if (this.promptUnsupported) return "";
+    if (this.getAsrContext && !this.asrContextData) {
+      if (!this.asrContextPromise) {
+        this.asrContextPromise = Promise.resolve()
+          .then(() => this.getAsrContext(signal))
+          .then((data) => {
+            if (data && typeof data === "object") {
+              this.asrContextData = data;
+              if (data.summary)
+                this.textProcessor?.setContextSummary?.(data.summary);
+            }
+            return this.asrContextData;
+          })
+          .catch(() => {
+            this.asrContextPromise = null;
+            return null;
+          });
+      }
+      await this.asrContextPromise;
+    }
+    const parts = [];
+    const basePrompt =
+      typeof this.asrContextData?.basePrompt === "string"
+        ? this.asrContextData.basePrompt.trim()
+        : "";
+    if (basePrompt) parts.push(basePrompt);
+    let previousBlock;
+    for (const block of this.blocks.values()) {
+      if (
+        block.stage !== "failed" &&
+        !block.silent &&
+        block.segments?.length &&
+        block.endSample <= chunk.startSample &&
+        (!previousBlock || block.endSample > previousBlock.endSample)
+      ) {
+        previousBlock = block;
+      }
+    }
+    if (previousBlock) {
+      const prevText = previousBlock.segments
+        .map((seg) => seg.text?.trim())
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      if (prevText) {
+        parts.push(`Previous transcript: ${prevText.slice(-300).trim()}`);
+      }
+    }
+    return parts.join("\n").trim();
+  }
+  shouldSplitRemoteChunkOnError(cause, chunk) {
+    if (isLocalAsrService(this.asrService)) return false;
+    const minSplitSamples = 10 * ASR_SAMPLE_RATE;
+    if (chunk.endSample - chunk.startSample <= minSplitSamples) return false;
+    const code = cause?.code || "";
+    if (
+      [
+        "ASR_PAUSED",
+        "AUDIO_CACHE_MISSING",
+        "AUDIO_SESSION_MISSING",
+        "AUDIO_DECODE_FAILED",
+        "CAPABILITY_UNSUPPORTED",
+        "SERVICE_UNAVAILABLE",
+        "HOST_STARTUP_FAILED",
+        "HOST_UNAVAILABLE",
+        "HOST_CLOSED",
+        "LANGUAGE_DETECTION_UNAVAILABLE",
+        "UNSUPPORTED_LANGUAGE",
+      ].includes(code)
+    )
+      return false;
+    const msg = String(cause?.message || "");
+    if (/\b(401|402|403|429)\b/.test(msg)) return false;
+    return [
+      "AUDIO_EXPORT_TOO_LARGE",
+      "RESOURCE_BUDGET_EXCEEDED",
+      "INPUT_LIMIT_EXCEEDED",
+      "TIMEOUT",
+      "HTTP_ERROR",
+      "PROVIDER_ERROR",
+      "ASR_FAILED",
+      "INVALID_RESPONSE",
+    ].includes(code);
+  }
+  splitChunkInIndex(chunk) {
+    const frameSamples = 320;
+    const span = chunk.endSample - chunk.startSample;
+    const half = Math.floor(span / 2 / frameSamples) * frameSamples;
+    if (half < ASR_SAMPLE_RATE || span - half < ASR_SAMPLE_RATE) return false;
+    const mid = chunk.startSample + half;
+    const existing = this.chunkIndex.get(chunk.startSample);
+    const endOfMedia = Boolean(existing?.endOfMedia);
+    const silent = Boolean(chunk.silent ?? existing?.silent);
+    this.chunkIndex.delete(chunk.startSample);
+    this.chunkIndex.set(chunk.startSample, {
+      startSample: chunk.startSample,
+      endSample: mid,
+      silent,
+    });
+    this.chunkIndex.set(mid, {
+      startSample: mid,
+      endSample: chunk.endSample,
+      silent,
+      ...(endOfMedia && { endOfMedia: true }),
+    });
+    this.blocks.delete(chunk.startSample);
+    const nextMaxSeconds = Math.max(10, Math.floor(half / ASR_SAMPLE_RATE));
+    if (this.chunkDurationSeconds > nextMaxSeconds) {
+      this.chunkDurationSeconds = nextMaxSeconds;
+    }
+    this.onTask({
+      id: `block-${chunk.startSample}`,
+      kind: "block",
+      startMs: chunk.startSample / 16,
+      endMs: mid / 16,
+      recognition: "waiting",
+      translation: "waiting",
+      errorCode: undefined,
+      errorDetail: undefined,
+      indexed: true,
+    });
+    this.onTask({
+      id: `block-${mid}`,
+      kind: "block",
+      startMs: mid / 16,
+      endMs: chunk.endSample / 16,
+      recognition: "waiting",
+      translation: "waiting",
+      indexed: true,
+    });
+    return true;
   }
   setDetectedLanguage(language, confidence) {
     if (!language || this.language !== "auto") return;
@@ -178,11 +317,19 @@ export class AsrVideoSession {
   subtitles() {
     return [...this.blocks.values()]
       .filter((block) => block.stage !== "failed")
-      .flatMap((block) =>
-        block.subtitles.length
-          ? block.subtitles
-          : asrSegmentCues(block.segments, block.timingSource)
-      )
+      .flatMap((block) => {
+        if (block.stage === "translated") return block.subtitles;
+        if (block.stage === "segmented") {
+          return this.translationChanging
+            ? block.subtitles
+            : block.subtitles.filter((cue) => cue.translation?.trim());
+        }
+        const streamed = this.streamingSubtitles.get(block.startSample);
+        if (!streamed?.length) return [];
+        return streamed.filter(
+          (cue) => cue.translation?.trim() && !cue._isDraftTranslation
+        );
+      })
       .sort((a, b) => a.start - b.start);
   }
   emit(patch = {}) {
@@ -701,20 +848,52 @@ export class AsrVideoSession {
             await this.waitUntilRunning(signal);
             check();
             if (block.stage === "recognized") {
+              const blockStart = block.startSample;
               this.onTask({
-                id: `block-${block.startSample}`,
+                id: `block-${blockStart}`,
                 processing: "segmenting",
               });
-              const subtitles =
-                block.timingSource === "audio-chunk"
-                  ? asrSegmentCues(block.segments, block.timingSource)
-                  : (
-                      await this.textProcessor.segment(
-                        block.segments,
-                        signal,
-                        this.waitUntilRunning
-                      )
-                    ).map((cue) => ({ ...cue, timingSource: "asr" }));
+              let previousBlock;
+              for (const candidate of this.blocks.values()) {
+                if (
+                  candidate.stage !== "failed" &&
+                  !candidate.silent &&
+                  candidate.subtitles?.length &&
+                  candidate.endSample <= blockStart &&
+                  (!previousBlock ||
+                    candidate.endSample > previousBlock.endSample)
+                ) {
+                  previousBlock = candidate;
+                }
+              }
+              const previousCues = previousBlock?.subtitles?.slice(-4) || [];
+              let subtitles;
+              try {
+                subtitles =
+                  block.timingSource === "audio-chunk"
+                    ? asrSegmentCues(block.segments, block.timingSource)
+                    : (
+                        await this.textProcessor.segment(
+                          block.segments,
+                          signal,
+                          this.waitUntilRunning,
+                          (partial) => {
+                            if (signal.aborted) return;
+                            this.streamingSubtitles.set(
+                              blockStart,
+                              partial.map((cue) => ({
+                                ...cue,
+                                timingSource: "asr",
+                              }))
+                            );
+                            this.emit();
+                          },
+                          previousCues
+                        )
+                      ).map((cue) => ({ ...cue, timingSource: "asr" }));
+              } finally {
+                this.streamingSubtitles.delete(blockStart);
+              }
               check();
               block = await this.saveBlock({
                 ...block,
@@ -1026,9 +1205,12 @@ export class AsrVideoSession {
               startedAt: Date.now(),
               progress: undefined,
             });
+            const context = await this.resolveAsrPrompt(chunk, signal);
+            checkAudio();
             return this.recognize(this.asrService, chunk, {
               signal,
               language: this.language,
+              ...(context && { context }),
               maxBytes: this.limits.maxBytes,
               maxDurationSeconds: this.limits.maxModelDurationSeconds,
               prepareAudio: async () => {
@@ -1070,6 +1252,9 @@ export class AsrVideoSession {
         this.check();
         if (signal.aborted)
           throw signal.reason || new DOMException("Cancelled", "AbortError");
+        if (result.promptUnsupported) {
+          this.promptUnsupported = true;
+        }
         if (result.languagePending) {
           this.languageAttempts = (this.languageAttempts || 0) + 1;
           await this.saveBlock({
@@ -1130,6 +1315,19 @@ export class AsrVideoSession {
       } catch (cause) {
         if (signal.aborted) throw cause;
         if (cause.code === "ASR_PAUSED") throw cause;
+        if (
+          this.shouldSplitRemoteChunkOnError(cause, chunk) &&
+          this.splitChunkInIndex(chunk)
+        ) {
+          logger
+            .child("subtitle")
+            .warn(
+              "[YouTube ASR] splitting remote chunk after error",
+              cause?.code || cause?.message || cause
+            );
+          this.emit();
+          return;
+        }
         const failure = asrFailure(cause, this.asrService);
         await this.saveBlock({
           startSample: chunk.startSample,
@@ -1187,6 +1385,10 @@ export class AsrVideoSession {
               endSample: range.end,
               fixedRange: !indexOnly,
               silent: range.silent,
+              compressed: !isLocalAsrService(this.asrService),
+              earlySilenceSplit:
+                this.timestampDowngraded ||
+                !asrSupportsTimestamps(this.asrService),
               boundaryPaddingFrames: isLocalAsrService(this.asrService) ? 0 : 2,
             }
           );

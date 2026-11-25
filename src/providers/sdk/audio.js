@@ -14,11 +14,13 @@ export function buildTranscriptionRequest({
   model,
   audio,
   language,
+  context,
   requireTimestamps = false,
   auth,
 }) {
   if (!model || !audio?.assetId)
     throw providerError("INVALID_INPUT", "Model and audio asset are required.");
+  const prompt = typeof context === "string" ? context.trim() : "";
   return {
     url: url(baseUrl, "audio/transcriptions"),
     method: "POST",
@@ -31,6 +33,7 @@ export function buildTranscriptionRequest({
       response_format: requireTimestamps ? "verbose_json" : "json",
       ...(requireTimestamps && { "timestamp_granularities[]": "segment" }),
       ...(language && language !== "auto" && { language: toIso6391(language) }),
+      ...(prompt && { prompt }),
     },
   };
 }

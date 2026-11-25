@@ -128,6 +128,8 @@ export class YouTubeCaptionProvider {
   #aiChunkScheduler = null;
   // 当前字幕断句/分块处理的取消控制器，用于视频或字幕轨切换时中止旧流式请求
   #subtitleAbortController = null;
+  // 视频级智能上下文请求的取消控制器，仅在切换视频或销毁时中止，开启 ASR 时保持并行复用
+  #contextAbortController = null;
 
   // 控制双语字幕渲染、显示和位置计算的管理器实例
   #managerInstance = null;
@@ -236,6 +238,7 @@ export class YouTubeCaptionProvider {
             ? "session"
             : "persistent",
         }),
+        getAsrContext: (signal) => this.#getAsrContext(signal),
         onTasks: (update) => this.#subtitleListManager?.updateAsrTasks(update),
         onState: (state) => {
           const previousTarget = this.#asrState.translationLanguage;
@@ -398,6 +401,8 @@ export class YouTubeCaptionProvider {
     this.#captionCacheTimer = null;
     this.#captionFinalCues.clear();
     this.#captionContextPromise = null;
+    this.#contextAbortController?.abort();
+    this.#contextAbortController = null;
     this.#captionCacheContext = null;
     this.#captionCacheGeneration = null;
     this.#nativeCaptionSnapshot = null;
@@ -620,6 +625,7 @@ export class YouTubeCaptionProvider {
     this.#acquirer?.cancel();
     this.#processingVersion++;
     this.#subtitleAbortController?.abort();
+    this.#subtitleAbortController = new AbortController();
     this.#aiChunkScheduler = null;
     this.#processingId = null;
     this.#activeTrackKey = null;
@@ -633,6 +639,12 @@ export class YouTubeCaptionProvider {
     this.#progressed = 0;
     this.#subtitleListManager?.setBilingualSubtitles([], 0);
     this.#playerUi.hideYtCaption();
+    if (!this.#contextAbortController) {
+      this.#contextAbortController = new AbortController();
+    }
+    void this.#getAsrContext(this.#contextAbortController.signal).catch(
+      () => {}
+    );
     this.#asr.start();
   }
 
@@ -653,6 +665,8 @@ export class YouTubeCaptionProvider {
     this.#subtitleAbortController?.abort();
     this.#subtitleAbortController = new AbortController();
     this.#captionContextPromise = null;
+    this.#contextAbortController?.abort();
+    this.#contextAbortController = null;
     this.#startManager();
     this.#subtitleListManager?.setBilingualSubtitles(
       this.#subtitles,
@@ -1266,6 +1280,9 @@ export class YouTubeCaptionProvider {
     this.#destroyManager();
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
+    this.#captionContextPromise = null;
+    this.#contextAbortController?.abort();
+    this.#contextAbortController = null;
 
     await this.#enrichDocInfoWithAI(this.#flatEvents, processingVersion);
     if (this.#isStaleProcessing(processingVersion)) return;
@@ -1710,6 +1727,114 @@ export class YouTubeCaptionProvider {
     return this.#captionContextPromise;
   }
 
+  async #getAsrContext(signal) {
+    const videoId = this.#videoId;
+    if (!videoId || this.#disposed || signal?.aborted) {
+      return { basePrompt: "", summary: "" };
+    }
+    if (!this.#docInfo || !Object.keys(this.#docInfo).length) {
+      this.#docInfo = getDocInfo();
+    }
+    const { aiContextSlug } = this.#setting;
+    const hasAiContext = Boolean(aiContextSlug && aiContextSlug !== "-");
+    if (hasAiContext && !this.#docInfo?.summary) {
+      if (this.#captionContextPromise) {
+        await this.#captionContextPromise.catch(() => {});
+      } else {
+        let flatEvents =
+          this.#flatEvents.length > 0
+            ? this.#flatEvents
+            : this.#nativeCaptionSnapshot?.videoId === videoId &&
+                this.#nativeCaptionSnapshot.flatEvents?.length > 0
+              ? this.#nativeCaptionSnapshot.flatEvents
+              : null;
+        if (!flatEvents && this.#acquirer && !signal?.aborted) {
+          try {
+            const acquired = await this.#acquirer.acquire(videoId);
+            if (
+              !signal?.aborted &&
+              !this.#disposed &&
+              acquired?.videoId === videoId &&
+              acquired?.events?.length
+            ) {
+              if (acquired.fullDescription && !this.#fullDescription) {
+                this.#fullDescription = acquired.fullDescription;
+              }
+              flatEvents = prepareTimedTextEvents(acquired.events).flatEvents;
+            }
+          } catch {
+            // No YouTube caption track available; fall back to title/description/terms.
+          }
+        }
+        if (
+          flatEvents?.length &&
+          !signal?.aborted &&
+          !this.#disposed &&
+          videoId === this.#videoId
+        ) {
+          if (!this.#captionContextPromise) {
+            const processingVersion = this.#processingVersion;
+            this.#captionContextPromise = this.#enrichDocInfoWithAI(
+              flatEvents,
+              processingVersion
+            );
+          }
+          await this.#captionContextPromise.catch(() => {});
+        }
+      }
+    }
+    if (signal?.aborted || this.#disposed || videoId !== this.#videoId) {
+      return { basePrompt: "", summary: "" };
+    }
+    const parts = [];
+    const title = (this.#docInfo?.title || document.title || "").trim();
+    if (title) parts.push(`Title: ${title}`);
+    const summary =
+      typeof this.#docInfo?.summary === "string"
+        ? this.#docInfo.summary.trim()
+        : "";
+    if (summary) {
+      parts.push(`Context:\n${summary}`);
+    } else {
+      const desc = (
+        this.#fullDescription ||
+        this.#docInfo?.description ||
+        ""
+      ).trim();
+      if (desc) parts.push(`Description: ${desc.slice(0, 2000)}`);
+    }
+    const terms = [];
+    const tables = this.#setting.terminologyTables;
+    if (tables && typeof tables === "object") {
+      const seen = new Set();
+      for (const table of Object.values(tables)) {
+        const entries = Array.isArray(table)
+          ? table
+          : Array.isArray(table?.entries)
+            ? table.entries
+            : [];
+        for (const entry of entries) {
+          const term = String(
+            entry?.source ?? entry?.src ?? entry?.term ?? ""
+          ).trim();
+          if (term && !seen.has(term)) {
+            seen.add(term);
+            terms.push(term);
+            if (terms.length >= 100) break;
+          }
+        }
+        if (terms.length >= 100) break;
+      }
+    }
+    if (terms.length) {
+      parts.push(`Terms: ${terms.join(", ")}`);
+    }
+    return {
+      basePrompt: parts.join("\n").trim(),
+      summary,
+    };
+  }
+
   // Only finalized source chunks and successful translations enter this map.
   #recordCaptionChunk({ subtitles, progressed, start, end }) {
     if (!this.#captionCacheContext) return;
@@ -1942,7 +2067,7 @@ export class YouTubeCaptionProvider {
     const { aiContextSlug, transApis } = this.#setting;
 
     if (!aiContextSlug || aiContextSlug === "-") return;
-    if (this.#isStaleProcessing(processingVersion)) return;
+    if (this.#disposed) return;
 
     const contextApiSetting = transApis?.find(
       (api) => api.apiSlug === aiContextSlug
@@ -1959,7 +2084,13 @@ export class YouTubeCaptionProvider {
     if (transcript.length < 200) return;
 
     const videoId = this.#videoId;
+    if (!this.#docInfo || !Object.keys(this.#docInfo).length) {
+      this.#docInfo = getDocInfo();
+    }
     const docInfo = this.#docInfo;
+    if (!this.#contextAbortController) {
+      this.#contextAbortController = new AbortController();
+    }
 
     try {
       this.#playerUi.showNotification(this.#i18n("ai_context_analyzing"));
@@ -1972,17 +2103,17 @@ export class YouTubeCaptionProvider {
         apiSetting: contextApiSetting,
       });
 
-      if (
-        summary &&
-        videoId === this.#videoId &&
-        !this.#isStaleProcessing(processingVersion)
-      ) {
-        docInfo.summary = summary;
+      if (summary && videoId === this.#videoId && !this.#disposed) {
+        this.#docInfo.summary = summary;
       }
     } catch (err) {
       logger
         .child("subtitle")
         .warn("Youtube Provider: AI context enrichment failed", err);
+    } finally {
+      if (!this.#docInfo?.summary && videoId === this.#videoId) {
+        this.#captionContextPromise = null;
+      }
     }
   }
 
@@ -2010,6 +2141,8 @@ export class YouTubeCaptionProvider {
     clearMsgHistory(this.#setting.apiSlug);
     this.#docInfo = getDocInfo();
     this.#captionContextPromise = null;
+    this.#contextAbortController?.abort();
+    this.#contextAbortController = null;
     await this.#ensureCaptionContext(processingVersion);
     if (this.#isStaleProcessing(processingVersion)) return;
     this.#processEvents({
@@ -2124,10 +2257,10 @@ export class YouTubeCaptionProvider {
       !this.#asrDisabled &&
       !!this.#asr?.service();
     // Only explicit opens may show an empty list before captions or an ASR recommendation.
-    // Starting ASR itself must not open the list, including when its first cues arrive.
     if (
       this.#subtitleListOverride !== true &&
-      (this.#asr?.active || (!this.#subtitles.length && !canRecommendAsr))
+      !this.#subtitles.length &&
+      !canRecommendAsr
     )
       return;
     this.#subtitleListManager = new YouTubeSubtitleList(videoEl, this.#i18n, {

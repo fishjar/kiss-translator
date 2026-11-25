@@ -218,7 +218,7 @@ describe("service save feedback", () => {
       );
       expect(timestampSupport.disabled).toBe(true);
       expect(timestampSupport.value).toBe("supported");
-      for (const value of ["", "0", "1.5", "301"]) {
+      for (const value of ["", "0", "1.5", "601"]) {
         await act(async () =>
           Simulate.change(getInput(view.container, "asrMaxDurationSeconds"), {
             target: { value },

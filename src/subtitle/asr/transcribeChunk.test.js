@@ -530,3 +530,64 @@ test("remote ASR checks actual M4A limits and never retries as WAV on service fa
   ).rejects.toBe(error);
   expect(invokeService).toHaveBeenCalledTimes(1);
 });
+
+test("passes context prompt to ASR and retries once without prompt when provider rejects it", async () => {
+  const prepareAudio = async () => ({
+    blob: new Blob(["aac"], { type: "audio/mp4" }),
+    startMs: 10000,
+    endMs: 12000,
+  });
+  invokeService.mockClear();
+  invokeService
+    .mockImplementationOnce((_svc, _cap, input) => {
+      expect(input.context).toBe("Title: Demo\nTerms: Alpha");
+      return {
+        cancel: jest.fn(),
+        result: Promise.reject(
+          Object.assign(new Error("HTTP 400: unsupported prompt"), {
+            code: "HTTP_ERROR",
+          })
+        ),
+      };
+    })
+    .mockImplementationOnce((_svc, _cap, input) => {
+      expect(input.context).toBeUndefined();
+      return {
+        cancel: jest.fn(),
+        result: Promise.resolve({
+          text: "Alpha works",
+          segments: [{ start: 0, end: 2, text: "Alpha works" }],
+        }),
+      };
+    });
+  const res = await transcribeAudioChunk(service, chunk, {
+    prepareAudio,
+    context: "  Title: Demo\nTerms: Alpha  ",
+  });
+  expect(invokeService).toHaveBeenCalledTimes(2);
+  expect(res.promptUnsupported).toBe(true);
+  expect(res.segments[0].text).toBe("Alpha works");
+});
+
+test("does not retry without prompt on authentication errors", async () => {
+  const prepareAudio = async () => ({
+    blob: new Blob(["aac"], { type: "audio/mp4" }),
+    startMs: 10000,
+    endMs: 12000,
+  });
+  const authError = Object.assign(new Error("HTTP 401"), {
+    code: "HTTP_ERROR",
+  });
+  invokeService.mockClear();
+  invokeService.mockReturnValue({
+    cancel: jest.fn(),
+    result: Promise.reject(authError),
+  });
+  await expect(
+    transcribeAudioChunk(service, chunk, {
+      prepareAudio,
+      context: "Title: Demo",
+    })
+  ).rejects.toBe(authError);
+  expect(invokeService).toHaveBeenCalledTimes(1);
+});

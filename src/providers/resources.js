@@ -33,8 +33,8 @@ export function importExecutionResources(snapshot, assets) {
   }
   if (
     assets.entries().reduce((n, [, blob]) => n + blob.size, 0) >
-    8 * 1024 * 1024
+    16 * 1024 * 1024
   )
-    throw providerError("INPUT_LIMIT_EXCEEDED", "Task assets exceed 8 MiB.");
+    throw providerError("INPUT_LIMIT_EXCEEDED", "Task assets exceed 16 MiB.");
   return resources;
 }

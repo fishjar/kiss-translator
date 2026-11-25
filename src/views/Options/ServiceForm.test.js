@@ -30,7 +30,7 @@ test("ASR duration setting has the 20-second default, integer bounds and an edit
     );
     let input = node.querySelector("input");
     expect(input.value).toBe("20");
-    expect([input.min, input.max, input.step]).toEqual(["1", "300", "1"]);
+    expect([input.min, input.max, input.step]).toEqual(["1", "600", "1"]);
     await act(async () => Simulate.change(input, { target: { value: "12" } }));
     expect(onChange).toHaveBeenCalledWith(12);
     await act(async () =>

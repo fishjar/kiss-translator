@@ -12,6 +12,27 @@ import { alignedAsrWords } from "../../providers/asrWords";
 import { logger } from "../../libs/log";
 import { startLogTask } from "../../libs/diagnostics/task";
 
+const NON_PROMPT_ERROR_CODES = new Set([
+  "CAPABILITY_UNSUPPORTED",
+  "SERVICE_UNAVAILABLE",
+  "HOST_STARTUP_FAILED",
+  "HOST_UNAVAILABLE",
+  "HOST_CLOSED",
+  "LANGUAGE_DETECTION_UNAVAILABLE",
+  "UNSUPPORTED_LANGUAGE",
+  "INPUT_LIMIT_EXCEEDED",
+  "RESOURCE_BUDGET_EXCEEDED",
+  "TIMEOUT",
+]);
+
+function shouldRetryWithoutPrompt(error, signal) {
+  if (signal?.aborted || error?.name === "AbortError") return false;
+  if (NON_PROMPT_ERROR_CODES.has(error?.code)) return false;
+  const msg = String(error?.message || "");
+  if (/\b(401|402|403|413|429|502|503|504|524|529)\b/.test(msg)) return false;
+  return true;
+}
+
 /** One independent ASR file. The session scheduler owns serialization/retries. */
 export async function transcribeAudioChunk(
   service,
@@ -19,6 +40,7 @@ export async function transcribeAudioChunk(
   {
     signal,
     language,
+    context,
     onProgress,
     prepareAudio,
     maxBytes = ASR_MAX_WAV_BYTES,
@@ -107,35 +129,66 @@ export async function transcribeAudioChunk(
         "RESOURCE_BUDGET_EXCEEDED",
         "Split audio to fit the service asset budget."
       );
-    const input = {
-      audio: assets.put(file),
-      requireTimestamps: false,
-      ...(language && { language }),
-    };
+    const normalizedContext = typeof context === "string" ? context.trim() : "";
+    const audioRef = assets.put(file);
     const external =
       service.provider?.implementation &&
       service.provider.implementation.kind !== "native";
     const hosted = external || isHostedLocalAsr(service, "transcribe");
-    const options = serviceInvocationOptions(service, {
-      assets,
-      // The host bridge disconnects immediately on abort. Keep its bounded in-flight
-      // request until settlement so reopening the same video cannot bypass the slot.
-      signal: hosted ? undefined : signal,
-      streaming: "disabled",
-    });
-    call = hosted
-      ? invokeBridgedService(service.apiSlug, "transcribe", input, options)
-      : invokeService(service, "transcribe", input, options);
-    if (onProgress && call.events) {
-      events = (async () => {
-        for await (const event of call.events)
-          if (!signal?.aborted && event.type === "progress") onProgress(event);
-      })();
-      events.catch(() => {});
+    const runInvoke = async (promptText) => {
+      const input = {
+        audio: audioRef,
+        requireTimestamps: false,
+        ...(language && { language }),
+        ...(promptText && { context: promptText }),
+      };
+      const options = serviceInvocationOptions(service, {
+        assets,
+        // The host bridge disconnects immediately on abort. Keep its bounded in-flight
+        // request until settlement so reopening the same video cannot bypass the slot.
+        signal: hosted ? undefined : signal,
+        streaming: "disabled",
+      });
+      call = hosted
+        ? invokeBridgedService(service.apiSlug, "transcribe", input, options)
+        : invokeService(service, "transcribe", input, options);
+      if (onProgress && call.events) {
+        events = (async () => {
+          for await (const event of call.events)
+            if (!signal?.aborted && event.type === "progress")
+              onProgress(event);
+        })();
+        events.catch(() => {});
+      }
+      try {
+        const res = await call.result;
+        checkCancelled();
+        validateResult("transcribe", res, input);
+        return res;
+      } finally {
+        call?.cancel();
+        await call?.finished;
+        await events?.catch(() => {});
+        call = undefined;
+        events = undefined;
+      }
+    };
+    let result;
+    let promptUnsupported = false;
+    try {
+      result = await runInvoke(normalizedContext);
+    } catch (error) {
+      if (!normalizedContext || !shouldRetryWithoutPrompt(error, signal))
+        throw error;
+      logger
+        .child("subtitle")
+        .warn(
+          "[YouTube ASR] retrying transcription without prompt context",
+          error?.code || error?.message || error
+        );
+      result = await runInvoke("");
+      promptUnsupported = true;
     }
-    const result = await call.result;
-    checkCancelled();
-    validateResult("transcribe", result, input);
     task.finish();
     if (result.languagePending)
       return {
@@ -292,6 +345,7 @@ export async function transcribeAudioChunk(
       endSample,
       silent: false,
       timingSource,
+      ...(promptUnsupported && { promptUnsupported: true }),
       ...(result.language && { language: result.language }),
       ...(result.languageConfidence !== undefined && {
         languageConfidence: result.languageConfidence,

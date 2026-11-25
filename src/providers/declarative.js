@@ -207,8 +207,8 @@ async function runProtocol(rule, input, ctx, descriptor = {}) {
         : buildTextTaskMessages(rule.task, input, descriptor);
   const messages = await sdk.prepareMessages(standardMessages, async (ref) => {
     const blob = ctx.assets.get(ref);
-    if (blob.size > 8 * 1024 * 1024)
-      throw providerError("RESOURCE_BUDGET_EXCEEDED", "Asset exceeds 8 MiB.");
+    if (blob.size > 16 * 1024 * 1024)
+      throw providerError("RESOURCE_BUDGET_EXCEEDED", "Asset exceeds 16 MiB.");
     if (blob.type !== ref.mimeType)
       throw providerError("INVALID_ASSET", "Asset MIME type mismatch.");
     return blob.arrayBuffer();

@@ -107,4 +107,8 @@ test("timestamp requests explicitly select verbose JSON; ordinary requests retai
     response_format: "verbose_json",
     "timestamp_granularities[]": "segment",
   });
+  expect(
+    buildTranscriptionRequest({ ...input, context: "  Terms: NebulaCore  " })
+      .body.prompt
+  ).toBe("Terms: NebulaCore");
 });

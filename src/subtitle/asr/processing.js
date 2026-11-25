@@ -9,8 +9,38 @@ import {
   builtinSegment,
   formatSubtitles,
   getFromLang,
+  splitEventsIntoChunks,
 } from "../youtubeSubtitleProcessing";
 import { aiSegment } from "../youtubeAiSegmentation";
+
+function selectPreviousSubtitlesContext(
+  cues,
+  nextChunkStartMs,
+  { maxCount = 4, maxGapMs = 15000 } = {}
+) {
+  if (!Array.isArray(cues) || !cues.length) return [];
+  const valid = cues.filter((cue) => cue?.text?.trim());
+  if (!valid.length) return [];
+  if (Number.isFinite(nextChunkStartMs)) {
+    const last = valid[valid.length - 1];
+    const lastEnd = Number(last?.end);
+    const lastStart = Number(last?.start);
+    if (
+      !Number.isFinite(lastEnd) ||
+      lastStart >= nextChunkStartMs ||
+      nextChunkStartMs - lastEnd > maxGapMs
+    ) {
+      return [];
+    }
+  }
+  return valid.slice(-maxCount).map((cue) => ({
+    text: cue.text.trim(),
+    translation:
+      typeof cue.translation === "string" && !cue._isDraftTranslation
+        ? cue.translation.trim()
+        : "",
+  }));
+}
 import { getDocInfo } from "../../libs/docInfo";
 import { isSameLang } from "../youtubeCaptionTracks";
 import { isNonSpeechSegment } from "../subtitleTextClassification";
@@ -149,7 +179,19 @@ export function createAsrTextProcessor(setting, identity) {
     setLanguage(language) {
       fromLang = getFromLang(language);
     },
-    async segment(segments, signal, waitUntilRunning = async () => {}) {
+    setContextSummary(summary) {
+      if (typeof summary === "string" && summary.trim()) {
+        docInfo = { ...docInfo, summary: summary.trim() };
+        enriched = true;
+      }
+    },
+    async segment(
+      segments,
+      signal,
+      waitUntilRunning = async () => {},
+      onUpdate = () => {},
+      previousCues = []
+    ) {
       await prepareTerms();
       await waitUntilRunning(signal);
       const flatEvents = segments
@@ -167,53 +209,94 @@ export function createAsrTextProcessor(setting, identity) {
           end: segment.end * 1000,
           text: segment.text,
         }));
-      const events = flatEvents.map((segment) => ({
-        tStartMs: segment.start,
-        dDurationMs: segment.end - segment.start,
-        segs: [{ utf8: segment.text }],
-      }));
       if (!flatEvents.length) return [];
       await enrich(segments, signal, waitUntilRunning);
       await waitUntilRunning(signal);
-      const fallback = () =>
-        mergeZeroDurationCues(
-          builtinSegment(events, flatEvents, fromLang, setting),
+      const fallbackFor = (subFlatEvents) => {
+        const subEvents = subFlatEvents.map((segment) => ({
+          tStartMs: segment.start,
+          dDurationMs: segment.end - segment.start,
+          segs: [{ utf8: segment.text }],
+        }));
+        return mergeZeroDurationCues(
+          builtinSegment(subEvents, subFlatEvents, fromLang, setting),
           fromLang
         );
-      if (!segmentationService) return fallback();
-      const cues = await aiSegment({
-        videoId: identity.videoId,
-        fromLang,
-        toLang: setting.toLang,
-        chunkEvents: flatEvents,
-        segApiSetting: segmentationService,
-        apiSubtitle: async (options) => {
-          await waitUntilRunning(signal);
-          return apiSubtitle(options);
-        },
-        docInfo,
-        signal,
-        setting,
-        formatSubtitles: (items, language) =>
-          formatSubtitles(items, language, {
-            longSentenceThreshold: setting.longSentenceThreshold,
-          }),
-        clearSegmentTranslation:
-          setting.forceSubtitleRetranslate &&
-          segmentationService.apiSlug !== setting.apiSlug,
-      });
-      // Boundaries must come from actual segment or aligned-word timestamps.
-      if (
-        !cues.some((cue) => cue.end > cue.start) ||
-        cues.some(
-          (cue) =>
-            !flatEvents.some(
-              (event) => Math.abs(event.start - cue.start) < 1
-            ) || !flatEvents.some((event) => Math.abs(event.end - cue.end) < 1)
-        )
-      )
-        return fallback();
-      return mergeZeroDurationCues(cues, fromLang);
+      };
+      if (!segmentationService) return fallbackFor(flatEvents);
+
+      const chunks = splitEventsIntoChunks(
+        flatEvents,
+        setting.chunkLength || 2000
+      );
+      const completedCues = [];
+      const clearSegmentTranslation =
+        setting.forceSubtitleRetranslate &&
+        segmentationService.apiSlug !== setting.apiSlug;
+      const emitProgress = (currentStreamed = []) => {
+        const merged = [...completedCues, ...currentStreamed].sort(
+          (a, b) => a.start - b.start
+        );
+        if (merged.length) onUpdate(merged);
+      };
+
+      for (const chunkEvents of chunks) {
+        await waitUntilRunning(signal);
+        if (signal.aborted)
+          throw signal.reason || new DOMException("Cancelled", "AbortError");
+        const chunkPreviousCues = selectPreviousSubtitlesContext(
+          completedCues.length ? completedCues : previousCues,
+          chunkEvents[0]?.start
+        );
+        const streamedByKey = new Map();
+        const chunkCues = await aiSegment({
+          videoId: identity.videoId,
+          fromLang,
+          toLang: setting.toLang,
+          chunkEvents,
+          segApiSetting: segmentationService,
+          apiSubtitle: async (options) => {
+            await waitUntilRunning(signal);
+            return apiSubtitle(options);
+          },
+          docInfo,
+          previousCues: chunkPreviousCues,
+          signal,
+          setting,
+          formatSubtitles: (items, language) =>
+            formatSubtitles(items, language, {
+              longSentenceThreshold: setting.longSentenceThreshold,
+            }),
+          clearSegmentTranslation,
+          onSubtitleChunk: ({ subtitles: streamed }) => {
+            if (signal.aborted || !streamed?.length) return;
+            for (const cue of streamed) {
+              if (!cue?.text?.trim()) continue;
+              const key = `${Math.round(cue.start)}:${Math.round(cue.end)}`;
+              streamedByKey.set(key, { ...cue, timingSource: "asr" });
+            }
+            if (streamedByKey.size) {
+              emitProgress([...streamedByKey.values()]);
+            }
+          },
+        });
+        // Boundaries must come from actual segment or aligned-word timestamps.
+        const valid =
+          chunkCues.some((cue) => cue.end > cue.start) &&
+          !chunkCues.some(
+            (cue) =>
+              !chunkEvents.some(
+                (event) => Math.abs(event.start - cue.start) < 1
+              ) ||
+              !chunkEvents.some((event) => Math.abs(event.end - cue.end) < 1)
+          );
+        const resolved = valid
+          ? mergeZeroDurationCues(chunkCues, fromLang)
+          : fallbackFor(chunkEvents);
+        completedCues.push(...resolved);
+        emitProgress();
+      }
+      return mergeZeroDurationCues(completedCues, fromLang);
     },
     async translate(
       cues,
@@ -229,42 +312,60 @@ export function createAsrTextProcessor(setting, identity) {
       )
         await enrich(cues, signal, waitUntilRunning);
       const output = cues.map((cue) => ({ ...cue }));
-      for (const cue of output) {
-        await waitUntilRunning(signal);
-        if (signal.aborted)
-          throw signal.reason || new DOMException("Cancelled", "AbortError");
-        if (cue.translation?.trim() && !cue._isDraftTranslation) continue;
-        let text;
-        if (
-          isSameLang(
-            fromLang,
-            setting.toLang,
-            setting.translateVariants ?? true
-          )
-        )
-          text = cue.text;
-        else {
-          if (!translationService)
-            throw Object.assign(new Error("No subtitle translation service."), {
-              code: "SERVICE_UNAVAILABLE",
-            });
+      const pendingCues = output.filter(
+        (cue) => !cue.translation?.trim() || cue._isDraftTranslation
+      );
+      if (!pendingCues.length) return output;
+
+      if (
+        isSameLang(fromLang, setting.toLang, setting.translateVariants ?? true)
+      ) {
+        for (const cue of pendingCues) {
           await waitUntilRunning(signal);
-          const result = await apiTranslate({
-            text: cue.text,
-            scene: setting,
-            onTerminologyWarning: setting.onTerminologyWarning,
-            terminologyTables: setting.terminologyTables,
-            fromLang,
-            toLang: setting.toLang,
-            apiSetting: translationService,
-            docInfo,
-            translateVariants: setting.translateVariants ?? true,
-            signal,
-          });
-          text = Array.isArray(result?.trText)
-            ? result.trText[0]
-            : result?.trText;
+          if (signal.aborted)
+            throw signal.reason || new DOMException("Cancelled", "AbortError");
+          const raw = cue.text || "";
+          cue.translation = setting.parseLatex
+            ? parseMathInText(decodeHTMLEntities(raw))
+            : decodeHTMLEntities(raw);
+          cue._isDraftTranslation = false;
+          onUpdate(output);
         }
+        return output;
+      }
+
+      if (!translationService)
+        throw Object.assign(new Error("No subtitle translation service."), {
+          code: "SERVICE_UNAVAILABLE",
+        });
+
+      const currentFromLang = fromLang;
+      const currentDocInfo = docInfo;
+      const translateCue = async (cue) => {
+        const result = await apiTranslate({
+          text: cue.text,
+          scene: setting,
+          onTerminologyWarning: setting.onTerminologyWarning,
+          terminologyTables: setting.terminologyTables,
+          fromLang: currentFromLang,
+          toLang: setting.toLang,
+          apiSetting: translationService,
+          docInfo: currentDocInfo,
+          translateVariants: setting.translateVariants ?? true,
+          signal,
+          onStreamChunk: ({ text: partialText }) => {
+            if (signal.aborted || typeof partialText !== "string") return;
+            const trimmed = partialText.trim();
+            if (!trimmed) return;
+            cue.translation = setting.parseLatex
+              ? parseMathInText(decodeHTMLEntities(trimmed))
+              : decodeHTMLEntities(trimmed);
+            onUpdate(output);
+          },
+        });
+        let text = Array.isArray(result?.trText)
+          ? result.trText[0]
+          : result?.trText;
         if (typeof text !== "string" || !text.trim()) {
           text = cue.text || "";
         }
@@ -275,6 +376,17 @@ export function createAsrTextProcessor(setting, identity) {
           : decodeHTMLEntities(text);
         cue._isDraftTranslation = false;
         onUpdate(output);
+      };
+
+      const groupSize = translationService.useBatchFetch
+        ? Math.max(1, Number(translationService.batchSize) || 20)
+        : 1;
+      for (let i = 0; i < pendingCues.length; i += groupSize) {
+        await waitUntilRunning(signal);
+        if (signal.aborted)
+          throw signal.reason || new DOMException("Cancelled", "AbortError");
+        const group = pendingCues.slice(i, i + groupSize);
+        await Promise.all(group.map(translateCue));
       }
       return output;
     },
