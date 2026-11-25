@@ -1,6 +1,5 @@
 import IconButton from "@mui/material/IconButton";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import LibraryAddCheckIcon from "@mui/icons-material/LibraryAddCheck";
+import { CheckRoundedIcon, ContentCopyIcon } from "../../components/icons";
 import { useEffect, useRef, useState } from "react";
 
 const VISUALLY_HIDDEN_STYLE = {
@@ -78,7 +77,7 @@ export default function CopyBtn({
         aria-label={title}
       >
         {copied ? (
-          <LibraryAddCheckIcon fontSize="inherit" />
+          <CheckRoundedIcon fontSize="inherit" />
         ) : (
           <ContentCopyIcon fontSize="inherit" />
         )}

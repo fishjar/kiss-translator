@@ -24,6 +24,12 @@ jest.mock("./Menus.js", () => ({
   Menus: () => null,
 }));
 
+jest.mock("../hooks/focusModality", () => ({
+  scriptFocus: jest.fn(),
+  retainFocusModality: jest.fn(() => 1),
+  releaseFocusModality: jest.fn(() => 0),
+}));
+
 describe("YouTubePlayerUi", () => {
   let setting;
 
@@ -124,10 +130,29 @@ describe("YouTubePlayerUi", () => {
     ui.removeToggleButton();
     expect(document.querySelector(".kiss-subtitle-button")).toBeNull();
     expect(mockDestroy).toHaveBeenCalledTimes(1);
+    const { releaseFocusModality } = require("../hooks/focusModality");
+    expect(releaseFocusModality).toHaveBeenCalledWith(document);
 
     setting.hideSubtitleButton = false;
     ui.injectToggleButton(controls);
     expect(document.querySelector(".kiss-subtitle-button")).not.toBeNull();
+  });
+
+  test("removeToggleButton without a mount does not release focus modality", () => {
+    const ui = createUi();
+    ui.removeToggleButton();
+    const { releaseFocusModality } = require("../hooks/focusModality");
+    expect(releaseFocusModality).not.toHaveBeenCalled();
+  });
+
+  test("repeated removeToggleButton releases focus modality only once", () => {
+    document.body.innerHTML = '<div class="ytp-right-controls"></div>';
+    const ui = createUi();
+    ui.injectToggleButton(document.querySelector(".ytp-right-controls"));
+    ui.removeToggleButton();
+    ui.removeToggleButton();
+    const { releaseFocusModality } = require("../hooks/focusModality");
+    expect(releaseFocusModality).toHaveBeenCalledTimes(1);
   });
 
   test("keeps native captions hidden when their window mounts after the request", () => {
@@ -152,6 +177,33 @@ describe("YouTubePlayerUi", () => {
     expect(player.hasAttribute("data-kiss-native-captions-hidden")).toBe(false);
     expect(document.getElementById(YT_CAPTION_STYLE_ID)).toBeNull();
     expect(getComputedStyle(caption).display).not.toBe("none");
+  });
+
+  test("initial focus lands on the first focusable row including switch rows", () => {
+    // 开关行 role 已按 ARIA switch 语义挂 role="switch"；初始焦点选择器若只认
+    // [role=button] 会漏掉菜单顶部的开关行。querySelector 逗号选择器天然按
+    // 文档序取首个匹配，满足"文档序第一"的交接契约。
+    document.body.innerHTML =
+      '<div class="ytp-right-controls"></div>' +
+      '<div id="kiss-subtitle-menus">' +
+      '<div role="switch" tabindex="0" data-row="switch-a"></div>' +
+      '<div role="button" tabindex="0" data-row="button-a"></div>' +
+      "</div>";
+    const controls = document.querySelector(".ytp-right-controls");
+    const ui = createUi();
+
+    ui.injectToggleButton(controls);
+    // 护栏：焦点静默机制必须随按钮注入持有到 document；scriptFocus 惰性
+    // 安装依赖此调用先行，安装被移除时 scriptFocus mock 断言仍会绿。
+    const { retainFocusModality } = require("../hooks/focusModality");
+    expect(retainFocusModality).toHaveBeenCalledWith(document);
+    const toggleButton = document.querySelector(".kiss-subtitle-button");
+    toggleButton.onclick();
+    jest.runAllTimers();
+
+    const { scriptFocus } = require("../hooks/focusModality");
+    expect(scriptFocus).toHaveBeenCalledTimes(1);
+    expect(scriptFocus.mock.calls[0][0].dataset.row).toBe("switch-a");
   });
 
   test("hides notification when loading notification setting is disabled", () => {

@@ -10,6 +10,11 @@ import { automaticLayoutRegions } from "./layoutSelection";
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 globalThis.crypto = require("crypto").webcrypto;
 
+// 布局图形一律限定在布局 SVG 容器内查询：文档级查询会把将来混入文档的
+// 按钮 SVG 图标（polygon 形态）计入而误点元素。
+const layoutPolygons = () =>
+  document.querySelectorAll(".kt-image-layout-overlay polygon");
+
 jest.mock("./screenshotSupport", () => ({
   checkScreenshotSupport: jest.fn(async () => true),
 }));
@@ -243,7 +248,7 @@ describe("ImageTranslateManager", () => {
         hover();
       });
       await act(async () => button("layout").click());
-      expect(document.querySelectorAll("polygon")).toHaveLength(2);
+      expect(layoutPolygons()).toHaveLength(4);
     });
 
     afterEach(() => {
@@ -264,8 +269,13 @@ describe("ImageTranslateManager", () => {
           button(action).click();
           button(action).click();
         });
+        // 游离 polygon 常驻注入：模拟将来按钮内 Lucide 图标混入文档的形态，
+        // 布局图形查询必须限定在布局 SVG 容器内，不受文档级污染影响。
+        document.body.appendChild(
+          document.createElementNS("http://www.w3.org/2000/svg", "polygon")
+        );
         expect(mockReadImage).toHaveBeenCalledTimes(1); // only analysis, before the first paint
-        expect(document.querySelectorAll("polygon")).toHaveLength(2);
+        expect(layoutPolygons()).toHaveLength(4);
         expect(document.getElementById(APP_CONSTS.imageBoxID)).not.toBeNull();
         expect(boxProps().showBox).toBe(true);
         expect(boxProps().sourceBusy).toBe(true);
@@ -276,7 +286,7 @@ describe("ImageTranslateManager", () => {
         expect(
           document.querySelectorAll(".kt-image-layout-overlay")
         ).toHaveLength(1);
-        expect(document.querySelectorAll("polygon")).toHaveLength(2);
+        expect(layoutPolygons()).toHaveLength(4);
         expect(boxProps().showBox).toBe(true);
         expect(boxProps().sourceBusy).toBe(false);
         expect(boxProps().initialAutoTranslate).toBe(action === "translate");
@@ -284,17 +294,19 @@ describe("ImageTranslateManager", () => {
     );
 
     test("retains disabled regions after translation, re-hover, and visibility toggles", async () => {
+      // 选中区域为两枚 polygon（衬底在下、内核在上），
+      // 区域 2 的内核＝索引 3；点击/描边形态断言均锚内核（衬底无事件
+      // 处理器，也不承载 dasharray 选中形态）。
       act(() =>
-        document
-          .querySelectorAll("polygon")[1]
-          .dispatchEvent(new MouseEvent("click", { bubbles: true }))
+        layoutPolygons()[3].dispatchEvent(
+          new MouseEvent("click", { bubbles: true })
+        )
       );
       await open("translate");
       expect(boxProps().selectedRegions[1].enabled).toBe(false);
       act(() => boxProps().onLayoutDetected(regions));
-      expect(
-        document.querySelectorAll("polygon")[1].getAttribute("stroke-dasharray")
-      ).toBe("4 3");
+      // 区域 2 禁用后无衬底：其内核落到索引 2（区域 1 选中态占 0/1）。
+      expect(layoutPolygons()[2].getAttribute("stroke-dasharray")).toBe("4 3");
       act(() => {
         document.getElementById(APP_CONSTS.imageBoxID).click();
         hover();
@@ -310,11 +322,9 @@ describe("ImageTranslateManager", () => {
       ).toBe("block");
       expect(mockSendBgMsg).toHaveBeenCalledTimes(1);
       act(() => manager.closeBox());
-      expect(document.querySelectorAll("polygon")).toHaveLength(0);
+      expect(layoutPolygons()).toHaveLength(0);
       act(() => hover());
-      expect(
-        document.querySelectorAll("polygon")[1].getAttribute("stroke-dasharray")
-      ).toBe("4 3");
+      expect(layoutPolygons()[2].getAttribute("stroke-dasharray")).toBe("4 3");
     });
 
     test("reuses automatic regions on reopen until the recognition service changes", async () => {
@@ -369,7 +379,7 @@ describe("ImageTranslateManager", () => {
         })
       );
       expect(button("layout").getAttribute("aria-pressed")).toBe("true");
-      expect(document.querySelectorAll("polygon")).toHaveLength(2);
+      expect(layoutPolygons()).toHaveLength(4);
       act(() =>
         manager.updateSetting({
           ...setting,
@@ -377,7 +387,7 @@ describe("ImageTranslateManager", () => {
         })
       );
       expect(button("layout").getAttribute("aria-pressed")).toBe("false");
-      expect(document.querySelectorAll("polygon")).toHaveLength(0);
+      expect(layoutPolygons()).toHaveLength(0);
       expect(boxProps().selectedRegions).toBeNull();
       await act(async () => button("layout").click());
       // An unavailable explicit service must not invoke an arbitrary fallback.
@@ -391,7 +401,7 @@ describe("ImageTranslateManager", () => {
         await open(action);
         expect(boxProps().sourceError).toBe("read failed");
         expect(boxProps().sourceBusy).toBe(false);
-        expect(document.querySelectorAll("polygon")).toHaveLength(2);
+        expect(layoutPolygons()).toHaveLength(4);
         act(() => boxProps().onRetrySource());
         await waitForRead();
         expect(boxProps().sourceError).toBe("");
@@ -457,7 +467,7 @@ describe("ImageTranslateManager", () => {
           expect(
             document.querySelector(".kt-image-source-highlight")
           ).toBeNull();
-          expect(document.querySelectorAll("polygon")).toHaveLength(0);
+          expect(layoutPolygons()).toHaveLength(0);
           expect(button("menu")).toBeNull();
         });
         let pending;
@@ -475,7 +485,7 @@ describe("ImageTranslateManager", () => {
         act(() => manager.closeBox());
         expect(button("menu")).toBeNull();
         act(() => hover());
-        expect(document.querySelectorAll("polygon")).toHaveLength(2);
+        expect(layoutPolygons()).toHaveLength(4);
         expect(mockSendBgMsg).toHaveBeenCalledTimes(1); // cached layout, no reanalysis
       }
     );
@@ -501,13 +511,13 @@ describe("ImageTranslateManager", () => {
         stale.onLayoutDetected(regions, { replace: true });
         stale.setShowBox(false);
       });
-      expect(document.querySelectorAll("polygon")).toHaveLength(2);
+      expect(layoutPolygons()).toHaveLength(4);
       await open("menu");
       expect(boxProps().showBox).toBe(true);
       expect(
         document.querySelectorAll(".kt-image-source-highlight")
       ).toHaveLength(1);
-      expect(document.querySelectorAll("polygon")).toHaveLength(2);
+      expect(layoutPolygons()).toHaveLength(4);
     });
 
     test("ignores an image read that finishes after screenshot startup", async () => {
@@ -560,7 +570,7 @@ describe("ImageTranslateManager", () => {
         finishAnalysis({ result: { layout: { regions } } })
       );
       expect(button("menu")).toBeNull();
-      expect(document.querySelectorAll("polygon")).toHaveLength(0);
+      expect(layoutPolygons()).toHaveLength(0);
     });
   });
 

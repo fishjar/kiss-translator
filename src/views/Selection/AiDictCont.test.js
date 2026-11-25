@@ -275,6 +275,63 @@ describe("AiDictCont", () => {
     });
   });
 
+  test("resends the request when the host requestRevision collides with the local retry counter", async () => {
+    // 场景：请求失败 → 用户点本地重试（本地计数 0→1）→ 重试再次失败 →
+    // 宿主提交链递增 requestRevision 至 1（与本地计数同值）。宿主同步
+    // effect 必须让本地计数继续自增触发重试；若用宿主值直接赋值，
+    // setState 同值无变化，请求 effect 不重跑，重试被吞。
+    apiDict
+      .mockRejectedValueOnce(new Error("Provider invocation timed out."))
+      .mockRejectedValueOnce(new Error("Provider invocation timed out."))
+      .mockResolvedValueOnce("## library\n\n- book room");
+
+    const { container, root } = renderAiDictCont();
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Provider invocation timed out.");
+
+    // 本地重试按钮：本地计数 0→1，重试再次失败。
+    act(() => {
+      container
+        .querySelector('button[title="popup_text_retry"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(2);
+    expect(container.textContent).toContain("Provider invocation timed out.");
+
+    // 宿主 requestRevision 0→1，与本地计数同值：仍必须重发请求。
+    act(() => {
+      root.render(
+        <AiDictCont
+          text="library"
+          fromLang="en"
+          toLang="zh-CN"
+          context="The library is open."
+          apiSetting={{
+            apiSlug: "openai",
+            apiType: "OpenAI",
+            dictPrompt: "prompt",
+          }}
+          requestRevision={1}
+        />
+      );
+    });
+    await flushEffects();
+
+    expect(apiDict).toHaveBeenCalledTimes(3);
+    expect(container.textContent).not.toContain(
+      "Provider invocation timed out."
+    );
+    expect(container.querySelector("h2")?.textContent).toContain("library");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
   test("does not disturb the pending dictionary request when requestRevision increases mid-flight", async () => {
     apiDict.mockReturnValueOnce(new Promise(() => {}));
 

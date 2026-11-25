@@ -33,7 +33,7 @@ const baseProps = {
   apiSlugs: ["openai"],
   fromLang: "en",
   toLang: "zh-CN",
-  toLang2: "-",
+  toLang2: "en",
   transApis: [
     {
       apiSlug: "openai",
@@ -111,6 +111,15 @@ describe("Explicit translation submissions", () => {
     expect(button).not.toBeNull();
     act(() => button.click());
     return button;
+  };
+  // Unchanged-text retry enters through Enter: submitAndBlur is the shared
+  // entry for keyboard and dirty-draft button clicks. A focused draft equal to
+  // committed text deliberately shows no submit button (selection opens show
+  // copy) unless a provider request is still failed — that failure state keeps
+  // the button as a pointer/touch retry entry.
+  const retrySubmitUnchanged = () => {
+    act(() => input().focus());
+    pressEnter();
   };
   const resultValues = () =>
     [
@@ -202,7 +211,7 @@ describe("Explicit translation submissions", () => {
     }
   );
 
-  test.each(["button", "Enter", "Ctrl+Enter", "Cmd+Enter"])(
+  test.each(["Enter", "Ctrl+Enter", "Cmd+Enter"])(
     "retries a failed request for unchanged text with %s",
     async (action) => {
       apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
@@ -210,20 +219,10 @@ describe("Explicit translation submissions", () => {
       expect(container.textContent).toContain("Temporary network error");
       expect(apiTranslate).toHaveBeenCalledTimes(1);
       const firstRequest = apiTranslate.mock.calls[0][0];
-      act(() => input().focus());
-      const button = submitButton();
-      expect(button).not.toBeNull();
-      expect(button.disabled).toBe(false);
-      expect(button.getAttribute("aria-label")).toBe("submit");
-
-      if (action === "button") {
-        act(() => button.click());
-      } else {
-        pressEnter({
-          ctrlKey: action === "Ctrl+Enter",
-          metaKey: action === "Cmd+Enter",
-        });
-      }
+      pressEnter({
+        ctrlKey: action === "Ctrl+Enter",
+        metaKey: action === "Cmd+Enter",
+      });
       await flushEffects();
 
       expect(apiTranslate).toHaveBeenCalledTimes(2);
@@ -238,6 +237,140 @@ describe("Explicit translation submissions", () => {
       expect(container.textContent).not.toContain("Temporary network error");
     }
   );
+
+  test("focused unchanged source offers no submit button until the draft is edited", async () => {
+    await renderPanel();
+    expect(submitButton()).toBeNull();
+    act(() => input().focus());
+    expect(submitButton()).toBeNull();
+    updateDraft("Source text!");
+    expect(submitButton()).not.toBeNull();
+  });
+
+  test("a failed request keeps a clickable retry button for an unchanged draft", async () => {
+    // 失败未恢复时，即使草稿与已提交文本相同，指针/触屏用户也需要可点击的
+    // 重试入口；点击与 Enter 同走 submitAndBlur，重试同一服务。
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    expect(container.textContent).toContain("Temporary network error");
+    act(() => input().focus());
+    const retryButton = submitButton();
+    expect(retryButton).not.toBeNull();
+
+    act(() => retryButton.click());
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(apiTranslate.mock.calls[1][0].text).toBe(
+      apiTranslate.mock.calls[0][0].text
+    );
+    expect(apiTranslate.mock.calls[1][0].apiSetting).toBe(
+      apiTranslate.mock.calls[0][0].apiSetting
+    );
+    expect(container.textContent).not.toContain("Temporary network error");
+  });
+
+  test("a failed keyboard retry hands focus back to the source input", async () => {
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    expect(container.textContent).toContain("Temporary network error");
+    act(() => input().focus());
+    expect(submitButton()).not.toBeNull();
+    pressEnter();
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(input());
+  });
+
+  test("keyboard activation of the retry button itself hands focus back to the source input", async () => {
+    // 契约：Enter/Space 在按钮上的激活 click 恒 detail===0（鼠标点击恒 ≥1）。
+    // 重试钮随新请求卸载后焦点不得滞留 body，必须交回源文本框。
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    expect(container.textContent).toContain("Temporary network error");
+    const retryButton = submitButton();
+    expect(retryButton).not.toBeNull();
+    act(() => retryButton.focus());
+    act(() => {
+      retryButton.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          detail: 0,
+        })
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).toBe(input());
+  });
+
+  test("pointer activation of the retry button keeps the natural focus path", async () => {
+    // 指针腿零改动（owner 裁决边界）：detail≥1 的真实点击不得程序化交还
+    // 输入框，保留浏览器自然焦点移动。本用例是键盘腿误扩指针的绊线锁。
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    expect(container.textContent).toContain("Temporary network error");
+    const retryButton = submitButton();
+    expect(retryButton).not.toBeNull();
+    act(() => {
+      retryButton.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          detail: 1,
+        })
+      );
+    });
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  test("a programmatic retry click does not steal focus back to the source input", async () => {
+    // 程序化 click()（脚本/AT 合成）的 detail 也是 0，与键盘激活同形；
+    // 但它不要求按钮持有焦点，不得因此把焦点从原处搬回输入框。
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    expect(container.textContent).toContain("Temporary network error");
+    const retryButton = submitButton();
+    expect(retryButton).not.toBeNull();
+    act(() => retryButton.click());
+    await flushEffects();
+
+    expect(apiTranslate).toHaveBeenCalledTimes(2);
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  test("pointer retry leaves focus on the pointer target, not the input", async () => {
+    apiTranslate.mockRejectedValueOnce(new Error("Temporary network error"));
+    await renderPanel();
+    const retryButton = submitButton();
+    act(() => retryButton.focus());
+    act(() => {
+      retryButton.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 })
+      );
+    });
+    await flushEffects();
+    // 真实指针点击：浏览器把焦点留在被点按钮；按钮卸载由宿主决定，
+    // 本组件不得主动抢回输入框。
+    expect(document.activeElement).not.toBe(input());
+  });
+
+  test("whitespace-only edits offer no submit button", async () => {
+    // 契约：提交按钮只在"草稿去掉首尾空白后与原文不同"时出现；仅空白/换行
+    // 差异提交后内容不变，出现按钮即诱导无谓重翻。
+    await renderPanel();
+    act(() => input().focus());
+    updateDraft("  Source text  \n");
+    expect(submitButton()).toBeNull();
+    updateDraft("  Source text!  ");
+    expect(submitButton()).not.toBeNull();
+  });
 
   test("submits an entire edited draft beyond 5000 characters once", async () => {
     const longText = "Long source text ".repeat(400).trim();
@@ -275,7 +408,7 @@ describe("Explicit translation submissions", () => {
     expect(apiTranslate).toHaveBeenCalledTimes(2);
     apiTranslate.mockResolvedValue({ trText: "Recovered translation" });
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     expect(
@@ -301,7 +434,7 @@ describe("Explicit translation submissions", () => {
     });
     const pendingRequest = apiTranslate.mock.calls[1][0];
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     expect(
@@ -327,7 +460,7 @@ describe("Explicit translation submissions", () => {
     const firstRequest = apiTranslate.mock.calls[0][0];
     act(() => firstRequest.onStreamChunk({ text: "First partial result" }));
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
     expect(apiTranslate).toHaveBeenCalledTimes(1);
     expect(firstRequest.signal.aborted).toBe(false);
@@ -511,7 +644,7 @@ describe("Explicit translation submissions", () => {
     expect(revisionsBefore).not.toHaveLength(0);
     expect(new Set(revisionsBefore)).toEqual(new Set([0]));
 
-    clickSubmit();
+    retrySubmitUnchanged();
     await flushEffects();
 
     const revisionsAfter = AiDictCont.mock.calls.map(

@@ -164,9 +164,15 @@ describe("ScreenshotOverlay", () => {
       expect(root().textContent).toContain("拖动框选文字区域，点击 × 取消");
       expect(root().querySelector("button").style.minWidth).toBe("44px");
       drag(100, 120, 400, 280);
-      expect(root().querySelector(".kt-screenshot-handle").style.width).toBe(
-        "44px"
-      );
+      const handle = root().querySelector(".kt-screenshot-handle");
+      expect(handle.style.width).toBe("44px");
+      // 44px 触控命中区不再绘制外层底色/边框；可见手柄恒由内部 span 呈现，
+      // 选区边缘不被白色方块包裹。
+      expect(handle.style.backgroundColor).toBe("");
+      expect(handle.style.border).toBe("");
+      const dot = handle.firstElementChild;
+      expect(dot.style.backgroundColor).not.toBe("");
+      expect(dot.style.border).not.toBe("");
     } finally {
       window.matchMedia = previous;
     }
@@ -410,9 +416,22 @@ describe("ScreenshotOverlay", () => {
   test("retains all five buttons and excluded regions after opening the dialog", async () => {
     expect(root().matches(KISS_UI_SELECTOR)).toBe(true);
     await act(async () => button("layout").click());
+    // 选中态边界标记：深色操作栏上选中实心块与非选中态的边界对比须达
+    // 3:1，以高对比描边承载（非文本对比口径）。
+    expect(button("layout").style.boxShadow).toContain("rgba(255, 255, 255");
+    // 游离 polygon 常驻注入：模拟将来弹层按钮内 Lucide 图标混入的形态，
+    // 布局图形查询必须限定在布局 SVG 容器内；按钮图标仍属根节点包含范围。
+    root().appendChild(
+      document.createElementNS("http://www.w3.org/2000/svg", "polygon")
+    );
+    // 选中区域为两枚 polygon（衬底在下、内核在上，按区域序排列）：
+    // 两区初始均启用，点击时刻 DOM 为 [r0衬底, r0内核, r1衬底, r1内核]，
+    // 点击 r1 的内核（索引 3）与衬底同冒泡到区域 g 的 onToggleRegion；
+    // toggle 后 r1 衬底卸载剩 3 枚（[r0衬底, r0内核, r1内核]），禁用区
+    // 内核＝索引 2，dasharray 形态断言锚它。
     act(() =>
       root()
-        .querySelectorAll("polygon")[1]
+        .querySelectorAll(".kt-image-layout-overlay polygon")[3]
         .dispatchEvent(new MouseEvent("click", { bubbles: true }))
     );
     await act(async () => button("translate").click());
@@ -423,13 +442,17 @@ describe("ScreenshotOverlay", () => {
       expect.objectContaining({ enabled: false }),
     ]);
     expect(
-      root().querySelectorAll("polygon")[1].getAttribute("stroke-dasharray")
+      root()
+        .querySelectorAll(".kt-image-layout-overlay polygon")[2]
+        .getAttribute("stroke-dasharray")
     ).toBe("4 3");
     const count = sendBgMsg.mock.calls.length;
     act(() => button("layout").click());
-    expect(root().querySelector("polygon")).toBeNull();
+    expect(root().querySelector(".kt-image-layout-overlay polygon")).toBeNull();
     act(() => button("layout").click());
-    expect(root().querySelectorAll("polygon")).toHaveLength(2);
+    expect(
+      root().querySelectorAll(".kt-image-layout-overlay polygon")
+    ).toHaveLength(3);
     expect(sendBgMsg).toHaveBeenCalledTimes(count);
   });
 
@@ -501,7 +524,7 @@ describe("ScreenshotOverlay", () => {
     act(() => overlay.setLayoutState(regions));
     drag(150, 150, 180, 180);
     expect(callbacks.onSelectionChange).toHaveBeenCalledTimes(1);
-    expect(root().querySelector("polygon")).toBeNull();
+    expect(root().querySelector(".kt-image-layout-overlay polygon")).toBeNull();
     await act(async () => {});
     expect(callbacks.onComplete).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -521,12 +544,17 @@ describe("ScreenshotOverlay", () => {
   test("replaces and resets layout supplied by the popup", () => {
     act(() => overlay.setLayoutState(regions));
     act(() => overlay.setLayoutState([{ bbox: [20, 20, 80, 80] }]));
-    expect(root().querySelectorAll("polygon")).toHaveLength(1);
-    expect(root().querySelector("polygon").getAttribute("points")).toBe(
-      "20,20 80,20 80,80 20,80"
-    );
+    // 弹层下发的单区域按选中态渲染：衬底＋内核两枚。
+    expect(
+      root().querySelectorAll(".kt-image-layout-overlay polygon")
+    ).toHaveLength(2);
+    expect(
+      root()
+        .querySelectorAll(".kt-image-layout-overlay polygon")[1]
+        .getAttribute("points")
+    ).toBe("20,20 80,20 80,80 20,80");
     act(() => overlay.setLayoutState(null));
-    expect(root().querySelector("polygon")).toBeNull();
+    expect(root().querySelector(".kt-image-layout-overlay polygon")).toBeNull();
     expect(button("layout").getAttribute("aria-pressed")).toBe("false");
   });
 
@@ -560,7 +588,9 @@ describe("ScreenshotOverlay", () => {
       await act(async () =>
         finish({ success: true, result: { layout: { regions } } })
       );
-      expect(root().querySelector("polygon")).toBeNull();
+      expect(
+        root().querySelector(".kt-image-layout-overlay polygon")
+      ).toBeNull();
     }
   );
 
