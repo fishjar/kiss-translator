@@ -131,6 +131,100 @@ describe("coarse timedtext normalization", () => {
     ]);
   });
 
+  test("expands coarse ASR track captions without acAsrConf for AI segmentation", async () => {
+    const rawEvents = [
+      {
+        tStartMs: 0,
+        dDurationMs: 1500,
+        segs: [{ utf8: "Hello everyone. Today we are going to" }],
+      },
+      {
+        tStartMs: 1500,
+        dDurationMs: 2300,
+        segs: [{ utf8: "walk through the new layout engine, which" }],
+      },
+      {
+        tStartMs: 3800,
+        dDurationMs: 1700,
+        segs: [{ utf8: "looks simple at first, but gets" }],
+      },
+      {
+        tStartMs: 5500,
+        dDurationMs: 2100,
+        segs: [{ utf8: "tricky. Next, let us check the" }],
+      },
+    ];
+
+    const prepared = prepareTimedTextEvents(rawEvents, "en", { isAsr: true });
+    const trickyIndex = prepared.flatEvents.findIndex(
+      (item) => item.text === "tricky."
+    );
+    expect(trickyIndex).toBeGreaterThan(0);
+
+    const apiSubtitle = jest.fn(({ events }) => {
+      let nextIndex = 0;
+      return Promise.resolve(
+        [
+          { e: 1, t: "大家好。" },
+          {
+            e: trickyIndex,
+            t: "今天我们来看一下新的布局引擎，它乍看简单但其实很棘手。",
+          },
+          { e: events.length - 1, t: "接下来让我们检查" },
+        ].map((item) => {
+          const cue = mapBoundaryItemToCue(item, events, nextIndex, "en");
+          nextIndex = item.e + 1;
+          return cue;
+        })
+      );
+    });
+
+    const result = await aiSegment({
+      videoId: "video-coarse-asr-no-conf",
+      fromLang: "en",
+      toLang: "zh-CN",
+      chunkEvents: prepared.flatEvents,
+      segApiSetting: { apiSlug: "openai" },
+      apiSubtitle,
+      docInfo: {},
+      formatSubtitles: jest.fn(() => []),
+      clearSegmentTranslation: false,
+      setting: {},
+    });
+
+    expect(result.map((cue) => cue.text)).toEqual([
+      "Hello everyone.",
+      "Today we are going to walk through the new layout engine, which looks simple at first, but gets tricky.",
+      "Next, let us check the",
+    ]);
+    expect(result[1].end).toBe(result[2].start);
+    expect(result[1].end).toBeGreaterThan(5500);
+    expect(result[1].end).toBeLessThan(7600);
+  });
+
+  test("leaves manual captions with mid-segment punctuation untouched when isAsr and acAsrConf are absent", () => {
+    const { flatEvents } = prepareTimedTextEvents(
+      [
+        {
+          tStartMs: 5500,
+          dDurationMs: 2100,
+          segs: [{ utf8: "tricky. Next, let us check the" }],
+        },
+        {
+          tStartMs: 7600,
+          dDurationMs: 1500,
+          segs: [{ utf8: "Dr. Smith arrived." }],
+        },
+      ],
+      "en"
+    );
+
+    expect(flatEvents).toEqual([
+      { text: "tricky. Next, let us check the", start: 5500, end: 7600 },
+      { text: "Dr. Smith arrived.", start: 7600, end: 9100 },
+    ]);
+  });
+
   test("caps coarse ASR words at the next event without overlaps or lost text", () => {
     const rawEvents = [
       {

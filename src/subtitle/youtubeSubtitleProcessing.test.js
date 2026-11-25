@@ -425,4 +425,59 @@ describe("youtubeSubtitleProcessing", () => {
       { text: "第二段字幕", start: 2200, end: 3200 },
     ]);
   });
+
+  test.each(["rule", "statistical"])(
+    "%s splits coarse ASR captions without acAsrConf at mid-cue sentence boundaries",
+    (mode) => {
+      const rawEvents = [
+        {
+          tStartMs: 0,
+          dDurationMs: 1500,
+          segs: [{ utf8: "Hello everyone. Today we are going to" }],
+        },
+        {
+          tStartMs: 1500,
+          dDurationMs: 2300,
+          segs: [{ utf8: "walk through the new layout engine, which" }],
+        },
+        {
+          tStartMs: 3800,
+          dDurationMs: 1700,
+          segs: [{ utf8: "looks simple at first, but gets" }],
+        },
+        {
+          tStartMs: 5500,
+          dDurationMs: 2100,
+          segs: [{ utf8: "tricky. Next, let us check the" }],
+        },
+        {
+          tStartMs: 7600,
+          dDurationMs: 1700,
+          segs: [{ utf8: "rendering pipeline carefully. I am sure it" }],
+        },
+        {
+          tStartMs: 9300,
+          dDurationMs: 2400,
+          segs: [{ utf8: "works like a standard queue." }],
+        },
+      ];
+      const prepared = prepareTimedTextEvents(rawEvents, "en", { isAsr: true });
+      const cues = runBuiltinSegmentation({
+        ...prepared,
+        fromLang: "en",
+        mode,
+        isAsr: true,
+      });
+
+      expect(cues.map((cue) => cue.text)).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/tricky\.$/),
+          expect.stringMatching(/rendering pipeline carefully\.$/),
+        ])
+      );
+      expect(cues.map((cue) => cue.text).join(" ")).toBe(
+        rawEvents.map((event) => event.segs[0].utf8).join(" ")
+      );
+    }
+  );
 });
