@@ -15,6 +15,8 @@ import {
 import browser from "webextension-polyfill";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../config/setting";
 import { STOKEY_SETTING } from "../config/storage";
+import { resolveIconColorHex } from "../styles/m3";
+import { resolveIconStyle } from "../styles/iconStyleStore";
 import {
   getAllPrompts,
   resolveApiPromptSettings,
@@ -22,6 +24,7 @@ import {
 } from "../config/prompt";
 import { providerCacheSignature } from "../providers/cache";
 import { prepareImage } from "../localAi/core/inputLimits";
+import { imageDecodePlan } from "./imageDimensions";
 import {
   getSettingWithDefault,
   normalizeStoredSetting,
@@ -192,6 +195,13 @@ export async function getFileContext(signal) {
   );
   return {
     uiLang: setting.uiLang,
+    // 扩展→页面 iconColor 预接线：权威设置值经归一
+    // 后随既有 getContext 通道搭载，与 uiLang 同形；旧值/非法值已由
+    // resolveIconColorHex 回落默认档，页面侧无需二次清洗。
+    iconColor: resolveIconColorHex(setting.iconColor),
+    // 扩展→页面 iconStyle 预接线：与 iconColor 同形，随既有 getContext
+    // 通道搭载；非法值由 resolveIconStyle 回落默认档，页面侧无需二次清洗。
+    iconStyle: resolveIconStyle(setting.iconStyle),
     terminologyDirectory: await readTableDirectory(),
     terminologySignatures: Object.fromEntries(
       await Promise.all(
@@ -378,7 +388,8 @@ export async function executeFileMethod(
         const prepared = await prepareImage(
           new Blob(upload.chunks, { type: upload.type }),
           await inputSettings(),
-          signal
+          signal,
+          { validateFile: true }
         );
         const result = await invokeImageProvider(
           api,
@@ -425,6 +436,7 @@ export async function executeFileMethod(
     uploads.delete(params.uploadId);
     clearTimeout(upload.timer);
     const file = new Blob(upload.chunks, { type: upload.type });
+    await imageDecodePlan(file);
     // This complete-result bridge needs no client state observer. Reuse the
     // shared runtime directly; never add a per-page listener or unload its model.
     return runtimeHost.request(
@@ -616,7 +628,8 @@ export async function executeFileMethod(
     const prepared = await prepareImage(
       new Blob(upload.chunks, { type: upload.type }),
       await inputSettings(),
-      signal
+      signal,
+      { validateFile: true }
     );
     if (params.kind !== undefined && !["image", "pdf"].includes(params.kind))
       throw fileError("INVALID_INPUT", "Invalid image scene.");

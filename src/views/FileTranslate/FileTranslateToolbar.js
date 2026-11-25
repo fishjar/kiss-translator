@@ -8,9 +8,7 @@ import {
   Collapse,
   LinearProgress,
 } from "@mui/material";
-import DarkModeRoundedIcon from "@mui/icons-material/DarkModeRounded";
-import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
+import { DarkModeRoundedIcon, SettingsRoundedIcon, KeyboardArrowDownRoundedIcon } from "../../components/icons";
 import Logo from "../../components/Logo";
 import { useFileTranslation } from "./State";
 

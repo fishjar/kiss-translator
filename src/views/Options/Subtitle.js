@@ -19,7 +19,7 @@ import Slider from "@mui/material/Slider";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { ExpandMoreIcon } from "../../components/icons";
 import Divider from "@mui/material/Divider";
 import { useI18n } from "../../hooks/I18n";
 import {

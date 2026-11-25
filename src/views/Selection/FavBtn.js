@@ -1,6 +1,5 @@
 import IconButton from "@mui/material/IconButton";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { FavoriteBorderIcon, FavoriteIcon } from "../../components/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFavWords } from "../../hooks/FavWords";
 import { logger } from "../../libs/log";

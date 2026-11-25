@@ -120,7 +120,7 @@ describe("epubPacker 测试套件", () => {
     const footerZh = getEpubFooterHtml("zh");
 
     // 校验文本居中
-    expect(footerZh).toContain('align="center"');
+    expect(footerZh).not.toContain('align="center"');
     expect(footerZh).toContain("text-align: center !important");
     expect(footerZh).toContain("KISS Translator");
     expect(footerZh).toContain("https://github.com/fishjar/kiss-translator");

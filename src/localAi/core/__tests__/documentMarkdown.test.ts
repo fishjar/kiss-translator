@@ -147,14 +147,21 @@ describe("shared document Markdown", () => {
 });
 
 
-it("submits all document blocks, list items and table cells before any response", async () => {
+it("refills a bounded document translation window and preserves output order", async () => {
   const source = [...Array.from({ length: 51 }, (_, i) => `Paragraph${i}`), "- First\n- Second", "<table><tr><td>CellA</td><td>CellB</td></tr></table>"].join("\n\n");
   const blocks = parseDocumentMarkdown(source);
   const pending: Array<{ text: string; resolve: (text: string) => void }> = [];
   const translate = vi.fn((text: string) => new Promise<string>((resolve) => pending.push({ text, resolve })));
   const run = translateDocumentBlocks(blocks, translate, new AbortController().signal);
-  expect(pending).toHaveLength(55);
-  [...pending].reverse().forEach(({ text, resolve }) => resolve(`译${text}`));
+  await vi.waitFor(() => expect(pending.length).toBeGreaterThan(2));
+  let completed = 0;
+  while (completed < 55) {
+    await vi.waitFor(() => expect(pending.length).toBeGreaterThan(0));
+    expect(pending.length).toBeLessThanOrEqual(32);
+    const batch = pending.splice(0);
+    completed += batch.length;
+    batch.reverse().forEach(({ text, resolve }) => resolve(`译${text}`));
+  }
   await run;
   expect(blocks.every((block) => block.status === "done")).toBe(true);
   expect(blocks[0].targetRaw).toContain("译Paragraph0");
@@ -169,7 +176,7 @@ it("cancels late document results without overwriting block state", async () => 
   const abort = new AbortController();
   const progress = vi.fn();
   const run = translateDocumentBlocks(blocks, () => new Promise<string>((resolve) => pending.push(resolve)), abort.signal, progress);
-  expect(pending).toHaveLength(2);
+  await vi.waitFor(() => expect(pending).toHaveLength(2));
   abort.abort();
   pending.forEach((resolve) => resolve("late"));
   await expect(run).rejects.toMatchObject({ name: "AbortError" });

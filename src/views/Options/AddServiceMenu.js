@@ -3,7 +3,8 @@ import { useI18n } from "../../hooks/I18n";
 import { useState } from "react";
 import { Menu, MenuItem, Box } from "@mui/material";
 import ApiProviderIcon from "../../components/ApiProviderIcon";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { ChevronRightIcon } from "../../components/icons";
+import { scriptFocus } from "../../hooks/focusModality";
 import { useProviderPackages } from "../../hooks/ProviderPackages";
 import { useSetting } from "../../hooks/Setting";
 import {
@@ -69,7 +70,7 @@ export default function AddServiceMenu({ anchorEl, onClose, onSelect }) {
   const back = () => {
     const parent = submenu?.anchor;
     setSubmenu(null);
-    requestAnimationFrame(() => parent?.focus());
+    requestAnimationFrame(() => scriptFocus(parent ?? null));
   };
   const select = async (entry) => {
     // The same parent callback handles unsaved edits and selects the added card.

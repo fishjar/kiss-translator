@@ -1,4 +1,5 @@
 import * as fflate from "fflate";
+import { Blob as NodeBlob } from "buffer";
 import {
   translateEpubChapter,
   translateEpubBook,
@@ -6,7 +7,13 @@ import {
   getEpubFooterHtml,
   EPUB_FOOTER_HTML,
 } from "../fileTranslate";
-import { parseEpubBook } from "./epubParser";
+import {
+  parseEpubBook,
+  parseXml,
+  updateEpubContainerPaths,
+} from "./epubParser";
+import { openEpubArchive } from "./epubArchive";
+import { downloadEpubArchive } from "./epubStreamExport";
 import { apiTranslate } from "../../apis";
 
 jest.mock("../../fileTranslation/client", () =>
@@ -52,6 +59,97 @@ describe("EPUB 翻译流水线单元测试", () => {
     "OEBPS/content.opf": fflate.strToU8(opfXml),
     "OEBPS/ch1.xhtml": fflate.strToU8(ch1Xhtml),
   };
+
+  test.each([
+    ["中文/content.opf", "中文/content.opf", "中文/content.opf"],
+    ["%e4%b8%ad%e6%96%87.opf", "中文.opf", "%e4%b8%ad%e6%96%87.opf"],
+    ["with%20space.opf", "with space.opf", "with%20space.opf"],
+    ["with space.opf", "with space.opf", "with%20space.opf"],
+    ["literal%20name.opf", "literal%20name.opf", "literal%2520name.opf"],
+    ["literal%2520name.opf", "literal%20name.opf", "literal%2520name.opf"],
+    [
+      "both%20names.opf",
+      "both names.opf",
+      "both%20names.opf",
+      "both%20names.opf",
+    ],
+    [
+      "both%2520names.opf",
+      "both%20names.opf",
+      "both%2520names.opf",
+      "both names.opf",
+    ],
+    ["./content.opf", "content.opf", "content.opf"],
+    ["../OEBPS%2fcontent.opf", "content.opf", "content.opf"],
+    ["../OEBPS%5ccontent.opf", "content.opf", "content.opf"],
+  ])(
+    "round-trips the rootfile %s",
+    async (link, name, expected, other = "") => {
+      const container = "META-INF/container.xml";
+      const entry = `OEBPS/${name}`;
+      const chapter = entry.slice(0, entry.lastIndexOf("/") + 1) + "ch1.xhtml";
+      const source = containerXml.replace("OEBPS/content.opf", `OEBPS/${link}`);
+      const entries = {
+        mimetype: filesMap.mimetype,
+        [chapter]: filesMap["OEBPS/ch1.xhtml"],
+        [container]: fflate.strToU8(source),
+        [entry]: fflate.strToU8(opfXml),
+      };
+      if (other) {
+        entries[`OEBPS/${other}`] = fflate.strToU8(
+          opfXml.replace("Test Book", "Other Book")
+        );
+      }
+      const input = fflate.zipSync(entries);
+      const book = await parseEpubBook(input);
+      expect(book.opfPath).toBe(entry);
+      const legacy = exportEpubFromChapterStates(book);
+      const saved = [];
+      const picker = window.showSaveFilePicker;
+      window.showSaveFilePicker = jest.fn(async () => ({
+        createWritable: async () =>
+          new WritableStream({
+            write(chunk) {
+              saved.push(chunk);
+            },
+          }),
+      }));
+      try {
+        book.archive = await openEpubArchive(new NodeBlob([input]));
+        await downloadEpubArchive(
+          book,
+          {},
+          undefined,
+          () => new Map(),
+          {},
+          {
+            large: true,
+          }
+        );
+      } finally {
+        if (picker) window.showSaveFilePicker = picker;
+        else delete window.showSaveFilePicker;
+      }
+      const streamed = new Uint8Array(await new NodeBlob(saved).arrayBuffer());
+      for (const bytes of [legacy.uint8Array, streamed]) {
+        const output = fflate.unzipSync(bytes);
+        const xml = fflate.strFromU8(output[container]);
+        expect(
+          parseXml(xml).querySelector("rootfile").getAttribute("full-path")
+        ).toBe(`OEBPS/${expected}`);
+        expect(xml === source).toBe(link === expected);
+        expect(
+          updateEpubContainerPaths(xml, (path) => Boolean(output[path]))
+        ).toBe(xml);
+        const reopened = await parseEpubBook(bytes);
+        expect(reopened.opfPath).toBe(entry);
+        expect(reopened.title).toBe("Test Book");
+        expect(reopened.spineItems.map(({ fullPath }) => fullPath)).toEqual([
+          chapter,
+        ]);
+      }
+    }
+  );
 
   const scene = {
     apiSlug: "primary",
@@ -474,7 +572,7 @@ describe("EPUB 翻译流水线单元测试", () => {
   <body>
     <nav epub:type="toc">
       <ol>
-        <li><a href="ch1.xhtml">Chapter 1 English Title</a></li>
+        <li><div><p><a href="ch1.xhtml">Chapter 1 English Title</a></p></div></li>
       </ol>
     </nav>
   </body>
@@ -500,8 +598,10 @@ describe("EPUB 翻译流水线单元测试", () => {
 
     const customFilesMap = {
       mimetype: fflate.strToU8("application/epub+zip"),
-      "META-INF/container.xml": fflate.strToU8(containerXml),
-      "OEBPS/content.opf": fflate.strToU8(testOpf),
+      "META-INF/container.xml": fflate.strToU8(
+        containerXml.replace("content.opf", "%E5%8C%85%20%25.opf")
+      ),
+      "OEBPS/包 %.opf": fflate.strToU8(testOpf),
       "OEBPS/nav.xhtml": fflate.strToU8(testNav),
       "OEBPS/toc.ncx": fflate.strToU8(testNcx),
       "OEBPS/ch1.xhtml": fflate.strToU8(testCh1),
@@ -512,6 +612,7 @@ describe("EPUB 翻译流水线单元测试", () => {
 
     // 验证 nav.xhtml 未在 spine 中
     expect(epubBook.spineItems.length).toBe(1);
+    expect(epubBook.opfPath).toBe("OEBPS/包 %.opf");
     expect(epubBook.navItemHref).toBe("OEBPS/nav.xhtml");
     expect(epubBook.ncxItemHref).toBe("OEBPS/toc.ncx");
 
@@ -539,6 +640,10 @@ describe("EPUB 翻译流水线单元测试", () => {
     );
     expect(exportedNav).toContain("第一章 中文标题");
     expect(exportedNav).not.toContain("Chapter 1 English Title");
+    const legacyExport = exportEpubFromChapterStates(epubBook);
+    expect(
+      fflate.strFromU8(legacyExport.filesMap["OEBPS/nav.xhtml"])
+    ).not.toContain('class="kt-epub-footer"');
 
     // 2. 验证 toc.ncx 也被同步更新为中文标题
     const exportedNcx = fflate.strFromU8(

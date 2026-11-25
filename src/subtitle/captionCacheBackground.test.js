@@ -1,4 +1,9 @@
 import { captionCacheBackend } from "./captionCacheBackground";
+import {
+  URL_CACHE_CONTEXT,
+  URL_CACHE_SUBTITLE,
+  URL_CACHE_TRAN,
+} from "../config/index";
 
 const id = "kSQknoHMFtk";
 const sender = {
@@ -72,4 +77,34 @@ test("settings changes trim the count or clear disabled storage", async () => {
   changed({ kiss_translator_setting_v2: {} }, "local");
   await new Promise((resolve) => setTimeout(resolve, 0));
   expect(store.stats).toHaveBeenCalledWith(5);
+});
+
+test("clear action removes subtitle and context CacheStorage entries without touching webpage translation cache", async () => {
+  const prevCaches = global.caches;
+  const deleted = [];
+  const fakeRequests = [
+    { url: `${URL_CACHE_SUBTITLE}?v=1` },
+    { url: `${URL_CACHE_CONTEXT}?v=1` },
+    { url: `${URL_CACHE_TRAN}?v=1` },
+  ];
+  global.caches = {
+    open: jest.fn(async () => ({
+      keys: async () => fakeRequests,
+      delete: async (req) => {
+        deleted.push(req.url);
+        return true;
+      },
+    })),
+  };
+  try {
+    const result = await handle({ action: "clear" }, options);
+    expect(result).toBe(true);
+    expect(store.clear).toHaveBeenCalled();
+    expect(deleted).toEqual([
+      `${URL_CACHE_SUBTITLE}?v=1`,
+      `${URL_CACHE_CONTEXT}?v=1`,
+    ]);
+  } finally {
+    global.caches = prevCaches;
+  }
 });

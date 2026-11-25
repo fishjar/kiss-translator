@@ -24,6 +24,7 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
     drawImage: jest.fn((source) => operations.push(["draw", source])),
     fillRect: jest.fn(() => operations.push(["mask"])),
     fillText: jest.fn(() => operations.push(["text"])),
+    clearRect: jest.fn(),
     getImageData: () => ({ data: [255, 255, 255, 255] }),
     measureText: () => ({ width: 10 }),
     save: jest.fn(),
@@ -34,7 +35,6 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
     clip: jest.fn(() => operations.push(["clip"])),
     restore: jest.fn(),
   };
-  const originalContext = { drawImage: jest.fn() };
   const createElement = document.createElement.bind(document);
   const canvases = [];
   const create = jest
@@ -42,9 +42,8 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
     .mockImplementation((tag) => {
       const element = createElement(tag);
       if (tag === "canvas") {
-        const index = canvases.length;
         canvases.push(element);
-        element.getContext = () => (index === 0 ? context : originalContext);
+        element.getContext = () => context;
         element.toBlob = (callback) =>
           callback(new Blob(["png"], { type: "image/png" }));
       }
@@ -71,7 +70,7 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
       }
     );
     expect(result.type).toBe("image/png");
-    expect(originalContext.drawImage).toHaveBeenCalledWith(canvases[0], 0, 0);
+    expect(canvases).toHaveLength(1);
     expect(operations.map(([operation]) => operation)).toEqual([
       "draw",
       "mask",
@@ -85,7 +84,9 @@ test("image synthesis restores excluded polygons after drawing neighboring trans
       [40, 30],
       [25, 30],
     ]);
-    expect(context.drawImage).toHaveBeenLastCalledWith(canvases[1], 0, 0);
+    expect(context.clearRect).toHaveBeenCalledWith(0, 0, 100, 100);
+    expect(context.drawImage).toHaveBeenLastCalledWith(image, 0, 0, 100, 100);
+    expect(canvases[0].width).toBe(0);
     expect(context.restore).toHaveBeenCalledTimes(1);
     expect(image.close).toHaveBeenCalledTimes(1);
   } finally {

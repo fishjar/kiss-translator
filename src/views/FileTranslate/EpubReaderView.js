@@ -25,26 +25,393 @@ import Tooltip from "@mui/material/Tooltip";
 import Popover from "@mui/material/Popover";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReaderAlert from "./ReaderAlert";
-import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
-import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
-import FormatSizeRoundedIcon from "@mui/icons-material/FormatSizeRounded";
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
-import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import {
+  MenuBookRoundedIcon,
+  MenuRoundedIcon,
+  FormatSizeRoundedIcon,
+  ChevronRightRoundedIcon,
+  ExpandMoreRoundedIcon,
+  SearchRoundedIcon,
+  CheckCircleRoundedIcon,
+  StopRoundedIcon,
+  KeyboardArrowUpRoundedIcon,
+  KeyboardArrowDownRoundedIcon,
+  CloseRoundedIcon,
+} from "../../components/icons";
 import DOMPurify from "dompurify";
 import * as fflate from "fflate";
 import {
   parseXhtmlToDoc,
   serializeDocToXhtml,
   resolveEpubImages,
+  readEpubImages,
   cleanCssRemoteUrls,
 } from "../../libs/epub/epubDomHandler";
 import { normalizePath, safeDecodeURI } from "../../libs/epub/epubParser";
+import {
+  useDocumentWindow,
+  useMeasuredDocumentItem,
+} from "./useDocumentWindow";
+import { createDocumentSession } from "../../fileTranslation/documentSession";
+import {
+  LARGE_EPUB_CHAPTER,
+  epubPartMarkup,
+  epubPartRoot,
+  readEpubBody,
+  splitEpubBody,
+  storedEpubParts,
+} from "../../libs/epub/epubSections";
+
+async function archiveChapterText(
+  book,
+  path,
+  state,
+  mode,
+  load,
+  signal,
+  cache
+) {
+  const result =
+    state?.status === "done" && state.stored && mode !== "source"
+      ? await load(path)
+      : ["done", "busy"].includes(state?.status)
+        ? state
+        : null;
+  const translated =
+    mode === "bilingual"
+      ? result?.bilingualHtml
+      : mode === "target"
+        ? result?.targetHtml
+        : "";
+  return (
+    translated ||
+    fflate.strFromU8(await book.archive.read(path, { signal, cache }))
+  );
+}
+
+async function* archiveChapterParts(book, path, state, mode, load, signal) {
+  const result =
+    state?.status === "done" && state.stored && mode !== "source"
+      ? await load(path)
+      : ["done", "busy"].includes(state?.status)
+        ? state
+        : null;
+  if (result?.parts && mode !== "source") {
+    yield* storedEpubParts(result.parts, load, mode, signal);
+    return;
+  }
+  const translated =
+    mode === "bilingual"
+      ? result?.bilingualHtml
+      : mode === "target"
+        ? result?.targetHtml
+        : "";
+  if (!translated) {
+    yield* readEpubBody(book.archive, path, signal);
+    return;
+  }
+  function* pieces() {
+    for (let start = 0; start < translated.length; start += 32 * 1024)
+      yield translated.slice(start, start + 32 * 1024);
+  }
+  yield* splitEpubBody(pieces(), signal);
+}
+
+function* chapterMatches(root, query) {
+  const matcher = new RegExp(
+    query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+    "giu"
+  );
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (
+      ["SCRIPT", "STYLE"].includes(node.parentElement?.tagName?.toUpperCase())
+    )
+      continue;
+    for (const match of node.data.matchAll(matcher))
+      yield { node, index: match.index, length: match[0].length };
+  }
+}
+
+const EpubArchiveChapter = React.memo(function EpubArchiveChapter({
+  book,
+  spine,
+  index,
+  state,
+  mode,
+  load,
+  hashes,
+  measure,
+  onReady,
+  navigation,
+  partIndex,
+  loadPart,
+}) {
+  const root = useRef(null);
+  const [result, setLoaded] = useState(null);
+  const generation = useMemo(
+    () => ({
+      book,
+      path: spine.fullPath,
+      state,
+      mode,
+      load,
+      hashes,
+      loadPart,
+      partIndex,
+    }),
+    [book, spine.fullPath, state, mode, load, hashes, loadPart, partIndex]
+  );
+  const loaded = result?.generation === generation ? result : null;
+  useMeasuredDocumentItem(root, index, measure, "border-box");
+  useEffect(() => {
+    const abort = new AbortController();
+    let urls = [];
+    void (async () => {
+      const content = loadPart
+        ? await loadPart(partIndex)
+        : await archiveChapterText(
+            book,
+            spine.fullPath,
+            state,
+            mode,
+            load,
+            abort.signal,
+            true
+          );
+      if (abort.signal.aborted) return;
+      const doc = parseXhtmlToDoc(content);
+      for (const hash of hashes) {
+        const target = doc.getElementById(hash);
+        target?.classList.add("kt-toc-anchor");
+      }
+      const images = await readEpubImages(
+        doc,
+        spine.fullPath,
+        book.archive,
+        abort.signal,
+        true
+      );
+      if (abort.signal.aborted) return;
+      urls = resolveEpubImages(doc, spine.fullPath, images);
+      for (const image of doc.querySelectorAll("img")) {
+        image.setAttribute("loading", "lazy");
+        image.setAttribute("decoding", "async");
+      }
+      const html = sanitizeEpubReaderHtml(
+        doc.body?.innerHTML || serializeDocToXhtml(doc)
+      );
+      setLoaded({ generation, html });
+    })().catch((error) => {
+      if (!abort.signal.aborted)
+        setLoaded({ generation, error: error.message || String(error) });
+    });
+    return () => {
+      abort.abort();
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [
+    generation,
+    book,
+    spine.fullPath,
+    state,
+    mode,
+    load,
+    hashes,
+    loadPart,
+    partIndex,
+  ]);
+  useLayoutEffect(() => {
+    if (!loaded || !navigation) return;
+    measure(index, root.current.getBoundingClientRect().height);
+    onReady(index, root.current, navigation);
+  }, [index, loaded, measure, navigation, onReady]);
+  return (
+    <section
+      ref={root}
+      id={partIndex === undefined ? `epub-spine-${index}` : undefined}
+      data-spine-index={index}
+      data-spine-path={spine.fullPath}
+      className="kt-epub-spine-section"
+      style={{
+        paddingBottom: "3.5rem",
+        minHeight: loaded ? undefined : 600,
+        display: "flow-root",
+      }}
+    >
+      {loaded?.error ? (
+        <Typography color="error">{loaded.error}</Typography>
+      ) : (
+        <div dangerouslySetInnerHTML={{ __html: loaded?.html || "" }} />
+      )}
+    </section>
+  );
+});
+
+function EpubPart({ partIndex, measurePart, ...props }) {
+  const measure = useCallback(
+    (_, height) => measurePart(partIndex, height),
+    [measurePart, partIndex]
+  );
+  return (
+    <EpubArchiveChapter {...props} partIndex={partIndex} measure={measure} />
+  );
+}
+
+function EpubLargeArchiveChapter(props) {
+  const {
+    book,
+    spine,
+    index,
+    state,
+    mode,
+    load,
+    measure,
+    navigation,
+    scrollRef,
+    onReady,
+  } = props;
+  const root = useRef(null);
+  const partsRef = useRef(null);
+  const current = useRef(null);
+  const [partCount, setCount] = useState(0);
+  const [partIndexed, setIndexed] = useState(false);
+  const [partError, setError] = useState("");
+  const [partStore, setStore] = useState(null);
+  const partsKey = useMemo(
+    () => ({ book, path: spine.fullPath, state, mode, load }),
+    [book, spine.fullPath, state, mode, load]
+  );
+  const active = current.current?.key === partsKey;
+  const count = active ? partCount : 0;
+  const indexed = active && partIndexed;
+  const error = active ? partError : "";
+  const store = active ? partStore : null;
+  const navigated = useRef(null);
+  const sections = useDocumentWindow(count, scrollRef, partsRef, 650, 1, {
+    documentKey: partsKey,
+    resetScroll: false,
+    frameUpdates: true,
+  });
+  const jump = sections.jump;
+  const finishPartJump = sections.finishJump;
+  const partReady = useCallback(
+    (chapter, element, request) => {
+      if (!request || current.current?.key !== partsKey) return;
+      navigated.current = { request, key: partsKey };
+      finishPartJump();
+      onReady(chapter, element, request);
+    },
+    [finishPartJump, onReady, partsKey]
+  );
+  const loadPart = useCallback((part) => store.get(String(part)), [store]);
+  useMeasuredDocumentItem(root, index, measure, "border-box");
+  useEffect(() => {
+    const abort = new AbortController();
+    const session = createDocumentSession();
+    const archive = { key: partsKey, anchors: new Map() };
+    current.current = archive;
+    setCount(0);
+    setIndexed(false);
+    setError("");
+    setStore(session);
+    void (async () => {
+      let partIndex = 0;
+      for await (const part of archiveChapterParts(
+        book,
+        spine.fullPath,
+        state,
+        mode,
+        load,
+        abort.signal
+      )) {
+        if (part.suffix !== undefined) break;
+        let text = epubPartMarkup(part);
+        const doc = parseXhtmlToDoc(text);
+        if (part.opener && !part.before?.endsWith(part.opener)) {
+          const wrapper = epubPartRoot(doc, part);
+          wrapper.removeAttribute("id");
+          wrapper.removeAttribute("name");
+          text = serializeDocToXhtml(doc);
+        }
+        for (const item of doc.querySelectorAll("body [id], body [name]")) {
+          const name = item.id || item.getAttribute("name");
+          if (!archive.anchors.has(name)) archive.anchors.set(name, partIndex);
+        }
+        await session.put(String(partIndex++), text);
+        if (!abort.signal.aborted) setCount(partIndex);
+      }
+    })()
+      .catch((error) => {
+        if (!abort.signal.aborted) setError(error.message);
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) setIndexed(true);
+      });
+    return () => {
+      abort.abort();
+      session.close();
+    };
+  }, [partsKey, book, spine.fullPath, state, mode, load]);
+  const target =
+    navigation?.match?.part ??
+    (navigation?.hash
+      ? ((active ? current.current.anchors.get(navigation.hash) : undefined) ??
+        (indexed ? 0 : undefined))
+      : 0);
+  useLayoutEffect(() => {
+    if (!navigation && navigated.current) {
+      navigated.current = null;
+      finishPartJump();
+    }
+  }, [navigation, finishPartJump]);
+  useLayoutEffect(() => {
+    if (
+      navigation &&
+      target !== undefined &&
+      target < count &&
+      (navigated.current?.request !== navigation ||
+        navigated.current?.key !== partsKey)
+    ) {
+      navigated.current = { request: navigation, key: partsKey };
+      jump(target, { pin: true });
+    }
+    if (navigation && indexed && (target === undefined || target >= count))
+      onReady(index, root.current, navigation);
+  }, [navigation, target, count, jump, indexed, index, onReady, partsKey]);
+  return (
+    <div
+      ref={root}
+      id={`epub-spine-${index}`}
+      className="kt-epub-spine-section"
+      data-spine-index={index}
+      data-spine-path={spine.fullPath}
+    >
+      {error && <Typography color="error">{error}</Typography>}
+      <div ref={partsRef}>
+        <div aria-hidden="true" style={{ height: sections.before }} />
+        {store &&
+          Array.from({ length: sections.end - sections.start }, (_, offset) => {
+            const partIndex = sections.start + offset;
+            return (
+              <EpubPart
+                {...props}
+                key={partIndex}
+                partIndex={partIndex}
+                loadPart={loadPart}
+                onReady={partReady}
+                measurePart={sections.measure}
+                navigation={
+                  navigation && target === partIndex ? navigation : undefined
+                }
+              />
+            );
+          })}
+        <div aria-hidden="true" style={{ height: sections.after }} />
+      </div>
+    </div>
+  );
+}
 
 /**
  * 递归树形目录项组件
@@ -278,6 +645,7 @@ export const EPUB_FONT_PRESETS = [
 
 export default function EpubReaderView({
   epubBook,
+  loadChapter,
   currentChapterIndex,
   onSelectChapter,
   epubViewMode,
@@ -333,7 +701,16 @@ export default function EpubReaderView({
   const [matchCount, setMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const contentBodyRef = useRef(null);
+  const archive = epubBook?.archive;
+  const archiveBodyRef = useRef(null);
+  const [navigation, setNavigation] = useState(null);
+  const activeNavigation = useRef(null);
+  const navigationTimer = useRef(null);
+  const searchHits = useRef([]);
+  const previousArchiveIndex = useRef(0);
+  const archivePrefetch = useRef(null);
   const highlightMarksRef = useRef([]);
+  const fontAnchor = useRef(null);
 
   const scrollContainerRef = useRef(null);
   const fullscreenToggleRef = useRef(null);
@@ -341,6 +718,117 @@ export default function EpubReaderView({
   const isNavigatingRef = useRef(false);
   // 记录是否是由正文容器自然滚动引发的当前章节索引更新（避免触发 scrollTop = 0 回跳）
   const scrollDrivenChapterRef = useRef(null);
+  const archiveWindow = useDocumentWindow(
+    archive ? epubBook.spineItems.length : 0,
+    scrollContainerRef,
+    archiveBodyRef,
+    900,
+    1,
+    {
+      frameUpdates: true,
+      retainAdjacent: true,
+      documentKey: epubBook,
+      layoutKey: `${epubViewMode}:${readerPreferences?.fontSize}:${readerPreferences?.fontFamily}`,
+    }
+  );
+  const jumpArchiveWindow = archiveWindow.jump;
+  const finishArchiveJump = archiveWindow.finishJump;
+  const cancelArchiveJump = useCallback(() => {
+    clearTimeout(navigationTimer.current);
+    if (!activeNavigation.current) return;
+    activeNavigation.current = null;
+    isNavigatingRef.current = false;
+    setNavigation(null);
+    finishArchiveJump();
+  }, [finishArchiveJump]);
+  useLayoutEffect(() => {
+    cancelArchiveJump();
+    isNavigatingRef.current = false;
+    previousArchiveIndex.current = 0;
+  }, [epubBook, cancelArchiveJump]);
+  useEffect(() => {
+    const scroll = scrollContainerRef.current;
+    if (!scroll || !archive) return;
+    const onKey = (event) => {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+          " ",
+        ].includes(event.key)
+      )
+        cancelArchiveJump();
+    };
+    scroll.addEventListener("wheel", cancelArchiveJump, { passive: true });
+    scroll.addEventListener("touchmove", cancelArchiveJump, { passive: true });
+    scroll.addEventListener("keydown", onKey);
+    return () => {
+      scroll.removeEventListener("wheel", cancelArchiveJump);
+      scroll.removeEventListener("touchmove", cancelArchiveJump);
+      scroll.removeEventListener("keydown", onKey);
+    };
+  }, [archive, cancelArchiveJump]);
+  useEffect(() => () => clearTimeout(navigationTimer.current), []);
+  const navigateArchive = useCallback(
+    (index, hash, match) => {
+      archivePrefetch.current?.();
+      isNavigatingRef.current = true;
+      const request = { book: epubBook, index, hash, match };
+      activeNavigation.current = request;
+      setNavigation(request);
+      clearTimeout(navigationTimer.current);
+      navigationTimer.current = setTimeout(cancelArchiveJump, 15_000);
+      jumpArchiveWindow(index, { pin: true });
+      scrollDrivenChapterRef.current = index;
+      onSelectChapter?.(index);
+    },
+    [jumpArchiveWindow, onSelectChapter, epubBook, cancelArchiveJump]
+  );
+
+  const archiveChapterReady = useCallback(
+    (index, root, request) => {
+      if (
+        !root ||
+        !request ||
+        request.index !== index ||
+        request.book !== epubBook ||
+        activeNavigation.current !== request
+      )
+        return;
+      let target;
+      if (request.match) {
+        const matches = chapterMatches(root, request.match.query);
+        let match;
+        for (let i = 0; i <= request.match.ordinal; i++)
+          match = matches.next().value;
+        if (match) {
+          const text = match.node.splitText(match.index);
+          text.splitText(match.length);
+          const mark = document.createElement("mark");
+          mark.className = "kt-search-highlight kt-search-current";
+          text.replaceWith(mark);
+          mark.appendChild(text);
+          highlightMarksRef.current = [mark];
+          target = mark;
+        }
+      } else if (request.hash) {
+        target = [...root.querySelectorAll("[id], [name]")].find(
+          (node) =>
+            node.id === request.hash ||
+            node.getAttribute("name") === request.hash
+        );
+      }
+      (target || root).scrollIntoView?.({
+        block: request.match ? "center" : "start",
+      });
+      cancelArchiveJump();
+    },
+    [epubBook, cancelArchiveJump]
+  );
 
   const toggleFullscreen = useCallback(() => {
     if (!onFullscreenChange) return;
@@ -495,21 +983,43 @@ export default function EpubReaderView({
   );
 
   // 跳转指定索引的匹配项并平滑居中滚动
-  const jumpToMatch = useCallback((index) => {
-    const marks = highlightMarksRef.current;
-    if (!marks || marks.length === 0) return;
-
-    const newIndex = ((index % marks.length) + marks.length) % marks.length;
-    marks.forEach((m, idx) => {
-      if (idx === newIndex) {
-        m.classList.add("kt-search-current");
-      } else {
-        m.classList.remove("kt-search-current");
+  const jumpToMatch = useCallback(
+    (index) => {
+      if (archive && searchHits.current.length) {
+        const hits = searchHits.current;
+        const total = hits.at(-1).end;
+        const next = ((index % total) + total) % total;
+        const hit = hits.find(({ end }) => next < end);
+        const mark = highlightMarksRef.current[0];
+        if (mark?.parentNode) {
+          const parent = mark.parentNode;
+          mark.replaceWith(...mark.childNodes);
+          parent.normalize();
+        }
+        setCurrentMatchIndex(next);
+        navigateArchive(hit.index, "", {
+          query: hit.query,
+          ordinal: next - hit.start,
+          part: hit.part,
+        });
+        return;
       }
-    });
-    setCurrentMatchIndex(newIndex);
-    marks[newIndex].scrollIntoView?.({ behavior: "smooth", block: "center" });
-  }, []);
+      const marks = highlightMarksRef.current;
+      if (!marks || marks.length === 0) return;
+
+      const newIndex = ((index % marks.length) + marks.length) % marks.length;
+      marks.forEach((m, idx) => {
+        if (idx === newIndex) {
+          m.classList.add("kt-search-current");
+        } else {
+          m.classList.remove("kt-search-current");
+        }
+      });
+      setCurrentMatchIndex(newIndex);
+      marks[newIndex].scrollIntoView?.({ behavior: "smooth", block: "center" });
+    },
+    [archive, navigateArchive]
+  );
 
   const handleNextMatch = () => {
     if (!searchPending) jumpToMatch(currentMatchIndex + 1);
@@ -528,10 +1038,14 @@ export default function EpubReaderView({
     if (isNavigatingRef.current) {
       return;
     }
+    if (archive) {
+      jumpArchiveWindow(currentChapterIndex);
+      return;
+    }
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0;
     }
-  }, [currentChapterIndex]);
+  }, [currentChapterIndex, archive, jumpArchiveWindow]);
 
   // 翻译进行中时自动清空正文搜索框与高亮，避免高亮标记干扰翻译或被带入处理
   useEffect(() => {
@@ -631,6 +1145,10 @@ export default function EpubReaderView({
       const targetSpineIndex = spineItems.findIndex(
         (s) => s.fullPath === node.fullPath
       );
+      if (archive && targetSpineIndex !== -1) {
+        navigateArchive(targetSpineIndex, node.hash);
+        return;
+      }
       if (targetSpineIndex !== -1) {
         onSelectChapter?.(targetSpineIndex);
       }
@@ -665,7 +1183,7 @@ export default function EpubReaderView({
         }, 600);
       }, 50);
     },
-    [spineItems, onSelectChapter]
+    [spineItems, onSelectChapter, archive, navigateArchive]
   );
 
   // 拦截并处理阅读器正文中的链接点击（外部链接在新标签页打开，书内相对链接与锚点平滑跳转）
@@ -711,6 +1229,10 @@ export default function EpubReaderView({
       }
 
       if (targetSpineIndex !== -1) {
+        if (archive) {
+          navigateArchive(targetSpineIndex, safeDecodeURI(hash));
+          return;
+        }
         isNavigatingRef.current = true;
         onSelectChapter?.(targetSpineIndex);
         const targetSection = scrollContainerRef.current?.querySelector(
@@ -736,7 +1258,7 @@ export default function EpubReaderView({
         }, 600);
       }
     },
-    [spineItems, onSelectChapter]
+    [spineItems, onSelectChapter, archive, navigateArchive]
   );
 
   // 监听正文滚动，自动同步视口焦点章节至 currentChapterIndex
@@ -817,6 +1339,7 @@ export default function EpubReaderView({
 
   // 提交后创建章节资源，避免 StrictMode 清理后继续显示已释放的 Blob URL。
   useEffect(() => {
+    if (archive) return;
     if (!spineItems.length || !epubBook?.filesMap) {
       clearChapterCache();
       setCombinedHtml("");
@@ -930,6 +1453,7 @@ export default function EpubReaderView({
     epubViewMode,
     tocAnchorHashes,
     clearChapterCache,
+    archive,
   ]);
 
   const displayHtml = combinedHtml;
@@ -940,6 +1464,7 @@ export default function EpubReaderView({
 
   // 输入停止后再遍历正文；正文变化或翻译开始时取消过期任务。
   useEffect(() => {
+    if (archive) return;
     cancelSearch();
     if (busy || !searchQuery.trim()) {
       clearHighlights();
@@ -964,7 +1489,162 @@ export default function EpubReaderView({
     applyHighlights,
     clearHighlights,
     cancelSearch,
+    archive,
   ]);
+
+  useEffect(() => {
+    if (!archive || isNavigatingRef.current) return;
+    const index =
+      currentChapterIndex +
+      Math.sign(currentChapterIndex - previousArchiveIndex.current || 1);
+    previousArchiveIndex.current = currentChapterIndex;
+    const next = spineItems[index];
+    if (!next || archive.size(next.fullPath) > LARGE_EPUB_CHAPTER) return;
+    const abort = new AbortController();
+    const timer = setTimeout(
+      () =>
+        void archive
+          .read(next.fullPath, { signal: abort.signal })
+          .catch(() => {}),
+      100
+    );
+    const cancel = () => {
+      clearTimeout(timer);
+      abort.abort();
+    };
+    archivePrefetch.current = cancel;
+    return () => {
+      cancel();
+      if (archivePrefetch.current === cancel) archivePrefetch.current = null;
+    };
+  }, [archive, spineItems, currentChapterIndex]);
+
+  useEffect(() => {
+    if (!archive) return;
+    searchHits.current = [];
+    clearHighlights();
+    const query = searchQuery.trim();
+    if (!query || busy || searchComposing) {
+      setSearchPending(Boolean(query && !busy));
+      return;
+    }
+    const abort = new AbortController();
+    const scan = async () => {
+      const hits = [];
+      let total = 0;
+      const scanPart = (content, index, part) => {
+        const doc = parseXhtmlToDoc(content);
+        const matches = chapterMatches(doc.body || doc, query);
+        let count = 0;
+        while (!matches.next().done) count++;
+        if (count)
+          hits.push({ query, index, part, start: total, end: total + count });
+        total += count;
+      };
+      for (const [index, { fullPath }] of spineItems.entries()) {
+        if (archive.size(fullPath) > LARGE_EPUB_CHAPTER) {
+          let partIndex = 0;
+          for await (const part of archiveChapterParts(
+            epubBook,
+            fullPath,
+            chapterStates[fullPath],
+            epubViewMode,
+            loadChapter,
+            abort.signal
+          )) {
+            if (part.suffix !== undefined) break;
+            scanPart(epubPartMarkup(part), index, partIndex++);
+          }
+          continue;
+        }
+        const content = await archiveChapterText(
+          epubBook,
+          fullPath,
+          chapterStates[fullPath],
+          epubViewMode,
+          loadChapter,
+          abort.signal,
+          false
+        );
+        if (abort.signal.aborted) return;
+        scanPart(content, index);
+      }
+      if (abort.signal.aborted) return;
+      searchHits.current = hits;
+      setMatchCount(total);
+      if (hits.length)
+        navigateArchive(hits[0].index, "", {
+          query,
+          ordinal: 0,
+          part: hits[0].part,
+        });
+    };
+    setSearchPending(true);
+    const timer = setTimeout(
+      () =>
+        void scan()
+          .catch(() => {})
+          .finally(() => {
+            if (!abort.signal.aborted) setSearchPending(false);
+          }),
+      300
+    );
+    return () => {
+      clearTimeout(timer);
+      abort.abort();
+    };
+  }, [
+    archive,
+    busy,
+    searchQuery,
+    searchComposing,
+    chapterStates,
+    epubBook,
+    epubViewMode,
+    spineItems,
+    loadChapter,
+    clearHighlights,
+    navigateArchive,
+  ]);
+
+  useLayoutEffect(() => {
+    const anchor = fontAnchor.current;
+    fontAnchor.current = null;
+    const scroll = scrollContainerRef.current;
+    if (
+      !anchor ||
+      anchor.book !== epubBook ||
+      !scroll ||
+      activeNavigation.current ||
+      !scroll.contains(anchor.mark)
+    )
+      return;
+    scroll.scrollTop +=
+      anchor.mark.getBoundingClientRect().top -
+      scroll.getBoundingClientRect().top -
+      anchor.offset;
+  }, [epubBook, readerPreferences?.fontSize, readerPreferences?.fontFamily]);
+
+  const changeReaderFont = (change) => {
+    const scroll = scrollContainerRef.current;
+    const mark = highlightMarksRef.current[0];
+    if (
+      archive &&
+      mark &&
+      scroll?.contains(mark) &&
+      !activeNavigation.current
+    ) {
+      const view = scroll.getBoundingClientRect();
+      const match = mark.getBoundingClientRect();
+      if (match.top < view.bottom && match.bottom > view.top)
+        fontAnchor.current = {
+          book: epubBook,
+          mark,
+          offset: match.top - view.top,
+        };
+    }
+    onChangeReaderPreferences?.(change);
+  };
 
   // 字号增减调节
   const adjustFontSize = (delta) => {
@@ -972,7 +1652,8 @@ export default function EpubReaderView({
       12,
       Math.min(32, (readerPreferences?.fontSize || 16) + delta)
     );
-    onChangeReaderPreferences?.({ fontSize: nextSize });
+    if (nextSize !== (readerPreferences?.fontSize || 16))
+      changeReaderFont({ fontSize: nextSize });
   };
 
   // 页面宽度增减调节 (步长 40px，范围 560px ~ 1400px)
@@ -1534,9 +2215,10 @@ export default function EpubReaderView({
                     ? "contained"
                     : "text"
                 }
-                onClick={() =>
-                  onChangeReaderPreferences?.({ fontFamily: font.id })
-                }
+                onClick={() => {
+                  if (font.id !== (readerPreferences?.fontFamily || "default"))
+                    changeReaderFont({ fontFamily: font.id });
+                }}
                 sx={{
                   justifyContent: "flex-start",
                   fontSize: 12,
@@ -1747,10 +2429,12 @@ export default function EpubReaderView({
                 padding: "0 2px",
               },
               "& mark.kt-search-current": {
+                // warning-exempt: 阅读器搜索当前命中高亮（search-current），主题表无警示槽（EPUB_READER_THEMES 仅四槽），接入须发明色值，保留字面量。
                 backgroundColor: "#f59e0b",
                 color: "#ffffff !important",
                 borderRadius: "2px",
                 padding: "0 2px",
+                // warning-exempt: 搜索当前命中伴生光环，与上方 #f59e0b 同一豁免域，保留字面量。
                 boxShadow: "0 0 0 2px rgba(245, 158, 11, 0.4)",
               },
               "& .kt-epub-footer": {
@@ -1789,10 +2473,53 @@ export default function EpubReaderView({
                 textAlign: "center !important",
               },
             }}
-            dangerouslySetInnerHTML={{
-              __html: sanitizedHtml,
-            }}
-          />
+            dangerouslySetInnerHTML={
+              archive ? undefined : { __html: sanitizedHtml }
+            }
+          >
+            {archive ? (
+              <div ref={archiveBodyRef} style={{ overflowAnchor: "none" }}>
+                <div
+                  aria-hidden="true"
+                  style={{ height: archiveWindow.before }}
+                />
+                {spineItems
+                  .slice(archiveWindow.start, archiveWindow.end)
+                  .map((spine, offset) => {
+                    const index = archiveWindow.start + offset;
+                    const Chapter =
+                      archive.size(spine.fullPath) > LARGE_EPUB_CHAPTER
+                        ? EpubLargeArchiveChapter
+                        : EpubArchiveChapter;
+                    return (
+                      <Chapter
+                        key={index}
+                        book={epubBook}
+                        spine={spine}
+                        index={index}
+                        state={chapterStates[spine.fullPath]}
+                        mode={epubViewMode}
+                        load={loadChapter}
+                        hashes={tocAnchorHashes}
+                        measure={archiveWindow.measure}
+                        scrollRef={scrollContainerRef}
+                        onReady={archiveChapterReady}
+                        navigation={
+                          navigation?.book === epubBook &&
+                          navigation.index === index
+                            ? navigation
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                <div
+                  aria-hidden="true"
+                  style={{ height: archiveWindow.after }}
+                />
+              </div>
+            ) : null}
+          </Box>
         </Box>
       </Card>
     </Box>

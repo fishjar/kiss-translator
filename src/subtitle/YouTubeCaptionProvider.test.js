@@ -192,6 +192,8 @@ jest.mock("./youtubeSubtitleProcessing.js", () => ({
   builtinSegment: jest.fn(),
   formatSubtitles: jest.fn(),
   getFromLang: () => "en",
+  isAsrCaptionTrack: jest.requireActual("./youtubeSubtitleProcessing.js")
+    .isAsrCaptionTrack,
   prepareTimedTextEvents: jest.fn(),
 }));
 
@@ -1777,5 +1779,32 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
 
     // 防抖后只执行一次重译
     expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
+  });
+
+  test("passes track ASR status to prepareTimedTextEvents", async () => {
+    mockTrack = { languageCode: "en", vssId: "a.en", kind: "asr" };
+    create();
+    await flushPromises();
+    await flushPromises();
+
+    expect(prepareTimedTextEvents).toHaveBeenCalledWith(
+      expect.any(Array),
+      "en",
+      { isAsr: true }
+    );
+
+    mockProviders.splice(0).forEach((p) => p.destroy());
+    prepareTimedTextEvents.mockClear();
+
+    mockTrack = { languageCode: "en", vssId: ".en", kind: "" };
+    create();
+    await flushPromises();
+    await flushPromises();
+
+    expect(prepareTimedTextEvents).toHaveBeenCalledWith(
+      expect.any(Array),
+      "en",
+      { isAsr: false }
+    );
   });
 });

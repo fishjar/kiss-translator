@@ -1,5 +1,21 @@
 import { isNonSpeechSegment } from "./subtitleTextClassification.js";
 
+const NO_SPACE_LANGUAGES = ["zh", "ja", "ko", "th", "lo", "km", "my"];
+
+function expandCoarseWords(text, startMs, endMs) {
+  const tokens = text.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || !Number.isFinite(endMs) || endMs <= startMs) {
+    return null;
+  }
+  const stepMs = (endMs - startMs) / tokens.length;
+  return tokens.map((token, index) => {
+    const tokenStart = startMs + stepMs * index;
+    const tokenEnd =
+      index === tokens.length - 1 ? endMs : startMs + stepMs * (index + 1);
+    return new Word(token, tokenStart, tokenEnd);
+  });
+}
+
 /**
  * 智能断句算法 - 从 YouTube 歌词/字幕 JSON 到结构化断句
  * 基于 Python 字幕生成器 (subtitle_generator.py) 的 JavaScript 等价实现。
@@ -86,7 +102,8 @@ class WordGap {
     nextWord,
     isYoutubeBreak,
     isSameEvent,
-    gapIndex
+    gapIndex,
+    isSynthetic = false
   ) {
     this.gapMs = gapMs; // 前后两个单词间的时间间隔（毫秒）
     this.prevWord = prevWord; // 前一个单词实例
@@ -94,6 +111,7 @@ class WordGap {
     this.isYoutubeBreak = isYoutubeBreak; // 是否落在 YouTube 原始的物理换行位置上
     this.isSameEvent = isSameEvent; // 这两个单词是否属于 YouTube 同一个 Event 组
     this.gapIndex = gapIndex; // 该间隔在整片字幕中的索引位置
+    this.isSynthetic = isSynthetic; // 是否来自粗粒度片段展开的合成词间间隔
   }
 }
 
@@ -184,14 +202,21 @@ class SubtitleSentence {
  * @param {Object} data - YouTube 原始字幕的 JSON 数据 (json3 格式)
  * @returns {Object} { words, gaps, wordEventIds } 单词数组、间隔数组以及每个单词对应的事件 ID 数组
  */
-function parseYoutubeData(data) {
+function parseYoutubeData(data, params = {}) {
   const events = data.events || [];
   const words = [];
   const wordEventIds = [];
+  const canExpandCoarseText = !NO_SPACE_LANGUAGES.some((lang) =>
+    String(params.fromLang || "auto").startsWith(lang)
+  );
+  const isAsrTrack = Boolean(params.isAsr);
   let eventIdx = 0;
+  let lastCoarseEventIdx = -1;
+  let lastCoarseEndMs = -Infinity;
 
   // 1. 收集并清洗所有有效的单词，确定每个单词的绝对起止时间轴
-  for (const event of events) {
+  for (let rawIdx = 0; rawIdx < events.length; rawIdx++) {
+    const event = events[rawIdx];
     const tStart = event.tStartMs || 0;
     const tDuration = event.dDurationMs || 0;
     const tEnd = tStart + tDuration;
@@ -208,6 +233,15 @@ function parseYoutubeData(data) {
     if (isAppend && segs.length === 1 && segs[0].utf8 === "\n") {
       eventIdx++;
       continue;
+    }
+
+    let nextEventStart = NaN;
+    for (let nextIdx = rawIdx + 1; nextIdx < events.length; nextIdx++) {
+      const candidateStart = Number(events[nextIdx]?.tStartMs);
+      if (Number.isFinite(candidateStart) && candidateStart > tStart) {
+        nextEventStart = candidateStart;
+        break;
+      }
     }
 
     for (let i = 0; i < segs.length; i++) {
@@ -231,6 +265,42 @@ function parseYoutubeData(data) {
         wordEnd = tEnd;
       }
 
+      const trimmedText = text.trim();
+      const shouldExpandCoarse =
+        canExpandCoarseText &&
+        trimmedText.includes(" ") &&
+        (isAsrTrack || Object.prototype.hasOwnProperty.call(seg, "acAsrConf"));
+      if (shouldExpandCoarse) {
+        const effectiveEnd =
+          i === segs.length - 1 &&
+          Number.isFinite(nextEventStart) &&
+          nextEventStart > wordStart
+            ? Math.min(wordEnd, nextEventStart)
+            : wordEnd;
+        const expandedWords = expandCoarseWords(
+          trimmedText,
+          wordStart,
+          effectiveEnd
+        );
+        if (expandedWords) {
+          // 连续无缝衔接的粗粒度事件只是自动字幕的物理折行，不应制造人为跨事件断句奖励。
+          const expandedEventId =
+            lastCoarseEventIdx >= 0 && wordStart - lastCoarseEndMs <= 50
+              ? lastCoarseEventIdx
+              : eventIdx;
+          for (const expandedWord of expandedWords) {
+            expandedWord.isSynthetic = true;
+            words.push(expandedWord);
+            wordEventIds.push(expandedEventId);
+          }
+          lastCoarseEventIdx = expandedEventId;
+          lastCoarseEndMs = effectiveEnd;
+          continue;
+        }
+      }
+
+      lastCoarseEventIdx = -1;
+      lastCoarseEndMs = -Infinity;
       words.push(new Word(text, wordStart, wordEnd));
       wordEventIds.push(eventIdx); // 记录该单词属于第几个 Event，用于后续分析是否在同事件内
     }
@@ -264,14 +334,19 @@ function parseYoutubeData(data) {
       }
     }
 
+    const isSameEvent = wordEventIds[i] === wordEventIds[i + 1];
+    const isSynthetic = Boolean(
+      isSameEvent && wPrev.isSynthetic && wNext.isSynthetic
+    );
     gaps.push(
       new WordGap(
         gapMs,
         wPrev,
         wNext,
         isYtBreak,
-        wordEventIds[i] === wordEventIds[i + 1], // 判断是否属于同一个 Event 事件
-        i
+        isSameEvent, // 判断是否属于同一个 Event 事件
+        i,
+        isSynthetic
       )
     );
   }
@@ -473,37 +548,39 @@ function computeBoundaryScore(gap, stats, params) {
   // ==========================================
   // B. 时间统计特征评估 (Timing Features)
   // ==========================================
+  // 粗粒度自动字幕按词均分得到的合成词间步长不含真实说话停顿，不参与停顿 Z-Score / 分位数加分。
+  if (!gap.isSynthetic) {
+    let zClassical = 0; // 经典 Z-Score：度量数据点偏离平均值的标准差倍数
+    let zRobust = 0; // 稳健 Z-Score：度量数据点偏离中位数的稳健标准差 (Robust Sigma) 倍数
 
-  let zClassical = 0; // 经典 Z-Score：度量数据点偏离平均值的标准差倍数
-  let zRobust = 0; // 稳健 Z-Score：度量数据点偏离中位数的稳健标准差 (Robust Sigma) 倍数
+    if (stats.std > 0) {
+      zClassical = (gapVal - stats.mean) / stats.std;
+    }
+    if (stats.robustSigma > 0) {
+      zRobust = (gapVal - stats.median) / stats.robustSigma;
+    }
 
-  if (stats.std > 0) {
-    zClassical = (gapVal - stats.mean) / stats.std;
+    // 采用经典和稳健 Z-Score 的较小值，以防止局部的极端超大停顿导致 Z-Score 计算失真
+    const zScore = Math.min(zClassical, zRobust);
+    // 仅在 Gap 大于中位数（即 Z-Score > 0）时计入停顿评分，乘以灵敏度参数
+    score += Math.max(0, zScore) * sensitivity;
+
+    // 针对 YouTube 物理对齐的填充噪音进行衰减系数计算 (dampen)
+    const treatAsDefault =
+      defaultFillValues && defaultFillValues.has(gapVal) && gap.isSameEvent;
+    const dampen = treatAsDefault ? 0.4 : 1.0;
+
+    // 根据停顿落在统计分位数中的区间，进行阶梯式分段奖励加分
+    if (gapVal >= stats.p75) score += 0.5 * dampen;
+    if (gapVal >= stats.p90) score += 1.0 * dampen;
+    if (gapVal >= stats.p95) score += 1.5 * dampen;
+
+    // 物理时间轴绝对静默停顿加权奖励
+    if (gapVal >= 500) score += 0.3;
+    if (gapVal >= 800) score += 0.5;
+    if (gapVal >= 1500) score += 1.0;
+    if (gapVal >= 3000) score += 1.5;
   }
-  if (stats.robustSigma > 0) {
-    zRobust = (gapVal - stats.median) / stats.robustSigma;
-  }
-
-  // 采用经典和稳健 Z-Score 的较小值，以防止局部的极端超大停顿导致 Z-Score 计算失真
-  const zScore = Math.min(zClassical, zRobust);
-  // 仅在 Gap 大于中位数（即 Z-Score > 0）时计入停顿评分，乘以灵敏度参数
-  score += Math.max(0, zScore) * sensitivity;
-
-  // 针对 YouTube 物理对齐的填充噪音进行衰减系数计算 (dampen)
-  const treatAsDefault =
-    defaultFillValues && defaultFillValues.has(gapVal) && gap.isSameEvent;
-  const dampen = treatAsDefault ? 0.4 : 1.0;
-
-  // 根据停顿落在统计分位数中的区间，进行阶梯式分段奖励加分
-  if (gapVal >= stats.p75) score += 0.5 * dampen;
-  if (gapVal >= stats.p90) score += 1.0 * dampen;
-  if (gapVal >= stats.p95) score += 1.5 * dampen;
-
-  // 物理时间轴绝对静默停顿加权奖励
-  if (gapVal >= 500) score += 0.3;
-  if (gapVal >= 800) score += 0.5;
-  if (gapVal >= 1500) score += 1.0;
-  if (gapVal >= 3000) score += 1.5;
 
   // ==========================================
   // C. YouTube 结构特征评估 (Structure Features)
@@ -848,7 +925,7 @@ export function intelligentSentenceBreak(data, params = {}) {
   const mergedParams = { ...DEFAULT_PARAMS, ...params };
 
   // 1. 将复杂的 Timedtext JSON 扁平化，解析为结构清晰的单词 (words) 及单词差 (gaps) 数组
-  const { words, gaps, wordEventIds } = parseYoutubeData(data);
+  const { words, gaps, wordEventIds } = parseYoutubeData(data, mergedParams);
   if (!words.length) return [];
 
   // 2. 侦测 YouTube 为了对齐波形而自动填充的伪间隔时间差，用于在计算均值/标准差时进行降噪排除

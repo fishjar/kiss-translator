@@ -1,25 +1,13 @@
 import { logger } from "../log";
 import * as fflate from "fflate";
+import { normalizePath, openEpubArchive } from "./epubArchive";
 
 /**
  * 规范化相对路径（消除 ./ 与 ../）
  * @param {string} path 原始路径
  * @returns {string} 规范化后的路径
  */
-export function normalizePath(path) {
-  if (!path) return "";
-  const parts = path.replace(/\\/g, "/").split("/");
-  const result = [];
-  for (const part of parts) {
-    if (!part || part === ".") continue;
-    if (part === "..") {
-      result.pop();
-    } else {
-      result.push(part);
-    }
-  }
-  return result.join("/");
-}
+export { normalizePath } from "./epubArchive";
 
 /**
  * 安全 URL 解码函数，防止 URIError 导致解析中断
@@ -33,6 +21,53 @@ export function safeDecodeURI(uri) {
   } catch {
     return uri;
   }
+}
+
+function findRootfile(path, has) {
+  const decoded = normalizePath(safeDecodeURI(path));
+  if (decoded && has(decoded)) return decoded;
+  const raw = normalizePath(path);
+  return raw && has(raw) ? raw : "";
+}
+
+function rootfileMatches(path, entry) {
+  if (
+    normalizePath(path) !== path ||
+    /^[a-z][a-z\d+.-]*:/i.test(path) ||
+    !/^(?:[A-Za-z0-9!$&'()*+,./:;=@_~-]|%[A-Fa-f0-9]{2}|[\u{A0}-\u{10FFFD}])+$/u.test(
+      path
+    )
+  )
+    return false;
+
+  const segments = path.split("/");
+  const entrySegments = entry.split("/");
+  try {
+    return (
+      segments.length === entrySegments.length &&
+      segments.every(
+        (segment, index) => decodeURIComponent(segment) === entrySegments[index]
+      )
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function updateEpubContainerPaths(source, has) {
+  const doc = parseXml(source);
+  let changed = false;
+  for (const root of doc.querySelectorAll("rootfile[full-path]")) {
+    const previous = root.getAttribute("full-path");
+    const path = findRootfile(previous, has);
+    if (!path || rootfileMatches(previous, path)) continue;
+    root.setAttribute(
+      "full-path",
+      path.split("/").map(encodeURIComponent).join("/")
+    );
+    changed = true;
+  }
+  return changed ? new XMLSerializer().serializeToString(doc) : source;
 }
 
 /**
@@ -153,20 +188,27 @@ export function parseNavList(olEl, navDir) {
       (n.localName === "li" || n.tagName?.toLowerCase() === "li")
   );
   for (const li of lis) {
-    const a =
-      Array.from(li.childNodes || []).find(
-        (n) =>
-          n.nodeType === 1 &&
-          (n.localName === "a" || n.tagName?.toLowerCase() === "a")
-      ) || li.querySelector?.("a");
-    const text = a?.textContent?.trim() || "";
+    let a, span, subOl;
+    const scan = (parent) => {
+      for (const node of parent.children) {
+        if (node.localName === "ol" || node.localName === "ul") {
+          subOl ||= node;
+          continue;
+        }
+        if (node.localName === "a" && node.hasAttribute("href")) a ||= node;
+        else {
+          if (node.localName === "span") span ||= node;
+          scan(node);
+        }
+      }
+    };
+    scan(li);
+    const label = a || span;
+    const text =
+      label?.querySelector(".kt-bilingual-target")?.textContent?.trim() ||
+      label?.textContent?.trim() ||
+      "";
     const rawHref = a?.getAttribute("href") || "";
-    const subOl =
-      Array.from(li.childNodes || []).find(
-        (n) =>
-          n.nodeType === 1 &&
-          (n.localName === "ol" || n.tagName?.toLowerCase() === "ol")
-      ) || li.querySelector?.("ol");
     const subChildren = subOl ? parseNavList(subOl, navDir) : [];
 
     if (text && rawHref) {
@@ -328,20 +370,33 @@ export function checkEpubDrm(filesMap, manifestItems, spineItems) {
  * @returns {Promise<Object>} EPUB 书籍信息结构体
  */
 export async function parseEpubBook(buffer) {
-  const uint8 = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-
-  // 1. 解压 ZIP 归档
   let filesMap;
+  let archive;
   try {
-    filesMap = fflate.unzipSync(uint8);
+    if (buffer instanceof Blob) {
+      archive = await openEpubArchive(buffer);
+    } else {
+      const uint8 =
+        buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+      filesMap = Object.create(null);
+      for (const [name, bytes] of Object.entries(fflate.unzipSync(uint8))) {
+        if (name.endsWith("/") || name.endsWith("\\")) continue;
+        const path = normalizePath(name);
+        if (!path || Object.hasOwn(filesMap, path))
+          throw new Error(`EPUB 包含无法区分的 ZIP 条目: ${name}`);
+        filesMap[path] = bytes;
+      }
+    }
   } catch (err) {
     throw new Error(
       `EPUB 文件解压失败，文件可能已损坏: ${err?.message || err}`
     );
   }
+  const has = (path) => (archive ? archive.has(path) : !!filesMap[path]);
+  const read = (path) => (archive ? archive.read(path) : filesMap[path]);
 
   // 2. 校验 mimetype 文件（必须包含 application/epub+zip）
-  const mimetypeBytes = filesMap["mimetype"];
+  const mimetypeBytes = await read("mimetype");
   if (mimetypeBytes) {
     const mimetypeStr = fflate.strFromU8(mimetypeBytes).trim();
     if (!mimetypeStr.includes("application/epub+zip")) {
@@ -350,15 +405,16 @@ export async function parseEpubBook(buffer) {
   }
 
   // 3. 定位 OPF 根包文件（读取 META-INF/container.xml）
-  const containerBytes = filesMap["META-INF/container.xml"];
+  const containerBytes = await read("META-INF/container.xml");
   if (!containerBytes) {
     throw new Error("无法读取 EPUB: 缺少 META-INF/container.xml");
   }
   const containerDoc = parseXml(fflate.strFromU8(containerBytes));
   const rootfileEl = containerDoc.querySelector("rootfile");
-  const opfPath = rootfileEl?.getAttribute("full-path");
-  if (!opfPath || !filesMap[opfPath]) {
-    throw new Error(`无法读取 EPUB: 找不到根包文件 (${opfPath || "未指定"})`);
+  const rootPath = rootfileEl?.getAttribute("full-path");
+  const opfPath = findRootfile(rootPath, has);
+  if (!opfPath) {
+    throw new Error(`无法读取 EPUB: 找不到根包文件 (${rootPath || "未指定"})`);
   }
 
   // 计算 OPF 文件所在基准目录
@@ -367,7 +423,7 @@ export async function parseEpubBook(buffer) {
     : "";
 
   // 5. 解析 OPF 包文档
-  const opfDoc = parseXml(fflate.strFromU8(filesMap[opfPath]));
+  const opfDoc = parseXml(fflate.strFromU8(await read(opfPath)));
   const packageEl = opfDoc.querySelector("package") || opfDoc.documentElement;
   const version = packageEl.getAttribute("version") || "3.0";
   const isEpub3 = version.startsWith("3");
@@ -414,11 +470,11 @@ export async function parseEpubBook(buffer) {
 
       // 寻找 EPUB 3 导航文档
       if (properties.split(/\s+/).includes("nav")) {
-        navItemHref = filesMap[fullPath] ? fullPath : rawPath;
+        navItemHref = has(fullPath) ? fullPath : rawPath;
       }
       // 寻找 EPUB 2 NCX 文件
       if (mediaType === "application/x-dtbncx+xml") {
-        ncxItemHref = filesMap[fullPath] ? fullPath : rawPath;
+        ncxItemHref = has(fullPath) ? fullPath : rawPath;
       }
     }
   });
@@ -430,9 +486,9 @@ export async function parseEpubBook(buffer) {
     const idref = el.getAttribute("idref");
     const manifestItem = manifestItems.get(idref);
     if (!manifestItem) return;
-    const resolvedPath = filesMap[manifestItem.fullPath]
+    const resolvedPath = has(manifestItem.fullPath)
       ? manifestItem.fullPath
-      : filesMap[manifestItem.rawPath]
+      : has(manifestItem.rawPath)
         ? manifestItem.rawPath
         : null;
     if (resolvedPath) {
@@ -446,7 +502,11 @@ export async function parseEpubBook(buffer) {
   });
 
   // 校验 DRM 加密（检查 META-INF/encryption.xml，精准识别正文加密 vs 字体反混淆）
-  checkEpubDrm(filesMap, manifestItems, spineItems);
+  checkEpubDrm(
+    { "META-INF/encryption.xml": await read("META-INF/encryption.xml") },
+    manifestItems,
+    spineItems
+  );
 
   if (spineItems.length === 0) {
     throw new Error("EPUB 包文档的 spine 中未找到任何阅读章节");
@@ -455,9 +515,9 @@ export async function parseEpubBook(buffer) {
   // 6. 解析目录 (TOC)
   let tocTree = [];
   // 优先解析 EPUB 3 导航文档
-  if (navItemHref && filesMap[navItemHref]) {
+  if (navItemHref && has(navItemHref)) {
     try {
-      const navDoc = parseXml(fflate.strFromU8(filesMap[navItemHref]));
+      const navDoc = parseXml(fflate.strFromU8(await read(navItemHref)));
       const tocNav =
         navDoc.querySelector('nav[epub\\:type="toc"]') ||
         navDoc.querySelector('nav[role="doc-toc"]') ||
@@ -466,7 +526,7 @@ export async function parseEpubBook(buffer) {
         const navDir = navItemHref.includes("/")
           ? navItemHref.slice(0, navItemHref.lastIndexOf("/") + 1)
           : "";
-        const rootOl = tocNav.querySelector("ol");
+        const rootOl = tocNav.querySelector("ol,ul");
         if (rootOl) {
           tocTree = parseNavList(rootOl, navDir);
         } else {
@@ -499,9 +559,9 @@ export async function parseEpubBook(buffer) {
   }
 
   // 回退解析 EPUB 2 NCX 目录
-  if (tocTree.length === 0 && ncxItemHref && filesMap[ncxItemHref]) {
+  if (tocTree.length === 0 && ncxItemHref && has(ncxItemHref)) {
     try {
-      const ncxDoc = parseXml(fflate.strFromU8(filesMap[ncxItemHref]));
+      const ncxDoc = parseXml(fflate.strFromU8(await read(ncxItemHref)));
       const navMap = ncxDoc.querySelector("navMap");
       const ncxDir = ncxItemHref.includes("/")
         ? ncxItemHref.slice(0, ncxItemHref.lastIndexOf("/") + 1)
@@ -527,17 +587,19 @@ export async function parseEpubBook(buffer) {
   }
 
   // 得到扁平化目录列表
-  let tocItems = flattenTocTree(tocTree);
+  const tocItems = flattenTocTree(tocTree);
 
   // 为每个 spineItem 匹配最合适的标题（从 tocItems 中根据 fullPath 关联）
+  const titles = new Map();
+  for (const item of tocItems)
+    if (!titles.has(item.fullPath)) titles.set(item.fullPath, item.title);
   spineItems.forEach((spine, index) => {
-    const matched = tocItems.find((t) => t.fullPath === spine.fullPath);
-    spine.title = matched ? matched.title : `第 ${index + 1} 节`;
+    spine.title = titles.get(spine.fullPath) ?? `第 ${index + 1} 节`;
   });
 
   // 7. 预估总字数（粗略统计纯文本字符数）
   let totalEstimatedWords = 0;
-  for (const spine of spineItems) {
+  for (const spine of filesMap ? spineItems : []) {
     const contentBytes = filesMap[spine.fullPath];
     if (contentBytes) {
       const htmlText = fflate.strFromU8(contentBytes);
@@ -557,6 +619,7 @@ export async function parseEpubBook(buffer) {
     navItemHref,
     ncxItemHref,
     filesMap,
+    archive,
     spineItems,
     tocTree,
     tocItems,

@@ -19,6 +19,9 @@ jest.mock("../providers/backgroundInvocation", () => ({
   invokeBackgroundPlugin: jest.fn(),
 }));
 jest.mock("../localAi/core/inputLimits", () => ({ prepareImage: jest.fn() }));
+jest.mock("./imageDimensions", () => ({
+  imageDecodePlan: jest.fn().mockResolvedValue({ resize: false }),
+}));
 
 jest.mock("webextension-polyfill", () => ({
   runtime: {
@@ -88,6 +91,17 @@ beforeEach(() => {
     customStyles: [],
     syncKey: "also-secret",
   });
+});
+
+test("getContext bridges the normalized iconStyle alongside iconColor", async () => {
+  // 未设置 → resolveIconStyle 归一化回落默认档；显式合法值原样透传——
+  // 独立文件翻译页的图标样式消费此通道，不得回落 undefined。
+  const result = await getFileContext();
+  expect(result.iconStyle).toBe("lucide");
+  const previous = await getSettingWithDefault();
+  getSettingWithDefault.mockResolvedValue({ ...previous, iconStyle: "mui" });
+  const next = await getFileContext();
+  expect(next.iconStyle).toBe("mui");
 });
 
 test("DOC bridge consumes a completed owned upload and restricts task and backend", async () => {

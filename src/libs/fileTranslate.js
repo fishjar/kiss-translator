@@ -1,5 +1,15 @@
 import { logger } from "./log";
-import { runTranslationTasks } from "./translationTasks";
+import { runBoundedTranslationTasks } from "./translationTasks";
+import { hasEpubEntry, readEpubEntry } from "./epub/epubArchive";
+import {
+  EpubChapterStructureError,
+  epubPartKey,
+  epubPartMarkup,
+  epubPartRoot,
+  LARGE_EPUB_CHAPTER,
+  readEpubBody,
+  storedEpubParts,
+} from "./epub/epubSections";
 import * as fflate from "fflate";
 import { translateFileText } from "../fileTranslation/client";
 import {
@@ -7,6 +17,7 @@ import {
   parseXml,
   normalizePath,
   safeDecodeURI,
+  updateEpubContainerPaths,
 } from "./epub/epubParser";
 import {
   parseXhtmlToDoc,
@@ -41,38 +52,55 @@ export async function translateTxt(
   onProgress,
   localContext
 ) {
-  const parts = content.split(/(\r\n|\n|\r)/);
-  const output = [...parts];
+  const lines = () => content.matchAll(/[^\r\n]+/g);
+  let total = 0;
+  for (const [line] of lines()) if (line.trim()) total++;
+  const positions = [];
   const comparisons = [];
-  const tasks = [];
-  let completed = 0;
-  parts.forEach((source, index) => {
-    if (index % 2 || !source.trim()) return;
-    const rowIndex = tasks.length;
-    tasks.push(async (taskSignal) => {
-      const prefix = source.match(/^\s*/)?.[0] || "";
-      const suffix = source.match(/\s*$/)?.[0] || "";
-      const body = source.slice(prefix.length, source.length - suffix.length);
-      const chunks = body.match(/[\s\S]{1,2000}/g) || [];
-      const translated = await runTranslationTasks(
-        chunks.map(
-          (chunk) => (chunkSignal) =>
-            translateFileText(chunk, scene, setting, chunkSignal, localContext)
-        ),
-        taskSignal
-      );
-      if (taskSignal.aborted) throw new DOMException("已取消", "AbortError");
-      const target = `${prefix}${translated.join("")}${suffix}`;
-      output[index] = target;
-      comparisons[rowIndex] = { source, target };
-      onProgress?.(++completed, tasks.length, {
-        source,
-        target,
-        index: rowIndex,
-      });
-    });
+  const progress = { completed: 0 };
+  function* tasks() {
+    for (const match of lines()) {
+      const [source] = match;
+      const body = source.trim();
+      if (!body) continue;
+      const index = positions.push(match.index) - 1;
+      yield async (taskSignal) => {
+        const prefix = source.match(/^\s*/)[0];
+        const suffix = source.match(/\s*$/)[0];
+        function* chunks() {
+          for (const [chunk] of body.matchAll(/[\s\S]{1,2000}/gu))
+            yield (chunkSignal) =>
+              translateFileText(
+                chunk,
+                scene,
+                setting,
+                chunkSignal,
+                localContext
+              );
+        }
+        const translated = await runBoundedTranslationTasks(
+          chunks(),
+          taskSignal,
+          { concurrency: 8 }
+        );
+        const target = prefix + translated.join("") + suffix;
+        comparisons[index] = { source, target };
+        onProgress?.(++progress.completed, total, { source, target, index });
+      };
+    }
+  }
+  await runBoundedTranslationTasks(tasks(), signal, {
+    concurrency: 4,
+    collect: false,
   });
-  await runTranslationTasks(tasks, signal);
+  let offset = 0;
+  const output = comparisons.map(({ source, target }, index) => {
+    const position = positions[index];
+    const prefix = content.slice(offset, position);
+    offset = position + source.length;
+    return prefix + target;
+  });
+  output.push(content.slice(offset));
   return { text: output.join(""), comparisons };
 }
 
@@ -788,75 +816,73 @@ export async function translateMarkdown(
   };
 
   // 收集待翻译任务队列并预设存储槽位
-  const tasks = [];
-  for (const block of blocks) {
-    if (!block.translatable) continue;
+  function* tasks() {
+    for (const block of blocks) {
+      if (!block.translatable) continue;
 
-    if (block.type === "table") {
-      const lines = block.tableLines || [];
-      const headerCells = lines[0]
-        .split("|")
-        .slice(1, -1)
-        .map((s) => s.trim());
-      const dataRows = lines.slice(2).map((r) =>
-        r
+      if (block.type === "table") {
+        const lines = block.tableLines || [];
+        const headerCells = lines[0]
           .split("|")
           .slice(1, -1)
-          .map((s) => s.trim())
-      );
-      block.targetHeaderCells = new Array(headerCells.length).fill(undefined);
-      block.targetDataRows = dataRows.map((r) =>
-        new Array(r.length).fill(undefined)
-      );
-
-      headerCells.forEach((cell, colIdx) => {
-        if (!cell) {
-          block.targetHeaderCells[colIdx] = "";
-          return;
-        }
-        tasks.push((taskSignal) =>
-          translateUnit(
-            cell,
-            (res) => {
-              block.targetHeaderCells[colIdx] = res;
-            },
-            taskSignal
-          )
+          .map((s) => s.trim());
+        const dataRows = lines.slice(2).map((r) =>
+          r
+            .split("|")
+            .slice(1, -1)
+            .map((s) => s.trim())
         );
-      });
+        block.targetHeaderCells = new Array(headerCells.length).fill(undefined);
+        block.targetDataRows = dataRows.map((r) =>
+          new Array(r.length).fill(undefined)
+        );
 
-      dataRows.forEach((row, rowIdx) => {
-        row.forEach((cell, colIdx) => {
+        for (const [colIdx, cell] of headerCells.entries()) {
           if (!cell) {
-            block.targetDataRows[rowIdx][colIdx] = "";
-            return;
+            block.targetHeaderCells[colIdx] = "";
+            continue;
           }
-          tasks.push((taskSignal) =>
+          yield (taskSignal) =>
             translateUnit(
               cell,
               (res) => {
-                block.targetDataRows[rowIdx][colIdx] = res;
+                block.targetHeaderCells[colIdx] = res;
               },
               taskSignal
-            )
+            );
+        }
+
+        for (const [rowIdx, row] of dataRows.entries()) {
+          for (const [colIdx, cell] of row.entries()) {
+            if (!cell) {
+              block.targetDataRows[rowIdx][colIdx] = "";
+              continue;
+            }
+            yield (taskSignal) =>
+              translateUnit(
+                cell,
+                (res) => {
+                  block.targetDataRows[rowIdx][colIdx] = res;
+                },
+                taskSignal
+              );
+          }
+        }
+      } else {
+        block.targetText = undefined;
+        yield (taskSignal) =>
+          translateUnit(
+            block.text,
+            (res) => {
+              block.targetText = res;
+            },
+            taskSignal
           );
-        });
-      });
-    } else {
-      block.targetText = undefined;
-      tasks.push((taskSignal) =>
-        translateUnit(
-          block.text,
-          (res) => {
-            block.targetText = res;
-          },
-          taskSignal
-        )
-      );
+      }
     }
   }
 
-  await runTranslationTasks(tasks, signal);
+  await runBoundedTranslationTasks(tasks(), signal, { collect: false });
 
   // 组装纯译文 Markdown (translatedMd)
   const translatedMdParts = [];
@@ -1230,8 +1256,8 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
     return null;
   const fontCss = resolveFontFamily(options?.fontFamily || options?.font);
 
+  let img, canvas;
   try {
-    let img;
     if (typeof createImageBitmap === "function") {
       img = await createImageBitmap(imageBlob);
     } else {
@@ -1252,37 +1278,19 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
 
     const width = img.naturalWidth || img.width;
     const height = img.naturalHeight || img.height;
-    if (!width || !height) {
-      if (typeof img.close === "function") img.close();
-      return null;
-    }
+    if (!width || !height) return null;
 
-    const canvas = document.createElement("canvas");
+    canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      if (typeof img.close === "function") img.close();
-      return null;
-    }
+    if (!ctx) return null;
 
     // 绘制原图底层
     ctx.drawImage(img, 0, 0, width, height);
-    if (typeof img.close === "function") {
-      img.close();
-    }
 
     // 取消的区域优先保留原图，避免邻近文字的背景遮罩或重叠框覆盖它们。
     const preservePolygons = options.preservePolygons || [];
-    let originalCanvas;
-    if (preservePolygons.length) {
-      originalCanvas = document.createElement("canvas");
-      originalCanvas.width = width;
-      originalCanvas.height = height;
-      const originalContext = originalCanvas.getContext("2d");
-      if (!originalContext) return null;
-      originalContext.drawImage(canvas, 0, 0);
-    }
 
     // 逐个替换文字位置
     for (const row of rows) {
@@ -1378,7 +1386,7 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
       );
     }
 
-    if (originalCanvas) {
+    if (preservePolygons.length) {
       ctx.save();
       ctx.beginPath();
       for (const poly of preservePolygons) {
@@ -1387,7 +1395,8 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
         ctx.closePath();
       }
       ctx.clip();
-      ctx.drawImage(originalCanvas, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
       ctx.restore();
     }
 
@@ -1400,6 +1409,9 @@ export async function synthesizeTranslatedImage(imageBlob, rows, options = {}) {
   } catch (e) {
     logger.child("file-translate").error("synthesizeTranslatedImage error:", e);
     return null;
+  } finally {
+    img?.close?.();
+    if (canvas) canvas.width = canvas.height = 0;
   }
 }
 
@@ -1413,10 +1425,97 @@ export async function translateEpubChapter(
   setting,
   signal,
   onProgress,
-  localContext
+  localContext,
+  { concurrency = 32, compare = true, shouldPreview = () => true, store } = {}
 ) {
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-  const bytes = filesMap[chapterPath];
+  if (filesMap?.archive?.size(chapterPath) > LARGE_EPUB_CHAPTER) {
+    const targets = [];
+    const bilingual = [];
+    const sources = [];
+    const parts = store ? { id: crypto.randomUUID(), count: 0 } : null;
+    let unitsCount = 0;
+    let prefix, suffix;
+    try {
+      for await (const part of readEpubBody(
+        filesMap.archive,
+        chapterPath,
+        signal
+      )) {
+        prefix = part.prefix;
+        if (part.suffix !== undefined) {
+          suffix = part.suffix;
+          continue;
+        }
+        const result = await translateEpubChapter(
+          chapterPath,
+          {
+            [chapterPath]: fflate.strToU8(epubPartMarkup(part)),
+          },
+          scene,
+          setting,
+          signal,
+          undefined,
+          localContext,
+          { concurrency, compare: false }
+        );
+        const bodyHtml = (html) => {
+          const doc = parseXhtmlToDoc(html);
+          const serializer = new XMLSerializer();
+          return Array.from(epubPartRoot(doc, part).childNodes, (node) =>
+            serializer.serializeToString(node)
+          ).join("");
+        };
+        const target = bodyHtml(result.targetHtml);
+        const combined = bodyHtml(result.bilingualHtml);
+        if (parts) {
+          await store.put(epubPartKey(parts.id, parts.count++), {
+            target,
+            bilingual: combined,
+            before: part.before,
+            opener: part.opener,
+            tail: part.tail,
+          });
+        } else {
+          sources.push((part.before || "") + part.body);
+          targets.push((part.before || "") + target);
+          bilingual.push((part.before || "") + combined);
+        }
+        unitsCount += result.unitsCount;
+        onProgress?.(unitsCount, unitsCount);
+      }
+      if (parts) {
+        if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+        const result = { parts: { ...parts, prefix, suffix }, unitsCount };
+        await store.put(chapterPath, result);
+        return result;
+      }
+      const sourceHtml = prefix + sources.join("") + suffix;
+      const targetHtml = prefix + targets.join("") + suffix;
+      const bilingualHtml = prefix + bilingual.join("") + suffix;
+      return {
+        sourceHtml,
+        targetHtml,
+        bilingualHtml,
+        targetXhtml: targetHtml,
+        bilingualXhtml: bilingualHtml,
+        unitsCount,
+        comparisons: [],
+      };
+    } catch (error) {
+      if (parts) {
+        const keys = Array.from({ length: parts.count }, (_, index) =>
+          epubPartKey(parts.id, index)
+        );
+        await store.remove?.(keys)?.catch(() => {});
+      }
+      throw error;
+    }
+  }
+  const bytes = filesMap?.archive
+    ? await readEpubEntry(filesMap, chapterPath, { signal })
+    : filesMap[chapterPath];
+  if (signal?.aborted) throw new DOMException("已取消", "AbortError");
   if (!bytes) {
     throw new Error(`找不到章节文件: ${chapterPath}`);
   }
@@ -1473,6 +1572,11 @@ export async function translateEpubChapter(
       if (isCancelledOrFailed || chapterAbort.signal.aborted) return;
       lastEmitTime = Date.now();
       try {
+        if (!onProgress) return;
+        if (!shouldPreview()) {
+          onProgress(completedUnits, units.length, lastPair);
+          return;
+        }
         const partialBilingualHtml = serializeDocToXhtml(bilingualDoc);
         const partialTargetHtml = serializeDocToXhtml(targetDoc);
         onProgress?.(completedUnits, units.length, {
@@ -1521,30 +1625,29 @@ export async function translateEpubChapter(
     unit.targetHtml = targetHtml;
     completedUnits++;
     const pair = { source: unit.rawHtml, target: targetHtml };
-    comparisons[index] = pair;
+    if (compare) comparisons[index] = pair;
 
     // 实时同步更新到 live bilingualDoc 与 live targetDoc
-    const uIdx = units.indexOf(unit);
-    if (uIdx !== -1) {
-      if (bilingualUnits[uIdx]) {
-        bilingualUnits[uIdx].targetHtml = targetHtml;
-        applyTranslationToDoc([bilingualUnits[uIdx]], "bilingual", textStyle);
-      }
-      if (targetUnits[uIdx]) {
-        targetUnits[uIdx].targetHtml = targetHtml;
-        applyTranslationToDoc([targetUnits[uIdx]], "target");
-      }
+    if (bilingualUnits[index]) {
+      bilingualUnits[index].targetHtml = targetHtml;
+      applyTranslationToDoc([bilingualUnits[index]], "bilingual", textStyle);
+    }
+    if (targetUnits[index]) {
+      targetUnits[index].targetHtml = targetHtml;
+      applyTranslationToDoc([targetUnits[index]], "target");
     }
     emitLiveProgress(pair, false);
   };
 
   try {
-    await runTranslationTasks(
-      units.map(
-        (unit, index) => (taskSignal) => translateUnit(unit, index, taskSignal)
-      ),
-      chapterAbort.signal
-    );
+    function* tasks() {
+      for (const [index, unit] of units.entries())
+        yield (taskSignal) => translateUnit(unit, index, taskSignal);
+    }
+    await runBoundedTranslationTasks(tasks(), chapterAbort.signal, {
+      concurrency,
+      collect: false,
+    });
   } catch (error) {
     isCancelledOrFailed = true;
     chapterAbort.abort();
@@ -1584,12 +1687,13 @@ export async function translateEpubBook(
   if (signal?.aborted) throw new DOMException("已取消", "AbortError");
   const { filesMap, spineItems } = epubBook;
   const chapterResults = {};
+  const chapterErrors = {};
 
   // 1. 收集待翻译项：spine 章节 + 未列入 spine 的 EPUB 3 导航文档 (nav.xhtml)
   const itemsToTranslate = [...spineItems];
   const hasNavOutsideSpine =
     epubBook.navItemHref &&
-    filesMap[epubBook.navItemHref] &&
+    hasEpubEntry(epubBook, epubBook.navItemHref) &&
     !spineItems.some((s) => s.fullPath === epubBook.navItemHref);
   if (hasNavOutsideSpine) {
     itemsToTranslate.push({
@@ -1602,62 +1706,97 @@ export async function translateEpubBook(
   }
 
   const totalChapters = itemsToTranslate.length;
-  let completedChapters = 0;
-  let totalParagraphsCount = 0;
+  const progress = { completedChapters: 0, totalParagraphsCount: 0 };
 
-  const results = await runTranslationTasks(
-    itemsToTranslate.map((item) => async (signal) => {
-      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-      const chapterRes = await translateEpubChapter(
-        item.fullPath,
-        filesMap,
-        scene,
-        setting,
-        signal,
-        (currentPara, totalParas, lastPair) => {
-          if (signal.aborted) return;
-          onProgress?.(
-            completedChapters,
-            totalChapters,
-            currentPara,
-            totalParas,
-            {
-              currentChapter: item,
-              currentPara,
-              totalParas,
-              lastPair,
-              partialBilingualHtml: lastPair?.partialBilingualHtml,
-              partialTargetHtml: lastPair?.partialTargetHtml,
-            }
-          );
-        },
-        localContext,
-        options
-      );
-
-      if (signal.aborted) throw new DOMException("已取消", "AbortError");
-      completedChapters++;
-      totalParagraphsCount += chapterRes.unitsCount;
-
-      onProgress?.(
-        completedChapters,
-        totalChapters,
-        chapterRes.unitsCount,
-        chapterRes.unitsCount,
-        {
-          currentChapter: item,
-          chapterCompleted: true,
-          bilingualHtml: chapterRes.bilingualHtml,
-          targetHtml: chapterRes.targetHtml,
-          sourceHtml: chapterRes.sourceHtml,
+  function* tasks() {
+    for (const item of itemsToTranslate)
+      yield async (signal) => {
+        if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+        const previous =
+          options.resultStore && options.reuse !== false
+            ? await options.resultStore.get(item.fullPath)
+            : null;
+        let chapterRes;
+        try {
+          chapterRes =
+            previous ||
+            (await translateEpubChapter(
+              item.fullPath,
+              epubBook.archive ? epubBook : filesMap,
+              scene,
+              setting,
+              signal,
+              (currentPara, totalParas, lastPair) => {
+                if (signal.aborted) return;
+                onProgress?.(
+                  progress.completedChapters,
+                  totalChapters,
+                  currentPara,
+                  totalParas,
+                  {
+                    currentChapter: item,
+                    currentPara,
+                    totalParas,
+                    lastPair,
+                    partialBilingualHtml: lastPair?.partialBilingualHtml,
+                    partialTargetHtml: lastPair?.partialTargetHtml,
+                  }
+                );
+              },
+              localContext,
+              {
+                concurrency: 16,
+                compare: options.compare,
+                store: options.resultStore,
+                shouldPreview: () => options.shouldPreview?.(item) ?? true,
+              }
+            ));
+        } catch (error) {
+          if (signal.aborted || !(error instanceof EpubChapterStructureError))
+            throw error;
+          chapterErrors[item.fullPath] = error.message;
+          onProgress?.(++progress.completedChapters, totalChapters, 0, 0, {
+            currentChapter: item,
+            chapterError: error.message,
+          });
+          return;
         }
-      );
-      return chapterRes;
-    }),
-    signal
-  );
+
+        if (signal.aborted) throw new DOMException("已取消", "AbortError");
+        if (options.resultStore && !previous && !chapterRes.parts) {
+          await options.resultStore.put(item.fullPath, chapterRes);
+          if (signal.aborted) throw new DOMException("已取消", "AbortError");
+        }
+        progress.completedChapters++;
+        progress.totalParagraphsCount += chapterRes.unitsCount;
+
+        onProgress?.(
+          progress.completedChapters,
+          totalChapters,
+          chapterRes.unitsCount,
+          chapterRes.unitsCount,
+          {
+            currentChapter: item,
+            chapterCompleted: true,
+            ...(options.resultStore
+              ? { stored: true }
+              : {
+                  bilingualHtml: chapterRes.bilingualHtml,
+                  targetHtml: chapterRes.targetHtml,
+                  sourceHtml: chapterRes.sourceHtml,
+                }),
+          }
+        );
+        if (!options.resultStore) return chapterRes;
+      };
+  }
+  const results = await runBoundedTranslationTasks(tasks(), signal, {
+    concurrency: 2,
+    collect: !options.resultStore,
+  });
   itemsToTranslate.forEach((item, index) => {
-    chapterResults[item.fullPath] = results[index];
+    if (!options.resultStore && results[index])
+      chapterResults[item.fullPath] = results[index];
   });
 
   // 组装章节状态并提供双语与仅译文打包结果（通过惰性 getter 按需打包，避免翻译收尾时对整书重复全量打包）
@@ -1675,14 +1814,19 @@ export async function translateEpubBook(
   }
 
   // 同步更新 EPUB 2 NCX 目录（若有未匹配到正文标题的目录条目，进行补充翻译）
-  if (epubBook.ncxItemHref && filesMap[epubBook.ncxItemHref]) {
+  if (epubBook.ncxItemHref && hasEpubEntry(epubBook, epubBook.ncxItemHref)) {
     try {
-      const titleMap = extractTitleMapFromChapterStates(
-        epubBook,
-        chapterStates,
-        "target"
+      const titleMap = options.resultStore
+        ? await collectEpubTitles(
+            epubBook,
+            options.resultStore.get,
+            "target",
+            signal
+          )
+        : extractTitleMapFromChapterStates(epubBook, chapterStates, "target");
+      const rawNcx = fflate.strFromU8(
+        await readEpubEntry(epubBook, epubBook.ncxItemHref, { signal })
       );
-      const rawNcx = fflate.strFromU8(filesMap[epubBook.ncxItemHref]);
       const ncxDoc = parseXml(rawNcx);
       const ncxDir = epubBook.ncxItemHref.includes("/")
         ? epubBook.ncxItemHref.slice(
@@ -1698,7 +1842,7 @@ export async function translateEpubBook(
       );
 
       const scheduledTitles = new Set();
-      await runTranslationTasks(
+      await runBoundedTranslationTasks(
         navPoints.map((navPoint) => async (signal) => {
           const allChildren = Array.from(
             navPoint.getElementsByTagName
@@ -1797,6 +1941,13 @@ export async function translateEpubBook(
     }
   }
 
+  if (options.resultStore && chapterResults[epubBook.ncxItemHref]) {
+    await options.resultStore.put(
+      epubBook.ncxItemHref,
+      chapterResults[epubBook.ncxItemHref]
+    );
+  }
+
   let cachedBilingualExport = null;
   let cachedTargetExport = null;
 
@@ -1850,8 +2001,9 @@ export async function translateEpubBook(
       return cachedBilingualExport.filesMap;
     },
     chapterResults,
+    chapterErrors,
     chapterStates,
-    totalParagraphsCount,
+    totalParagraphsCount: progress.totalParagraphsCount,
   };
 }
 
@@ -1865,6 +2017,62 @@ export async function translateEpubBook(
  * @param {string} mode "bilingual" 双语对照 | "target" 仅译文
  * @returns {{ blob: Blob, filename: string, hasAnyTranslated: boolean }}
  */
+export async function collectEpubTitles(
+  book,
+  load,
+  mode,
+  signal,
+  loadPart = load
+) {
+  const titles = new Map();
+  const navPath = book.navItemHref;
+  const nav = navPath && (await load(navPath));
+  if (nav) {
+    for (const [key, title] of extractTitleMapFromChapterStates(
+      { ...book, spineItems: [] },
+      { [navPath]: { ...nav, status: "done" } },
+      mode
+    ))
+      titles.set(key, title);
+  }
+  const tocByPath = new Map();
+  for (const item of book.tocItems || []) {
+    if (!tocByPath.has(item.fullPath)) tocByPath.set(item.fullPath, []);
+    tocByPath.get(item.fullPath).push(item);
+  }
+  for (const spine of book.spineItems) {
+    if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+    const state = await load(spine.fullPath);
+    if (!state) continue;
+    const collect = (body) => {
+      for (const [key, title] of extractTitleMapFromChapterStates(
+        { spineItems: [spine], tocItems: tocByPath.get(spine.fullPath) || [] },
+        {
+          [spine.fullPath]: {
+            ...(body === undefined
+              ? state
+              : { targetHtml: body, bilingualHtml: body }),
+            status: "done",
+          },
+        },
+        mode
+      ))
+        if (!titles.has(key)) titles.set(key, title);
+    };
+    if (state.parts) {
+      for await (const part of storedEpubParts(
+        state.parts,
+        loadPart,
+        mode,
+        signal
+      )) {
+        if (part.suffix === undefined) collect(epubPartMarkup(part));
+      }
+    } else collect();
+  }
+  return titles;
+}
+
 export function exportEpubFromChapterStates(
   epubBook,
   chapterStates = {},
@@ -1951,6 +2159,15 @@ export function exportEpubFromChapterStates(
   }
 
   // 4. 更新 OPF 元数据
+  const containerPath = "META-INF/container.xml";
+  if (filesMap[containerPath]) {
+    filesMap[containerPath] = fflate.strToU8(
+      updateEpubContainerPaths(
+        fflate.strFromU8(filesMap[containerPath]),
+        (path) => Object.hasOwn(filesMap, path)
+      )
+    );
+  }
   if (opfPath && filesMap[opfPath]) {
     const rawOpf = fflate.strFromU8(filesMap[opfPath]);
     let titleSuffix = "";
@@ -2013,7 +2230,7 @@ export function exportEpubFromChapterStates(
       const relCss = getRelativePath(epubBook.navItemHref, cssFullPath);
       const navXhtml = fflate.strFromU8(filesMap[epubBook.navItemHref]);
       filesMap[epubBook.navItemHref] = fflate.strToU8(
-        injectFooterIntoXhtml(injectCssIntoXhtml(navXhtml, relCss), exportLang)
+        injectCssIntoXhtml(navXhtml, relCss)
       );
     }
   }

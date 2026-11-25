@@ -378,4 +378,29 @@ describe("layout regions outside the image", () => {
     ).rejects.toThrow("OCR failed");
     expect(image.close).toHaveBeenCalledTimes(1);
   });
+  test.each(["canvas", "size", "items"])(
+    "invalid crop %s releases the bitmap",
+    async (kind) => {
+      if (kind === "canvas") context.mockReturnValue(null);
+      const client = {
+        analyzeLayout: jest.fn().mockResolvedValue(layout),
+        recognize: jest.fn().mockResolvedValue({
+          layout: true,
+          imageSize:
+            kind === "size" ? { width: 0, height: 1 } : layout.imageSize,
+          items: kind === "items" ? {} : [],
+        }),
+      };
+      await expect(
+        recognizeImageWithLayout(new Blob(), {
+          client,
+          selection,
+          layoutApi,
+          coordinates: false,
+        })
+      ).rejects.toThrow(kind === "canvas" ? "裁剪画布" : "条目");
+      expect(image.close).toHaveBeenCalledTimes(1);
+      if (kind === "canvas") expect(client.recognize).not.toHaveBeenCalled();
+    }
+  );
 });

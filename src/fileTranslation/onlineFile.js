@@ -1,4 +1,5 @@
 import { fileError } from "./protocol";
+import { openTemporaryFile } from "./fileOutput";
 
 const MAX_BYTES = 100 * 1024 ** 2;
 const extensions = {
@@ -11,6 +12,15 @@ const extensions = {
   "image/webp": "webp",
 };
 const supportedName = /\.(?:pdf|epub|txt|md|markdown|png|jpe?g|webp)$/i;
+const temporaryFiles = new WeakMap();
+
+export function releaseOnlineFile(file) {
+  const remove = file && temporaryFiles.get(file);
+  if (remove) {
+    temporaryFiles.delete(file);
+    void remove();
+  }
+}
 
 export function onlineFileUrl(text) {
   const value = text?.trim();
@@ -83,22 +93,39 @@ export async function downloadOnlineFile(url, signal) {
     if (Number(response.headers.get("content-length")) > MAX_BYTES)
       throw fileError("file_online_limit", "");
     if (!response.body) throw fileError("file_online_empty", "");
+    const temporary = await openTemporaryFile();
     const reader = response.body.getReader();
     const chunks = [];
     let bytes = 0;
     try {
       for (;;) {
+        if (signal?.aborted) throw new DOMException("已取消", "AbortError");
         const { done, value } = await reader.read();
         if (done) break;
         bytes += value.byteLength;
         if (bytes > MAX_BYTES) throw fileError("file_online_limit", "");
-        chunks.push(value);
+        if (temporary) await temporary.writable.write(value);
+        else chunks.push(value);
       }
+      if (!bytes) throw fileError("file_online_empty", "");
+      if (temporary) {
+        await temporary.writable.close();
+        const file = new File([await temporary.handle.getFile()], name, {
+          type,
+        });
+        temporaryFiles.set(file, temporary.remove);
+        return file;
+      }
+      return new File(chunks, name, { type });
+    } catch (error) {
+      if (temporary) {
+        await temporary.writable.abort().catch(() => {});
+        await temporary.remove();
+      }
+      throw error;
     } finally {
       reader.releaseLock();
     }
-    if (!bytes) throw fileError("file_online_empty", "");
-    return new File(chunks, name, { type });
   } catch (error) {
     void response.body?.cancel().catch(() => {});
     throw error;

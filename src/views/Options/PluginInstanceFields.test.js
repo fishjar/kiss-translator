@@ -658,3 +658,483 @@ test("summary capability test supplies the saved scene template pair", async () 
     userPrompt: "Scene {{transcript}}",
   });
 });
+
+test("the bare model Autocomplete popper mounts inside the .kt-m3-root scope", () => {
+  // 弹层默认 portal 到 body，脱离 .kt-m3-root 令牌作用域后选中态
+  // var(--kt-secc)/var(--kt-onsecc) 不可达；须与 ReusableAutocomplete
+  // 同回退链挂回根内。
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  document.body.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  act(() =>
+    popperRoot.render(
+      <ProviderSettings
+        service={{ modelField: "model", models: [{ id: "m1" }] }}
+        fields={[{ key: "model", label: "Model", type: "text" }]}
+        values={{ model: "" }}
+        onChange={jest.fn()}
+      />
+    )
+  );
+  const input = mount.querySelector("input");
+  act(() => Simulate.mouseDown(input, { button: 0 }));
+  const popper = document.querySelector(".kt-autocomplete-popper");
+  expect(popper).toBeTruthy();
+  expect(popper.parentElement).toBe(wrapper);
+  act(() => popperRoot.unmount());
+  wrapper.remove();
+});
+
+test("the model popper styles inject into the shadow root when the field lives in a shadow tree", () => {
+  // ProviderSettings 位于影子树内时，head 注入体不级联进影子根：注入目标
+  // 必须随字段节点所属根走（getRootNode），选中/聚焦/圆角规则才能在影子
+  // 树内的弹层上生效。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  act(() =>
+    popperRoot.render(
+      <ProviderSettings
+        service={{ modelField: "model", models: [{ id: "m1" }] }}
+        fields={[{ key: "model", label: "Model", type: "text" }]}
+        values={{ model: "" }}
+        onChange={jest.fn()}
+      />
+    )
+  );
+  const input = mount.querySelector("input");
+  act(() => Simulate.mouseDown(input, { button: 0 }));
+  // 弹层挂回影子根内的 .kt-m3-root，注入体落在同一影子根（head 零泄漏）。
+  const popper = shadow.querySelector(".kt-autocomplete-popper");
+  expect(popper).toBeTruthy();
+  expect(popper.parentElement).toBe(wrapper);
+  const injected = shadow.querySelector("#kt-autocomplete-styles");
+  expect(injected).toBeTruthy();
+  expect(injected.textContent).toContain('[aria-selected="true"]');
+  expect(injected.textContent).toContain("border-radius: 8px");
+  act(() => popperRoot.unmount());
+  host.remove();
+});
+
+test("the model popper emotion styles mount inside the shadow root via a per-root cache", () => {
+  // 弹层经 container portal 回影子根后，其 Paper/Listbox 的 emotion 规则
+  // 若仍由 head 默认缓存产出则不级联进影子树：组件树必须整体包进以影子根
+  // 为 container 的专属缓存，样式注入目标与弹层挂载点同根。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[{ key: "model", label: "Model", type: "text" }]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const input = mount.querySelector("input");
+    act(() => Simulate.mouseDown(input, { button: 0 }));
+    const popper = shadow.querySelector(".kt-autocomplete-popper");
+    expect(popper).toBeTruthy();
+    const shadowEmotionStyles = shadow.querySelectorAll(
+      'style[data-emotion="kt-aut-popper"]'
+    );
+    expect(shadowEmotionStyles.length).toBeGreaterThan(0);
+  } finally {
+    act(() => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("injects the pseudo-dropdown styles when the model field arrives after mount", () => {
+  // 模型字段随 fields 异步到达（如 service 配置迟加载）：注入 effect 必须
+  // 随 fields 重跑，否则晚到的模型 Autocomplete 弹层选中态规则整体缺注入。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[{ key: "model", label: "Model", type: "text" }]}
+          values={{ model: "" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const input = mount.querySelector("input");
+    act(() => Simulate.mouseDown(input, { button: 0 }));
+    const popper = shadow.querySelector(".kt-autocomplete-popper");
+    expect(popper).toBeTruthy();
+    const injected = shadow.querySelector("#kt-autocomplete-styles");
+    expect(injected).toBeTruthy();
+    expect(injected.textContent).toContain('[aria-selected="true"]');
+  } finally {
+    act(() => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("select menu lands in the shadow root and delivers focus without a silent marker", async () => {
+  // 影子宿主场景：select 菜单默认 portal 到 body，与影子缓存注入的样式
+  // 异根（样式不级联出影子边界即失活）；菜单 DOM 须挂回影子根。菜单入
+  // 影子根后 MUI 自持焦点链关掉，初始焦点经 focusMenuTarget→scriptFocus
+  // 交付到选中项。真键盘开启（无指针交互）下 scriptFocus 不挂静默标记。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[
+            { key: "model", label: "Model", type: "text" },
+            {
+              key: "mode",
+              label: "Mode",
+              type: "select",
+              options: [
+                { value: "a", label: "A" },
+                { value: "b", label: "B" },
+              ],
+            },
+          ]}
+          values={{ model: "", mode: "b" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const trigger = mount.querySelector('div[role="combobox"]');
+    expect(trigger).toBeTruthy();
+    await act(async () => {
+      trigger.focus();
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+    // Grow 'auto' 过渡在 jsdom 经 rAF + 定时器收尾：开面板独立 act 后留出
+    // 真实时钟，让 onEntered（TransitionProps 初始焦点交付）完整走完。
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    const listbox = shadow.querySelector('ul[role="listbox"]');
+    expect(listbox).not.toBeNull();
+    // 菜单 DOM 落影子根：body 零泄漏。
+    expect(document.querySelector('ul[role="listbox"]')).toBeNull();
+    const focused = shadow.activeElement;
+    expect(focused).not.toBeNull();
+    expect(focused.getAttribute("role")).toBe("option");
+    expect(focused.getAttribute("aria-selected")).toBe("true");
+    expect(focused.textContent).toBe("B");
+    expect(focused.hasAttribute("data-kt-focus-silent")).toBe(false);
+  } finally {
+    await act(async () => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("arrow keys navigate shadow-rooted menus option by option", async () => {
+  // 影子树内 document.activeElement＝影子宿主，MUI MenuList 的方向键导航
+  // 读不到真实焦点（每次回卷首项）；影子口径捕获处理器接管后须逐项移动。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          fields={[
+            {
+              key: "mode",
+              label: "Mode",
+              type: "select",
+              options: [
+                { value: "a", label: "A" },
+                { value: "b", label: "B" },
+                { value: "c", label: "C" },
+              ],
+            },
+          ]}
+          values={{ mode: "b" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const trigger = mount.querySelector('div[role="combobox"]');
+    expect(trigger).toBeTruthy();
+    await act(async () => {
+      trigger.focus();
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    const focused = shadow.activeElement;
+    expect(focused.getAttribute("role")).toBe("option");
+    expect(focused.textContent).toBe("B");
+    act(() =>
+      focused.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ArrowDown",
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    );
+    expect(shadow.activeElement.textContent).toBe("C");
+    act(() =>
+      shadow.activeElement.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "ArrowDown",
+          bubbles: true,
+          cancelable: true,
+        })
+      )
+    );
+    expect(shadow.activeElement.textContent).toBe("A");
+  } finally {
+    await act(async () => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("select menu still lands in the shadow root after another select field unmounts", async () => {
+  // 纯 select 面（无模型字段实例）同样接入影子缓存与菜单容器解析；
+  // 首个 select 字段卸载不得让剩余字段的菜单容器解析失效（共享 ref
+  // 在卸载时被清空）。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  const selectA = {
+    key: "modeA",
+    label: "Mode A",
+    type: "select",
+    options: [
+      { value: "a", label: "A" },
+      { value: "b", label: "B" },
+    ],
+  };
+  const selectB = {
+    key: "modeB",
+    label: "Mode B",
+    type: "select",
+    options: [
+      { value: "a", label: "A" },
+      { value: "b", label: "B" },
+    ],
+  };
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          fields={[selectA, selectB]}
+          values={{ modeA: "b", modeB: "b" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    // 卸载首个 select 字段，剩余字段继续服务。
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          fields={[selectB]}
+          values={{ modeB: "b" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const trigger = mount.querySelector('div[role="combobox"]');
+    expect(trigger).toBeTruthy();
+    await act(async () => {
+      trigger.focus();
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    });
+    // 剩余字段的菜单仍落影子根：body 零泄漏。
+    expect(shadow.querySelector('ul[role="listbox"]')).not.toBeNull();
+    expect(document.querySelector('ul[role="listbox"]')).toBeNull();
+  } finally {
+    await act(async () => popperRoot.unmount());
+    host.remove();
+  }
+});
+
+test("select menu keeps the document portal and default focus in non-shadow topology", async () => {
+  // 非影子路径回归：MenuProps 三键不声明，菜单照常 portal 到 body，
+  // MUI 默认焦点行为不变（MenuList autofocus 聚焦选中项）。
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  document.body.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+          fields={[
+            {
+              key: "mode",
+              label: "Mode",
+              type: "select",
+              options: [
+                { value: "a", label: "A" },
+                { value: "b", label: "B" },
+              ],
+            },
+          ]}
+          values={{ mode: "b" }}
+          onChange={jest.fn()}
+        />
+      )
+    );
+    const trigger = mount.querySelector('div[role="combobox"]');
+    expect(trigger).toBeTruthy();
+    await act(async () => {
+      trigger.focus();
+      trigger.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+        })
+      );
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    const listbox = document.querySelector('ul[role="listbox"]');
+    expect(listbox).not.toBeNull();
+    const focused = document.activeElement;
+    expect(focused).not.toBeNull();
+    expect(focused.getAttribute("role")).toBe("option");
+    expect(focused.getAttribute("aria-selected")).toBe("true");
+  } finally {
+    await act(async () => popperRoot.unmount());
+    wrapper.remove();
+  }
+});
+
+test("modelField switch from invalid to valid re-runs the injection effects", () => {
+  // modelField 无效→有效切换时 fields 不变：effect 缺 service.modelField
+  // 依赖则不重跑，字段换型（text → Autocomplete）后注入与影子缓存缺位。
+  const host = document.createElement("div");
+  document.body.append(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const wrapper = document.createElement("div");
+  wrapper.className = "kt-m3-root";
+  shadow.append(wrapper);
+  const mount = document.createElement("div");
+  wrapper.append(mount);
+  const popperRoot = createRoot(mount);
+  try {
+    const baseProps = {
+      fields: [{ key: "model", label: "Model", type: "text" }],
+      values: { model: "" },
+      onChange: jest.fn(),
+    };
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          {...baseProps}
+          service={{ modelField: "nonexistent", models: [{ id: "m1" }] }}
+        />
+      )
+    );
+    // modelField 与字段键不匹配：模型字段以普通文本框渲染，无 Autocomplete、
+    // 无注入。
+    expect(mount.querySelector(".kt-autocomplete-popper")).toBeNull();
+    expect(mount.querySelector('input[role="combobox"]')).toBeNull();
+    expect(shadow.querySelector("#kt-autocomplete-styles")).toBeNull();
+    act(() =>
+      popperRoot.render(
+        <ProviderSettings
+          {...baseProps}
+          service={{ modelField: "model", models: [{ id: "m1" }] }}
+        />
+      )
+    );
+    // service.modelField 变化（fields 不变）触发 effect 重跑：Autocomplete
+    // 挂载且注入体落影子根。
+    const modelInput = mount.querySelector('input[role="combobox"]');
+    expect(modelInput).not.toBeNull();
+    act(() => Simulate.mouseDown(modelInput, { button: 0 }));
+    expect(shadow.querySelector(".kt-autocomplete-popper")).toBeTruthy();
+    const injected = shadow.querySelector("#kt-autocomplete-styles");
+    expect(injected).toBeTruthy();
+    expect(injected.textContent).toContain('[aria-selected="true"]');
+  } finally {
+    act(() => popperRoot.unmount());
+    host.remove();
+  }
+});

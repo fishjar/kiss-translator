@@ -20,19 +20,19 @@ import { buildImageParseInput } from "./imageParsing";
 import { recognitionFeature } from "./recognition";
 import { getSettingWithDefault } from "../libs/storage";
 
-async function cropRegionBlob(sourceBlob, [left, top, right, bottom]) {
-  const bitmap = await createImageBitmap(sourceBlob);
+async function cropRegionBlob(bitmap, [left, top, right, bottom]) {
+  let canvas;
   try {
     const w = Math.max(1, Math.ceil(right - left));
     const h = Math.max(1, Math.ceil(bottom - top));
     if (typeof OffscreenCanvas !== "undefined") {
-      const canvas = new OffscreenCanvas(w, h);
+      canvas = new OffscreenCanvas(w, h);
       const ctx = canvas.getContext("2d");
       ctx.drawImage(bitmap, left, top, w, h, 0, 0, w, h);
       return await canvas.convertToBlob({ type: "image/png" });
     }
     if (typeof document !== "undefined") {
-      const canvas = document.createElement("canvas");
+      canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
@@ -46,7 +46,7 @@ async function cropRegionBlob(sourceBlob, [left, top, right, bottom]) {
     }
     throw new Error("当前环境不支持 Canvas 裁剪");
   } finally {
-    bitmap.close?.();
+    if (canvas) canvas.width = canvas.height = 0;
   }
 }
 
@@ -86,7 +86,9 @@ export async function executeImageRecognition({
   const includesLayout = recognitionFeature(recApi, capability)?.includesLayout;
 
   const policy = await getInputPolicy();
-  const prepared = await prepareImage(imageBlob, policy, signal);
+  const prepared = await prepareImage(imageBlob, policy, signal, {
+    validateFile: true,
+  });
 
   const sx = prepared.original.width / prepared.size.width;
   const sy = prepared.original.height / prepared.size.height;
@@ -229,79 +231,87 @@ export async function executeImageRecognition({
   if (noSelection || layoutResult?.regions.length) {
     let firstRegionError;
     let completedRegions = 0;
-    for (const region of layoutResult.regions) {
-      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-      const [left, top, right, bottom] = region.bbox;
-      try {
-        const cropBlob = await cropRegionBlob(prepared.blob, [
-          left,
-          top,
-          right,
-          bottom,
-        ]);
-        const cropPrepared = await prepareImage(cropBlob, policy, signal);
-        const cropResult = await invokeImageProvider(
-          recApi,
-          capability,
-          cropPrepared,
-          signal,
-          {
-            ...imageInput,
-            prompt,
-            onProgress,
-            requireCoordinates: false,
-          }
-        );
+    let bitmap;
+    try {
+      for (const region of layoutResult.regions) {
         if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-        const extended =
-          imageInput.protocol === "image-json" ||
-          cropResult.translation ||
-          cropResult.layout;
-        const cropItems = extended
-          ? imageResultItems(cropResult, imageInput.targetLanguage)
-          : [
-              {
-                text:
-                  cropResult.text?.trim() ||
-                  (cropResult.items || [])
-                    .map((i) => i.text || "")
-                    .filter(Boolean)
-                    .join("\n"),
-              },
-            ];
-        for (const item of cropItems) {
-          if (!item.text?.trim() && !item.translation?.trim() && !item.error)
-            continue;
-          const offsetPoly = (poly) =>
-            poly?.map(([x, y]) => [
-              (left + x * ((right - left) / cropPrepared.size.width)) * sx,
-              (top + y * ((bottom - top) / cropPrepared.size.height)) * sy,
-            ]);
-          rawItems.push({
-            ...item,
-            poly: extended
-              ? null
-              : region.polygon.map(([x, y]) => [x * sx, y * sy]),
-            regionPoly: offsetPoly(item.regionPoly),
-            type: item.type || region.type,
-            order: region.order,
-            id: item.id ? `${region.order}:${item.id}` : undefined,
+        const [left, top, right, bottom] = region.bbox;
+        try {
+          bitmap ||= await createImageBitmap(prepared.blob);
+          const cropBlob = await cropRegionBlob(bitmap, [
+            left,
+            top,
+            right,
+            bottom,
+          ]);
+          const cropPrepared = await prepareImage(cropBlob, policy, signal, {
+            validateFile: true,
           });
+          const cropResult = await invokeImageProvider(
+            recApi,
+            capability,
+            cropPrepared,
+            signal,
+            {
+              ...imageInput,
+              prompt,
+              onProgress,
+              requireCoordinates: false,
+            }
+          );
+          if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+          const extended =
+            imageInput.protocol === "image-json" ||
+            cropResult.translation ||
+            cropResult.layout;
+          const cropItems = extended
+            ? imageResultItems(cropResult, imageInput.targetLanguage)
+            : [
+                {
+                  text:
+                    cropResult.text?.trim() ||
+                    (cropResult.items || [])
+                      .map((i) => i.text || "")
+                      .filter(Boolean)
+                      .join("\n"),
+                },
+              ];
+          for (const item of cropItems) {
+            if (!item.text?.trim() && !item.translation?.trim() && !item.error)
+              continue;
+            const offsetPoly = (poly) =>
+              poly?.map(([x, y]) => [
+                (left + x * ((right - left) / cropPrepared.size.width)) * sx,
+                (top + y * ((bottom - top) / cropPrepared.size.height)) * sy,
+              ]);
+            rawItems.push({
+              ...item,
+              poly: extended
+                ? null
+                : region.polygon.map(([x, y]) => [x * sx, y * sy]),
+              regionPoly: offsetPoly(item.regionPoly),
+              type: item.type || region.type,
+              order: region.order,
+              id: item.id ? `${region.order}:${item.id}` : undefined,
+            });
+          }
+          for (const warning of cropResult.warnings || [])
+            recognitionErrors.push({ order: region.order, error: warning });
+        } catch (cropErr) {
+          if (signal?.aborted) throw cropErr;
+          firstRegionError ||= cropErr;
+          recognitionErrors.push({
+            order: region.order ?? completedRegions,
+            error: cropErr?.message || String(cropErr),
+          });
+          logger
+            .child("image-translate")
+            .warn("region.recognition.failed", cropErr);
         }
-        for (const warning of cropResult.warnings || [])
-          recognitionErrors.push({ order: region.order, error: warning });
-      } catch (cropErr) {
-        if (signal?.aborted) throw cropErr;
-        firstRegionError ||= cropErr;
-        recognitionErrors.push({
-          order: region.order ?? completedRegions,
-          error: cropErr?.message || String(cropErr),
-        });
-        logger
-          .child("image-translate")
-          .warn("region.recognition.failed", cropErr);
+        reportRecognition(++completedRegions);
       }
-      reportRecognition(++completedRegions);
+    } finally {
+      bitmap?.close?.();
     }
     if (!rawItems.length && firstRegionError) throw firstRegionError;
     recognized = {
@@ -547,7 +557,9 @@ export async function executeImageLayout({
   }
 
   const policy = await getInputPolicy();
-  const prepared = await prepareImage(imageBlob, policy, signal);
+  const prepared = await prepareImage(imageBlob, policy, signal, {
+    validateFile: true,
+  });
 
   onProgress?.({ stage: "layout", message: "image_stage_layout" });
   const rawLayout = await invokeImageProvider(
