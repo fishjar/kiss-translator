@@ -85,6 +85,7 @@ import {
   apiSummarizeVideo,
   getVideoSummarySignature,
   apiSummarizeContext,
+  apiSummarizeContextAndVideo,
 } from "./index";
 import {
   handleDict,
@@ -1417,6 +1418,77 @@ describe("apiSummarizeVideo and getVideoSummarySignature cache identity", () => 
     expect(handleSummarize.mock.calls.at(-1)[0].prompt).toMatchObject({
       systemPrompt: DEFAULT_SUMMARY_PROMPT.systemPrompt,
       userPrompt: DEFAULT_SUMMARY_PROMPT.userPrompt,
+    });
+  });
+  test("combined context and video summary parses XML blocks, caches both, and gracefully falls back when tags are missing", async () => {
+    getHttpCachePolyfill.mockResolvedValue(undefined);
+    handleSummarize.mockResolvedValueOnce(
+      "<context>\nConcise briefing for translator.\n</context>\n<summary>\n## 概述\n- **要点**：详细总结\n</summary>"
+    );
+
+    const combined = await apiSummarizeContextAndVideo({
+      videoId: "vid-combined",
+      title: "Sample Title",
+      description: "Sample Description",
+      transcript: "Full video transcript text",
+      apiSetting: { apiType: "OpenAI", apiSlug: "summary" },
+      summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+      to: "zh-CN",
+    });
+
+    expect(combined).toEqual({
+      context: "Concise briefing for translator.",
+      summary: "## 概述\n- **要点**：详细总结",
+    });
+    const combinedPrompt = handleSummarize.mock.calls.at(-1)[0].prompt;
+    expect(combinedPrompt.systemPrompt).toContain("<context>");
+    expect(combinedPrompt.systemPrompt).toContain("<summary>");
+    expect(combinedPrompt.systemPrompt).toContain(
+      defaultContextSummaryPrompt.systemPrompt
+    );
+    expect(combinedPrompt.systemPrompt).toContain(
+      DEFAULT_SUMMARY_PROMPT.systemPrompt
+    );
+
+    // 流式输出在闭合 </context> 时立即触发 onContextReady，无需等待 </summary> 完成。
+    const onContextReady = jest.fn();
+    handleSummarize.mockImplementationOnce(async ({ onStreamChunk }) => {
+      onStreamChunk?.(
+        "<context>\nStreamed briefing.\n</context>\n<summary>\n## 概述"
+      );
+      expect(onContextReady).toHaveBeenCalledTimes(1);
+      expect(onContextReady).toHaveBeenCalledWith("Streamed briefing.");
+      return "<context>\nStreamed briefing.\n</context>\n<summary>\n## 概述\n- 要点\n</summary>";
+    });
+    const streamed = await apiSummarizeContextAndVideo({
+      videoId: "vid-streamed",
+      title: "Sample Title",
+      description: "Sample Description",
+      transcript: "Full video transcript text",
+      apiSetting: { apiType: "OpenAI", apiSlug: "summary" },
+      summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+      to: "zh-CN",
+      onContextReady,
+    });
+    expect(streamed).toEqual({
+      context: "Streamed briefing.",
+      summary: "## 概述\n- 要点",
+    });
+
+    // Malformed output without XML tags still preserves context and leaves video summary empty.
+    handleSummarize.mockResolvedValueOnce("Plain briefing without tags");
+    const fallback = await apiSummarizeContextAndVideo({
+      videoId: "vid-malformed",
+      title: "Sample Title",
+      description: "Sample Description",
+      transcript: "Full video transcript text",
+      apiSetting: { apiType: "OpenAI", apiSlug: "summary" },
+      summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+      to: "zh-CN",
+    });
+    expect(fallback).toEqual({
+      context: "Plain briefing without tags",
+      summary: "",
     });
   });
   test("getVideoSummarySignature differentiates transcript, title, prompt, and language changes", async () => {

@@ -527,8 +527,66 @@ Cover these aspects:
 
 Output plain text only. No markdown, no formatting, no headers.`;
 
+export const SHARED_VIDEO_USER_PREFIX =
+  "Title: {{title}}\nDescription: {{description}}\n\nTranscript:\n{{transcript}}";
+
+export function buildCombinedContextSummaryPrompt(videoSummaryPrompt = {}) {
+  const summarySystem = String(videoSummaryPrompt?.systemPrompt || "").trim();
+  const rawUser = String(videoSummaryPrompt?.userPrompt || "").trim();
+  const isStandardUserPrefix =
+    !rawUser ||
+    rawUser === SHARED_VIDEO_USER_PREFIX ||
+    (rawUser.includes("{{transcript}}") &&
+      rawUser
+        .replace(
+          /Title:\s*\{\{title\}\}|Description:\s*\{\{description\}\}|Transcript:\s*\{\{transcript\}\}/g,
+          ""
+        )
+        .trim() === "");
+  const extraUser = isStandardUserPrefix ? "" : rawUser;
+
+  const systemPrompt = `Complete two separate tasks using the provided video title, description, and transcript.
+
+Output EXACTLY two XML blocks and nothing else outside them:
+<context>
+...
+</context>
+<summary>
+...
+</summary>
+
+Task 1 (<context> block):
+${summarizeSystemPrompt}
+
+Task 2 (<summary> block):
+${summarySystem || "Summarize the video clearly in {{to}} using Markdown."}`;
+
+  return {
+    systemPrompt,
+    userPrompt: extraUser
+      ? `${SHARED_VIDEO_USER_PREFIX}\n\nAdditional instructions for <summary>:\n${extraUser}`
+      : SHARED_VIDEO_USER_PREFIX,
+  };
+}
+
+export function parseCombinedContextSummaryResponse(raw = "") {
+  const text = String(raw || "").trim();
+  if (!text) return { context: "", summary: "" };
+  const contextMatch = text.match(/<context>([\s\S]*?)<\/context>/i);
+  const summaryMatch = text.match(/<summary>([\s\S]*?)<\/summary>/i);
+  if (contextMatch || summaryMatch) {
+    return {
+      context: (contextMatch?.[1] || "").trim(),
+      summary: (summaryMatch?.[1] || "").trim(),
+    };
+  }
+  return {
+    context: text,
+    summary: "",
+  };
+}
+
 export const defaultContextSummaryPrompt = Object.freeze({
   systemPrompt: summarizeSystemPrompt,
-  userPrompt:
-    "Title: {{title}}\nDescription: {{description}}\n\nTranscript:\n{{transcript}}",
+  userPrompt: SHARED_VIDEO_USER_PREFIX,
 });

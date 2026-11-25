@@ -1713,7 +1713,11 @@ export const handleSummarize = async (options) => {
         description: options.description || "",
       },
     },
-    { signal: options.signal, nativeOptions: options }
+    {
+      signal: options.signal,
+      onText: options.onStreamChunk,
+      nativeOptions: options,
+    }
   );
 };
 
@@ -1726,6 +1730,7 @@ export const handleNativeSummarize = async ({
   to = "zh-CN",
   signal,
   cacheMode,
+  onStreamChunk,
 }) => {
   if (
     apiSetting.provider &&
@@ -1743,10 +1748,11 @@ export const handleNativeSummarize = async ({
         context: [title, description].filter(Boolean).join("\n"),
         document: { title: title || "", description: description || "" },
       },
-      { signal }
+      { signal, onText: onStreamChunk }
     );
   }
-  const { apiType, fetchInterval, fetchLimit, httpTimeout } = apiSetting;
+  const { apiType, fetchInterval, fetchLimit, httpTimeout, useStream } =
+    apiSetting;
 
   // 1. Chrome 内置 AI (Summarizer API)
   if (apiType === OPT_TRANS_BUILTINAI) {
@@ -1822,9 +1828,68 @@ export const handleNativeSummarize = async ({
   }
 
   // 3. 网络大模型与自定义接口
+  const def = getBuiltinServiceDefinition(apiType);
+  const enableStream = Boolean(
+    onStreamChunk &&
+      useStream !== false &&
+      (def?.capabilities?.summarize?.outputModes?.includes("stream") ||
+        def?.supportsSubtitleCallbackStream)
+  );
+
+  if (enableStream) {
+    const [streamInput, streamInit] = await genTransReq({
+      ...apiSetting,
+      useStream: true,
+      texts: [""],
+      from: "auto",
+      to: to || "en",
+      fromLang: "auto",
+      toLang: to || "en",
+      useBatchFetch: false,
+      renderedPrompts: { systemPrompt, userPrompt },
+    });
+
+    try {
+      let fullContent = "";
+      for await (const rawData of fetchStream(streamInput, streamInit, {
+        useCache: false,
+        usePool: true,
+        fetchInterval,
+        fetchLimit,
+        httpTimeout,
+        signal,
+      })) {
+        if (signal?.aborted) {
+          throw new DOMException("The operation was aborted.", "AbortError");
+        }
+        try {
+          const json = JSON.parse(rawData);
+          const delta = getStreamDelta(json, apiType);
+          if (!delta) continue;
+          fullContent += delta;
+          await onStreamChunk(fullContent);
+        } catch (error) {
+          if (error?.isAIStreamTerminal || error?.isProviderStreamError) {
+            throw error;
+          }
+          // 忽略单个 SSE 数据帧解析异常，继续读取后续分片。
+        }
+      }
+      if (fullContent.trim()) {
+        return fullContent.trim();
+      }
+    } catch (err) {
+      if (signal?.aborted || err?.name === "AbortError") {
+        throw err;
+      }
+      logger
+        .child("translation")
+        .warn("summary stream failed, fallback to non-stream", err);
+    }
+  }
+
   const [input, init] = await genTransReq({
     ...apiSetting,
-    // 字幕上下文总结需要一次性文本结果，不能继承段落翻译的流式输出设置。
     useStream: false,
     texts: [""],
     from: "auto",

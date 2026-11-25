@@ -228,6 +228,7 @@ export const DEFAULT_SUBTITLE_SETTING = {
   segPromptSlug: DEFAULT_SUBTITLE_PROMPT_SLUG, // 指定的 subtitle prompt slug，仅在指定提示词模式下生效
   summaryApiSlug: "-", // 视频总结服务 ("-" 表示禁用)
   summaryPromptSlug: "default_video_summary", // 视频总结提示词 slug
+  combineContextAndVideoSummary: false, // 开启后在智能上下文分析时单次请求同时输出翻译上下文与视频总结
 };
 
 // 预设配置规则的在线订阅 URL 地址列表 (从服务器拉取全球主流网站的最优适配 CSS 选择器规则)

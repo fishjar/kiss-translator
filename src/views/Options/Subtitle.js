@@ -570,7 +570,10 @@ export default function SubtitleSetting() {
     rememberPosition = false,
     summaryApiSlug = "-",
     summaryPromptSlug = "default_video_summary",
+    combineContextAndVideoSummary = false,
   } = subtitleSetting;
+
+  const hasAiContext = Boolean(aiContextSlug && aiContextSlug !== "-");
 
   const activeSummaryApi = summaryApis.find(
     (api) => api.apiSlug === summaryApiSlug
@@ -1279,6 +1282,37 @@ export default function SubtitleSetting() {
                     ))}
                   </TextField>
                 )}
+              </SettingsRow>
+            )}
+            {summaryApiSlug !== "-" && (
+              <SettingsRow
+                label={i18n(
+                  "combine_context_and_video_summary",
+                  "与智能上下文合并单次请求"
+                )}
+                description={
+                  !hasAiContext
+                    ? i18n(
+                        "combine_context_and_video_summary_requires_context",
+                        "需先在下方「详细控制」中开启「增强智能上下文」才能激活此功能"
+                      )
+                    : i18n(
+                        "combine_context_and_video_summary_hint",
+                        "在智能上下文分析时通过单次请求同时输出翻译上下文与视频总结，省去重复输入与思考开销，打开侧栏即可直接查看；手动点击重新生成仍走独立请求"
+                      )
+                }
+              >
+                <SettingsSwitch
+                  checked={combineContextAndVideoSummary}
+                  disabled={!hasAiContext}
+                  label={i18n(
+                    "combine_context_and_video_summary",
+                    "与智能上下文合并单次请求"
+                  )}
+                  onChange={(checked) =>
+                    updateSubtitle({ combineContextAndVideoSummary: checked })
+                  }
+                />
               </SettingsRow>
             )}
           </SettingsCard>
