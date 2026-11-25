@@ -198,7 +198,7 @@ test("keyboard-highlighted selected options carry a distinct focus ring", async 
   expect(styleTag.textContent).toContain("outline: 2px solid CanvasText");
   expect(styleTag.textContent).toContain("outline-offset: -2px");
   expect(styleTag.textContent).toContain("box-shadow: none");
-  // 不该触发域：未高亮选中行维持纯底色形态（无 box-shadow 键）。
+  // 未获键盘高亮的选中行维持纯底色形态（无 box-shadow 键）。
   expect(styleTag.textContent).toContain(
     'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] { background-color: var(--kt-secc, #e8def8); color: var(--kt-onsecc, #1d192b); }'
   );
@@ -234,7 +234,7 @@ test("@media (forced-colors: active) block is single and scoped to selected high
   // HC 兜底用系统色 outline，且把自有 box-shadow 环让位。
   expect(css).toContain("outline: 2px solid CanvasText");
   expect(css).toContain("box-shadow: none");
-  // 不该触发域：未选中普通选中态无环、无 outline 声明。
+  // 未选中的普通选中态无环、无 outline 声明。
   expect(css).toContain(
     'ul.MuiAutocomplete-listbox .MuiAutocomplete-option[aria-selected="true"] { background-color: var(--kt-secc, #e8def8); color: var(--kt-onsecc, #1d192b); }'
   );

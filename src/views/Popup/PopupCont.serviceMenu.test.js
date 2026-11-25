@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-container, testing-library/no-unnecessary-act */
 // 服务菜单单选语义闸：role=menuitemradio + aria-checked + 行首 radio 字形交换。
-// 独立于 PopupCont.test.js（在册 TDZ 噪声家族：client mock getter 于装载期
-// 读后声明变量即炸），本文件 client mock 为工厂内常量对象，杜绝同族。
+// 独立于 PopupCont.test.js：后者 client mock getter 在变量声明前被装载期读取会抛错，
+// 本文件 client mock 为工厂内常量对象，杜绝同族问题。
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import PopupCont from "./PopupCont";
@@ -189,7 +189,7 @@ describe("PopupCont service menu single-select semantics", () => {
   });
 
   test("menu open hands focus to the checked row via the shared menu candidates", async () => {
-    // 以末行 "fourth" 为选中项：焦点交接若只落首行（google）本用例必红，
+    // 以末行 "fourth" 为选中项：焦点交接若只落首行（google）则无法检出该缺陷，
     // 杜绝「选中项恰是首行」的同位恒真。
     const view = renderPopupCont("fourth");
     try {
