@@ -94,6 +94,42 @@ import { selectNativeEndpoint } from "../builtin-plugins/credentials";
 /**
  * 依据配置参数和当前页面元数据生成大模型 Prompt 系统指示。
  */
+export function compactUserMsgForHistory(userMsg, docInfo) {
+  if (!userMsg || !docInfo) return userMsg;
+  const stripText = (text) => {
+    if (typeof text !== "string" || !text) return text;
+    let next = text;
+    for (const [label, val] of [
+      ["Summary", docInfo.summary],
+      ["Description", docInfo.description],
+      ["Title", docInfo.title],
+    ]) {
+      const trimmed = typeof val === "string" ? val.trim() : "";
+      if (!trimmed) continue;
+      const prefixed = `${label}: ${trimmed}`;
+      if (next.includes(prefixed)) {
+        next = next.split(prefixed).join("");
+      }
+    }
+    next = next.replace(/\n{3,}/g, "\n\n").trim();
+    return next || text;
+  };
+  if (typeof userMsg.content === "string") {
+    return { ...userMsg, content: stripText(userMsg.content) };
+  }
+  if (Array.isArray(userMsg.parts)) {
+    return {
+      ...userMsg,
+      parts: userMsg.parts.map((part) =>
+        typeof part?.text === "string"
+          ? { ...part, text: stripText(part.text) }
+          : part
+      ),
+    };
+  }
+  return userMsg;
+}
+
 const genSystemPrompt = (args) => renderPrompt(args.systemPrompt, args);
 
 // 构建 Hy-MT 官方范式的术语与语气前置约束块
@@ -219,9 +255,21 @@ const genUserPrompt = (args) =>
 export const buildSubtitleSystemPrompt = (args) =>
   renderPrompt(args.subtitlePrompt, args);
 
-// 字幕用户消息保持为纯 JSON，避免只读上下文污染模型的边界编号。
-const buildSubtitleUserPrompt = ({ formattedEvents }) =>
-  JSON.stringify(formattedEvents);
+// 字幕用户消息默认保持纯 JSON；若提供紧邻前一块的少量双语参考，则以只读前文形式附在前面以维持跨块翻译连贯性。
+export const buildSubtitleUserPrompt = ({ formattedEvents, previousCues }) => {
+  const payload = JSON.stringify(formattedEvents);
+  const refs = (Array.isArray(previousCues) ? previousCues : [])
+    .filter((cue) => cue?.text?.trim())
+    .slice(-5);
+  if (!refs.length) return payload;
+  const refLines = refs.map((cue) => {
+    const src = cue.text.trim();
+    const tr =
+      typeof cue.translation === "string" ? cue.translation.trim() : "";
+    return tr ? `- ${src} => ${tr}` : `- ${src}`;
+  });
+  return `Previous translated subtitles (reference only for continuity; DO NOT repeat, translate, or include in groups):\n${refLines.join("\n")}\n\nCurrent input JSON array:\n${payload}`;
+};
 
 /**
  * 强健的大模型翻译结果解析器 (AI Response Robust Parser)。
@@ -602,6 +650,7 @@ export const genTransReq = async ({ reqHook, renderedPrompts, ...args }) => {
           formattedEvents: usesIndexSubtitleInput(subtitlePrompt)
             ? formatIndexSubtitleEvents(events, subtitlePrompt)
             : events,
+          previousCues: args.previousCues,
         })
       : genUserPrompt({
           nobatchUserPrompt,
@@ -714,7 +763,17 @@ export const genTransReq = async ({ reqHook, renderedPrompts, ...args }) => {
     }
   }
 
-  return finalizeRequest({ url, body, headers, userMsg, method });
+  const historyUserMsg = compactUserMsgForHistory(
+    userMsg,
+    externalDocInfo || args.docInfo
+  );
+  return finalizeRequest({
+    url,
+    body,
+    headers,
+    userMsg: historyUserMsg,
+    method,
+  });
 };
 
 /**
@@ -1513,6 +1572,7 @@ export const handleNativeSubtitle = async ({
   to,
   apiSetting,
   docInfo,
+  previousCues,
   onSubtitleChunk,
   signal,
 }) => {
@@ -1548,6 +1608,7 @@ export const handleNativeSubtitle = async ({
     fromLang: from,
     toLang: to,
     docInfo,
+    ...(previousCues?.length && { previousCues }),
   });
 
   if (enableStream) {

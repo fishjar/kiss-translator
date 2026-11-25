@@ -129,6 +129,34 @@ function finalizeAiCues(cues, segmentEvents, fromLang, formatSubtitles) {
  * @param {AbortSignal} [param0.signal] 当前字幕处理生命周期的取消信号。
  * @returns {Promise<Array<object>>} AI 断句后的字幕条目；失败时返回内置规则断句结果。
  */
+export function selectPreviousSubtitlesContext(
+  cues,
+  nextChunkStartMs,
+  { maxCount = 4, maxGapMs = 15000 } = {}
+) {
+  if (!Array.isArray(cues) || !cues.length) return [];
+  const valid = cues.filter((cue) => cue?.text?.trim());
+  if (!valid.length) return [];
+  if (Number.isFinite(nextChunkStartMs)) {
+    const last = valid[valid.length - 1];
+    const lastEnd = Number(last?.end);
+    const lastStart = Number(last?.start);
+    if (
+      !Number.isFinite(lastEnd) ||
+      lastStart >= nextChunkStartMs ||
+      nextChunkStartMs - lastEnd > maxGapMs
+    ) {
+      return [];
+    }
+  }
+  return valid.slice(-maxCount).map((cue) => ({
+    text: cue.text.trim(),
+    translation:
+      typeof cue.translation === "string" && !cue._isDraftTranslation
+        ? cue.translation.trim()
+        : "",
+  }));
+}
 export async function aiSegment({
   videoId,
   fromLang,
@@ -137,6 +165,7 @@ export async function aiSegment({
   segApiSetting,
   apiSubtitle,
   docInfo,
+  previousCues,
   formatSubtitles,
   clearSegmentTranslation,
   onSubtitleChunk,
@@ -175,6 +204,7 @@ export async function aiSegment({
       scene: setting,
       terminologyTables: setting?.terminologyTables,
       docInfo,
+      ...(previousCues?.length && { previousCues }),
       signal,
       onSubtitleChunk: ({ subtitles }) => {
         if (!subtitles?.length || !onSubtitleChunk) return;
@@ -381,6 +411,7 @@ export async function eventsToSubtitles({
     const scheduler = createAiChunkScheduler({
       chunks: eventChunks,
       firstDoneIndex: 0,
+      initialDoneSubtitles: { 0: firstBatchSubtitles },
       videoId,
       fromLang,
       toLang,
@@ -434,6 +465,7 @@ export async function eventsToSubtitles({
 export function createAiChunkScheduler({
   chunks,
   firstDoneIndex = -1,
+  initialDoneSubtitles = {},
   videoId,
   fromLang,
   toLang,
@@ -452,6 +484,12 @@ export function createAiChunkScheduler({
 }) {
   const states = chunks.map(() => "pending");
   if (firstDoneIndex >= 0) states[firstDoneIndex] = "done";
+  const completedSubtitlesByIndex = new Map();
+  for (const [k, v] of Object.entries(initialDoneSubtitles || {})) {
+    if (Array.isArray(v) && v.length) {
+      completedSubtitlesByIndex.set(Number(k), v);
+    }
+  }
 
   let active = false;
   let latestWindow = null;
@@ -534,6 +572,13 @@ export function createAiChunkScheduler({
     let subtitlesForThisChunk = [];
 
     try {
+      const prevCues =
+        index > 0
+          ? selectPreviousSubtitlesContext(
+              completedSubtitlesByIndex.get(index - 1),
+              chunkEvents[0]?.start
+            )
+          : [];
       const aiSubtitles = await aiSegment({
         videoId,
         chunkEvents,
@@ -542,6 +587,7 @@ export function createAiChunkScheduler({
         segApiSetting,
         apiSubtitle,
         docInfo,
+        previousCues: prevCues,
         formatSubtitles,
         clearSegmentTranslation,
         signal,
@@ -596,6 +642,9 @@ export function createAiChunkScheduler({
 
     if (states[index] !== "failed") {
       states[index] = "done";
+    }
+    if (subtitlesForThisChunk.length > 0) {
+      completedSubtitlesByIndex.set(index, subtitlesForThisChunk);
     }
     onChunkComplete?.({
       subtitles: subtitlesForThisChunk,
@@ -724,6 +773,7 @@ export async function processRemainingChunksAsync({
       chunks.length
     );
 
+  let lastChunkSubtitles = [];
   for (let i = startIndex; i < chunks.length; i++) {
     if (isStaleProcessing(processingVersion)) {
       logger
@@ -750,6 +800,10 @@ export async function processRemainingChunksAsync({
     let subtitlesForThisChunk = [];
 
     try {
+      const prevCues = selectPreviousSubtitlesContext(
+        lastChunkSubtitles,
+        chunkEvents[0]?.start
+      );
       const aiSubtitles = await aiSegment({
         videoId,
         chunkEvents,
@@ -758,6 +812,7 @@ export async function processRemainingChunksAsync({
         segApiSetting,
         apiSubtitle,
         docInfo,
+        previousCues: prevCues,
         formatSubtitles,
         clearSegmentTranslation,
         signal,
@@ -812,6 +867,7 @@ export async function processRemainingChunksAsync({
     }
 
     if (subtitlesForThisChunk.length > 0) {
+      lastChunkSubtitles = subtitlesForThisChunk;
       const progressed = Math.floor((chunkNum * 100) / chunks.length);
       logger
         .child("subtitle")
