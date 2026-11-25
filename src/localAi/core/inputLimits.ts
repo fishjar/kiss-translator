@@ -1,4 +1,5 @@
 import type { InputAdjustment, Settings } from "./types";
+import { boundedImageSize, imageDecodePlan } from "../../fileTranslation/imageDimensions";
 
 export function checkFileSize(bytes: number, kind: "image" | "audio", settings: Settings): void {
   const limit = kind === "image" ? settings.maxImageFileMB : settings.maxAudioFileMB;
@@ -16,16 +17,22 @@ export function imageDimensions(width: number, height: number, maxEdge: number) 
   return { width: Math.max(1, Math.floor(width * scale)), height: Math.max(1, Math.floor(height * scale)) };
 }
 
-export async function prepareImage(blob: Blob, settings: Settings, signal: AbortSignal) {
+export async function prepareImage(
+  blob: Blob, settings: Settings, signal: AbortSignal, { validateFile = false } = {}
+) {
   if (!blob || typeof blob.size !== "number" || typeof blob.arrayBuffer !== "function")
     throw new Error("INPUT_INVALID: 图片输入必须为 Blob");
   checkFileSize(blob.size, "image", settings);
+  checkInputCancelled(signal);
+  const plan = validateFile ? await imageDecodePlan(blob) : null;
   checkInputCancelled(signal);
   const bitmap = await createImageBitmap(blob);
   try {
     checkInputCancelled(signal);
     const original = { width: bitmap.width, height: bitmap.height };
-    const size = imageDimensions(bitmap.width, bitmap.height, settings.maxImageEdge);
+    const size = plan?.resize
+      ? boundedImageSize(bitmap.width, bitmap.height, settings.maxImageEdge)
+      : imageDimensions(bitmap.width, bitmap.height, settings.maxImageEdge);
     if (size.width === original.width && size.height === original.height) {
       return { blob, original, size, adjustment: undefined };
     }

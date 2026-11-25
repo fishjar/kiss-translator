@@ -4,11 +4,40 @@ import { createRoot } from "react-dom/client";
 import * as fflate from "fflate";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import FileTranslatePage from "./index";
+jest.mock("../../fileTranslation/imageDimensions", () => ({
+  imageDecodePlan: async () => ({ resize: false }),
+}));
 
 // Full-page mounts run long act() sequences; parallel workers exceed the 5 s default.
 jest.setTimeout(15000);
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+const pngHeader = Uint8Array.of(
+  137,
+  80,
+  78,
+  71,
+  13,
+  10,
+  26,
+  10,
+  0,
+  0,
+  0,
+  13,
+  73,
+  72,
+  68,
+  82,
+  0,
+  0,
+  0,
+  10,
+  0,
+  0,
+  0,
+  10
+);
 const originalResizeObserver = globalThis.ResizeObserver;
 let mockConnected = true;
 let mockOnlineLanguage = "zh";
@@ -299,7 +328,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       try {
         await act(async () => root.render(<FileTranslatePage />));
         expect(container.textContent).toContain(
-          "本地翻译模型：本地模型未下载或下载不完整"
+          "hy-mt2-1.8b：本地模型未下载或下载不完整"
         );
         const button = [...container.querySelectorAll("button")].find(
           (item) => item.textContent === "下载模型"
@@ -582,7 +611,7 @@ describe("FileTranslatePage (M2 UI)", () => {
           items: [
             {
               kind: "file",
-              getAsFile: () => new File(["image"], "", { type: "image/png" }),
+              getAsFile: () => new File([pngHeader], "", { type: "image/png" }),
             },
           ],
         });
@@ -743,6 +772,40 @@ describe("FileTranslatePage (M2 UI)", () => {
         container.querySelector('[aria-label="文本格式"][role="combobox"]')
           .textContent
       ).toBe("TXT");
+    });
+
+    test("large Markdown renders the original before any translation", async () => {
+      const lib = require("../../libs/fileTranslate");
+      const content = "# First heading\n\n" + "A paragraph.\n\n".repeat(20000);
+      const file = new File([content], "large.md", { type: "text/markdown" });
+      const bytes = new TextEncoder().encode(content);
+      file.slice = (start, end) => ({
+        arrayBuffer: async () => bytes.slice(start, end).buffer,
+      });
+      const split = jest.spyOn(lib, "splitMarkdownBlocks");
+      const render = jest.spyOn(lib, "renderMarkdownBlocksToHtml");
+      const previousSplit = split.getMockImplementation();
+      const previousRender = render.getMockImplementation();
+      split.mockImplementation((text) => [{ text }]);
+      render.mockImplementation((blocks, { mode }) =>
+        mode === "source" && blocks[0].text.startsWith("# First heading")
+          ? "<h1>First heading</h1>"
+          : ""
+      );
+      try {
+        await act(async () => root.render(<FileTranslatePage />));
+        await act(async () => {
+          const input = container.querySelector('input[type="file"]');
+          Object.defineProperty(input, "files", { value: [file] });
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        expect(container.querySelector("section h1")?.textContent).toBe(
+          "First heading"
+        );
+      } finally {
+        split.mockImplementation(previousSplit);
+        render.mockImplementation(previousRender);
+      }
     });
 
     test("format switching is disabled during translation", async () => {
@@ -1007,7 +1070,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       const input = container.querySelector('input[type="file"]');
       await act(async () => {
         Object.defineProperty(input, "files", {
-          value: [new File(["image"], "sample.png", { type: "image/png" })],
+          value: [new File([pngHeader], "sample.png", { type: "image/png" })],
           configurable: true,
         });
         input.dispatchEvent(new Event("change", { bubbles: true }));
@@ -1017,10 +1080,17 @@ describe("FileTranslatePage (M2 UI)", () => {
           .find((button) => button.textContent.includes("一键翻译"))
           .click()
       );
-      expect(pending).toHaveLength(51);
+      expect(pending).toHaveLength(32);
       expect(synthesizeTranslatedImage).not.toHaveBeenCalled();
       await act(async () =>
         [...pending]
+          .reverse()
+          .forEach(({ text, resolve }) => resolve(`译${text}`))
+      );
+      expect(pending).toHaveLength(51);
+      await act(async () =>
+        pending
+          .slice(32)
           .reverse()
           .forEach(({ text, resolve }) => resolve(`译${text}`))
       );
@@ -1062,7 +1132,7 @@ describe("FileTranslatePage (M2 UI)", () => {
       await act(async () => {
         const input = container.querySelector('input[type="file"]');
         Object.defineProperty(input, "files", {
-          value: [new File(["image"], name, { type: "image/png" })],
+          value: [new File([pngHeader], name, { type: "image/png" })],
           configurable: true,
         });
         input.dispatchEvent(new Event("change", { bubbles: true }));

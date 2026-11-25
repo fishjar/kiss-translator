@@ -1,6 +1,6 @@
 import { visualDocumentBlocks } from "../document/visualResult";
 import { documentAssetPath } from "../document/assets";
-import { incrementalPdfBlocks } from "./incremental";
+import { createPdfReadingSnapshot, incrementalPdfBlocks } from "./incremental";
 import {
   documentRecognitionSelection,
   documentOcrBlocks,
@@ -389,6 +389,8 @@ export async function parsePdfDocument(
     retryRegion,
     cacheMode,
     layoutRegions,
+    pageRange,
+    pageStore,
   }
 ) {
   const installed = (id) =>
@@ -423,16 +425,42 @@ export async function parsePdfDocument(
         : []
     ).filter((w) => !retryRegion || w.page !== retryRegion.page),
     pageBlocks =
-      previous?.recognitionKey === recognitionKey
+      previous?.recognitionKey === recognitionKey &&
+      (pageRange || !previous.partialRange)
         ? [...(previous?.pageBlocks || [])]
         : [],
     cache = previous?.cache || new Map();
   const completedPages = new Set(
-    previous?.recognitionKey === recognitionKey
+    previous?.recognitionKey === recognitionKey &&
+    (pageRange || !previous.partialRange)
       ? previous.completedPages ||
         (previous.complete ? pages.map((page) => page.page) : [])
       : []
   );
+  const firstPage = pageRange?.[0] || 1;
+  const lastPage = pageRange?.[1] || pdf.numPages;
+  async function saveAsset(name, blob) {
+    let asset = { name, blob };
+    if (pageStore) {
+      const storedBlob = `pdf-asset:${name}`;
+      try {
+        await pageStore.put(storedBlob, blob);
+      } catch (error) {
+        throw Object.assign(new Error(error.message), {
+          code: "FILE_STORAGE_ERROR",
+        });
+      }
+      asset = { name, storedBlob, size: blob.size };
+    }
+    check(signal);
+    assets.push(asset);
+    return asset;
+  }
+  const readIncrementally =
+    !pageRange &&
+    !retryRegion &&
+    pageStore &&
+    createPdfReadingSnapshot(readingBlocks, pdf.numPages);
   const snapshot = () => ({
     pages,
     assets: [...assets],
@@ -442,15 +470,24 @@ export async function parsePdfDocument(
     recognitionKey,
     cache,
     layoutRegions: pageRegionsMap,
-    blocks: readingBlocks(
-      incrementalPdfBlocks(pageBlocks, pages, completedPages, pdf.numPages)
-    ),
+    partialRange: !!pageRange,
+    blocks: readIncrementally
+      ? readIncrementally(pageBlocks, pages, completedPages)
+      : readingBlocks(
+          incrementalPdfBlocks(
+            pageBlocks,
+            pages.filter(Boolean),
+            completedPages,
+            pdf.numPages
+          )
+        ),
     complete: false,
   });
   let complete = false;
   try {
     // Repair cached text geometry without repeating layout or model inference.
     for (let index = 0; index < pages.length; index++) {
+      if (!pages[index] || pages[index].stored) continue;
       if (pages[index].textGeometryVersion === TEXT_GEOMETRY_VERSION) continue;
       check(signal);
       const page = await pdf.getPage(pages[index].page),
@@ -478,8 +515,9 @@ export async function parsePdfDocument(
       pageBlocks[index] = [];
       completedPages.delete(pages[index].page);
     }
-    // All native metadata is gathered before filtering repeating furniture.
-    for (let pageNo = pages.length + 1; pageNo <= pdf.numPages; pageNo++) {
+    // Preserve repeating furniture detection while spilling bulky page geometry.
+    for (let pageNo = firstPage; pageNo <= lastPage; pageNo++) {
+      if (pages[pageNo - 1]) continue;
       check(signal);
       const page = await pdf.getPage(pageNo),
         viewport = page.getViewport({ scale: 1 });
@@ -519,14 +557,33 @@ export async function parsePdfDocument(
           bbox: transformRect(viewport.transform, a.rect),
         }));
       analyzed.raw.graphics = graphicsFromOperators(operators, viewport);
-      pages.push(analyzed.raw);
-      onProgress(
-        { stage: "读取文字层", done: pageNo, total: pdf.numPages },
-        snapshot()
-      );
+      if (pageStore) {
+        const raw = analyzed.raw;
+        await pageStore.put(`geometry:${pageNo}`, raw);
+        pages[pageNo - 1] = {
+          page: pageNo,
+          width: raw.width,
+          height: raw.height,
+          stored: true,
+          spans: raw.spans
+            .filter(
+              ({ bbox }) =>
+                bbox[1] < raw.height * 0.1 || bbox[3] > raw.height * 0.94
+            )
+            .map(({ bbox, text }) => ({ bbox, text })),
+        };
+        page.cleanup?.();
+      } else {
+        pages[pageNo - 1] = analyzed.raw;
+      }
+      onProgress?.({
+        stage: "读取文字层",
+        done: pageNo - firstPage + 1,
+        total: lastPage - firstPage + 1,
+      });
     }
     const repeat = new Map();
-    for (const page of pages)
+    for (const page of pages.filter(Boolean))
       for (const span of page.spans) {
         if (
           span.bbox[1] < page.height * 0.1 ||
@@ -539,14 +596,17 @@ export async function parsePdfDocument(
           }
         }
       }
-    for (let pageIndex = 0; pageIndex < pages.length; pageIndex++) {
+    for (let pageIndex = firstPage - 1; pageIndex < lastPage; pageIndex++) {
       check(signal);
       if (
         completedPages.has(pages[pageIndex].page) &&
         retryRegion?.page !== pages[pageIndex].page
       )
         continue;
-      const raw = pages[pageIndex],
+      const metadata = pages[pageIndex];
+      const raw = metadata.stored
+          ? await pageStore.get(`geometry:${metadata.page}`)
+          : metadata,
         page = await pdf.getPage(raw.page);
       completedPages.delete(raw.page);
       let regions = [];
@@ -945,10 +1005,10 @@ export async function parsePdfDocument(
               if (recognized.items.some((item) => !item.text?.trim())) {
                 const name = `page-${raw.page}-${region.id.replace(/[^\w-]/g, "")}-visual-source.png`;
                 if (!assets.some((asset) => asset.name === name))
-                  assets.push({
+                  await saveAsset(
                     name,
-                    blob: await renderPdfRegion(page, region.bbox, signal, 1.8),
-                  });
+                    await renderPdfRegion(page, region.bbox, signal, 1.8)
+                  );
                 sourceFallback = `![第 ${raw.page} 页原文区域](${documentAssetPath(name)})`;
               }
               const visual = visualDocumentBlocks(recognized, {
@@ -1026,7 +1086,7 @@ export async function parsePdfDocument(
             source =
               selection.capability === "recognizeText" ? "ocr" : "vision";
           } catch (e) {
-            if (signal?.aborted) throw e;
+            if (signal?.aborted || e.code === "FILE_STORAGE_ERROR") throw e;
             cache.delete(recognitionCacheKey);
             warning = e.message;
           }
@@ -1040,8 +1100,7 @@ export async function parsePdfDocument(
           if (!asset) {
             const blob = await renderPdfRegion(page, region.bbox, signal, 1.8);
             check(signal);
-            asset = { name, blob };
-            assets.push(asset);
+            asset = await saveAsset(name, blob);
           }
           region.formulaMarkdown = `![第 ${raw.page} 页原公式](${documentAssetPath(asset.name)})`;
           region.formulaDiagnostic = {
@@ -1074,8 +1133,7 @@ export async function parsePdfDocument(
           if (!asset) {
             const blob = await renderPdfRegion(page, region.bbox, signal, 1.8);
             check(signal);
-            asset = { name, blob };
-            assets.push(asset);
+            asset = await saveAsset(name, blob);
           }
           markdown = `![第 ${raw.page} 页${region.type === "image" ? "图片" : region.paragraphFallback ? "原文段落回退" : "原文区域回退"}](${documentAssetPath(asset.name)})`;
           source = "image";
@@ -1207,13 +1265,23 @@ export async function parsePdfDocument(
       }
       pageBlocks[pageIndex] = pairNumbers(blocks);
       completedPages.add(raw.page);
-      onProgress(
-        { stage: "恢复结构", done: pageIndex + 1, total: pages.length },
+      onProgress?.(
+        {
+          stage: "恢复结构",
+          done: pageRange ? raw.page - firstPage + 1 : pageIndex + 1,
+          total: pageRange ? lastPage - firstPage + 1 : pages.length,
+        },
         snapshot()
       );
+      if (pageStore) page.cleanup?.();
     }
+    if (completedPages.size !== pdf.numPages) return snapshot();
     const merged = await worker.request(
-      { type: "merge", blocks: pageBlocks.flat(), pages },
+      {
+        type: "merge",
+        blocks: pageBlocks.flat(),
+        pages: pages.filter(Boolean),
+      },
       signal
     );
     check(signal);

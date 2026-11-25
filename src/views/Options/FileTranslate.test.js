@@ -2,10 +2,30 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import FileTranslate from "./FileTranslate";
 
+const pngBytes = Uint8Array.from(
+  atob(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jResAAAAASUVORK5CYII="
+  ),
+  (character) => character.charCodeAt(0)
+);
+
 jest.mock("../FileTranslate/PdfWorkspace", () => {
   const React = require("react");
   return React.forwardRef(() => null);
 });
+
+async function waitForText(container, text) {
+  for (
+    let attempt = 0;
+    attempt < 50 && !container.textContent.includes(text);
+    attempt++
+  ) {
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    });
+  }
+  expect(container.textContent).toContain(text);
+}
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const originalResizeObserver = globalThis.ResizeObserver;
@@ -434,7 +454,7 @@ describe("FileTranslate view", () => {
     expect(container.textContent).not.toContain("文本识别服务");
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-    const fakeImage = new File(["fake-image"], "photo.png", {
+    const fakeImage = new File([pngBytes], "photo.png", {
       type: "image/png",
     });
 
@@ -448,9 +468,50 @@ describe("FileTranslate view", () => {
     });
 
     // 顶栏自适应展开 OCR 服务和译文字体，计算设备已收敛至服务配置中不再在顶栏展示
-    expect(container.textContent).toContain("文本识别服务");
+    await waitForText(container, "文本识别服务");
     expect(container.textContent).not.toContain("计算设备");
     expect(container.textContent).toContain("译文字体");
+  });
+
+  test("declining an oversized image leaves the file chooser ready for a new image", async () => {
+    const confirm = jest.spyOn(window, "confirm").mockReturnValue(false);
+    await act(async () => root.render(<FileTranslate />));
+    const dropzone = container.querySelector('[role="button"][tabindex="0"]');
+    const drop = async (file) => {
+      await act(async () => {
+        const event = new Event("drop", { bubbles: true });
+        Object.defineProperty(event, "dataTransfer", {
+          value: { files: [file] },
+        });
+        dropzone.dispatchEvent(event);
+      });
+    };
+    const largePngHeader = pngBytes.slice();
+    const header = new DataView(largePngHeader.buffer);
+    header.setUint32(16, 5000);
+    header.setUint32(20, 4000);
+    try {
+      await drop(
+        new File([largePngHeader], "needs-resize.png", { type: "image/png" })
+      );
+      for (
+        let attempt = 0;
+        attempt < 50 && !confirm.mock.calls.length;
+        attempt++
+      ) {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        });
+      }
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(container.textContent).not.toContain("原图预览");
+      await drop(
+        new File([pngBytes], "replacement.png", { type: "image/png" })
+      );
+      await waitForText(container, "原图预览");
+    } finally {
+      confirm.mockRestore();
+    }
   });
 
   test("disables start translation and guides user to service config when no OCR service is configured", async () => {
@@ -470,7 +531,7 @@ describe("FileTranslate view", () => {
     });
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-    const fakeImage = new File(["fake-image"], "photo.png", {
+    const fakeImage = new File([pngBytes], "photo.png", {
       type: "image/png",
     });
 
@@ -483,7 +544,7 @@ describe("FileTranslate view", () => {
     });
 
     // 1. 顶栏不展示底层模型列表，而是展示未配置 OCR 服务提示
-    expect(container.textContent).toContain("请选择识别服务");
+    await waitForText(container, "请选择识别服务");
 
     // 2. 开始翻译按钮处于禁用状态
     const startBtn = Array.from(container.querySelectorAll("button")).find(
@@ -547,7 +608,7 @@ describe("FileTranslate view", () => {
     });
 
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-    const fakeImage = new File(["fake-image-binary"], "test-diagram.png", {
+    const fakeImage = new File([pngBytes], "test-diagram.png", {
       type: "image/png",
     });
 
@@ -565,7 +626,7 @@ describe("FileTranslate view", () => {
     });
 
     // 左栏展示原图预览
-    expect(container.textContent).toContain("原图预览");
+    await waitForText(container, "原图预览");
     expect(container.textContent).toContain("点击放大查看");
 
     // 开始翻译
@@ -653,7 +714,7 @@ describe("FileTranslate view", () => {
       });
 
       const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-      const fakeImage = new File(["fake-image-bytes"], "vlm-doc.png", {
+      const fakeImage = new File([pngBytes], "vlm-doc.png", {
         type: "image/png",
       });
 
@@ -665,6 +726,7 @@ describe("FileTranslate view", () => {
         dropzone.dispatchEvent(dropEvent);
       });
 
+      await waitForText(container, "原图预览");
       const startBtn = Array.from(container.querySelectorAll("button")).find(
         (b) => b.textContent.includes("一键翻译")
       );
@@ -721,7 +783,7 @@ describe("FileTranslate view", () => {
 
     // 拖入图片自动进入图片识别模式
     const dropzone = container.querySelector('[role="button"][tabindex="0"]');
-    const fakeImage = new File(["fake-image-bytes"], "comic.png", {
+    const fakeImage = new File([pngBytes], "comic.png", {
       type: "image/png",
     });
     await act(async () => {
@@ -731,6 +793,7 @@ describe("FileTranslate view", () => {
       });
       dropzone.dispatchEvent(dropEvent);
     });
+    await waitForText(container, "原图预览");
 
     // 开始翻译
     const startBtn = Array.from(container.querySelectorAll("button")).find(

@@ -1,5 +1,9 @@
 import { visualMarkdown } from "./visualResult";
-import { runTranslationTasks } from "../translationTasks";
+import {
+  createTranslationRequestWindow,
+  indexedTranslationTasks,
+  runBoundedTranslationTasks,
+} from "../translationTasks";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkStringify from "remark-stringify";
@@ -540,7 +544,8 @@ export async function translateDocumentBlocks(
   blocks,
   translate,
   signal,
-  progress = () => {}
+  progress = () => {},
+  request = createTranslationRequestWindow()
 ) {
   const repairRequired = new Set();
   for (const block of blocks) {
@@ -550,123 +555,146 @@ export async function translateDocumentBlocks(
       if (restored.translationRepairRequired) repairRequired.add(block);
     }
   }
-  let done = blocks.filter(
-    (b) => isTranslatableBlock(b) && b.status === "done"
-  ).length;
+  const count = {
+    done: blocks.filter((b) => isTranslatableBlock(b) && b.status === "done")
+      .length,
+  };
   const total = blocks.filter(isTranslatableBlock).length;
-  await runTranslationTasks(
-    blocks.map((block) => async (signal) => {
-      if (signal?.aborted) throw new DOMException("已取消", "AbortError");
-      if (
-        repairRequired.has(block) ||
-        !isTranslatableBlock(block) ||
-        block.status === "done"
-      )
-        return;
-      block.status = "busy";
-      delete block.error;
-      progress(done, total, block);
-      try {
-        if (block.visualResult) {
-          if (!block.visualResult.text?.trim())
-            throw new Error(
-              "No original text is available for fallback translation."
-            );
-          const parts = parseDocumentMarkdown(
-            visualMarkdown(block.visualResult.text, block.visualResult.format),
-            block.id
-          );
-          await translateDocumentBlocks(parts, translate, signal);
-          const failed = parts.find((part) => part.status === "error");
-          if (failed) throw new Error(failed.error);
-          block.targetRaw = documentMarkdown(parts, "target");
-          block.translationFromImage = false;
-        } else if (block.ast.type === "html") {
-          const body = sanitizedHtml(block.raw),
-            table = body.querySelector("table") || body;
-          const sourceCells =
-            table.tagName === "TABLE"
-              ? [...table.querySelectorAll("th,td")]
-              : [table];
-          await runTranslationTasks(
-            sourceCells.map((cell, i) => async (signal) => {
-              if (!cell.textContent.trim()) return;
-              if (signal?.aborted)
-                throw new DOMException("已取消", "AbortError");
-              const masked = [],
-                clone = cell.cloneNode(true);
-              protectedHtmlElements(clone).forEach((el) => {
-                const token = `KTDOCMASK${masked.length}END`;
-                masked.push({ token, raw: el.outerHTML });
-                el.replaceWith(token);
-              });
-              const input = clone.innerHTML.replace(
-                /<[^>]+>|\$[^$\n]+\$/g,
-                (raw) => {
-                  const token = `KTDOCMASK${masked.length}END`;
-                  masked.push({ token, raw });
-                  return token;
-                }
+  function* tasks() {
+    for (const block of blocks)
+      yield async (signal) => {
+        if (signal?.aborted) throw new DOMException("已取消", "AbortError");
+        if (
+          repairRequired.has(block) ||
+          !isTranslatableBlock(block) ||
+          block.status === "done"
+        )
+          return;
+        block.status = "busy";
+        delete block.error;
+        try {
+          const started = progress(count.done, total, block);
+          if (started?.then) await started;
+          if (block.visualResult) {
+            if (!block.visualResult.text?.trim())
+              throw new Error(
+                "No original text is available for fallback translation."
               );
-              let result = await translate(input, signal, block);
-              if (signal?.aborted)
-                throw new DOMException("已取消", "AbortError");
-              result = escape(result);
-              for (const mask of masked) {
-                if (result.split(mask.token).length !== 2)
-                  throw new Error("表格占位符损坏");
-                result = result.replace(mask.token, () => mask.raw);
-              }
-              cell.innerHTML = result;
-            }),
-            signal
-          );
-          if (signal.aborted) throw new DOMException("已取消", "AbortError");
-          block.targetRaw =
-            table.tagName === "BODY" ? table.innerHTML : table.outerHTML;
-        } else {
-          const target = copy(block.ast),
-            units = translationUnits(target),
-            originalUnits = translationUnits(block.ast);
-          await runTranslationTasks(
-            units.map((unit, i) => async (signal) => {
-              if (signal?.aborted)
-                throw new DOMException("已取消", "AbortError");
-              const masked = maskUnit(originalUnits[i]);
-              if (
-                !masked.text.trim() ||
-                /^KTDOCMASK\d+END$/.test(masked.text.trim())
-              )
-                return;
-              const result = await translate(masked.text, signal, block);
-              if (signal?.aborted)
-                throw new DOMException("已取消", "AbortError");
-              units[i].children = restoreUnit(result, masked.masks);
-            }),
-            signal
-          );
-          if (signal.aborted) throw new DOMException("已取消", "AbortError");
-          block.targetAst = target;
-          block.targetRaw = stringify(target);
+            const parts = parseDocumentMarkdown(
+              visualMarkdown(
+                block.visualResult.text,
+                block.visualResult.format
+              ),
+              block.id
+            );
+            await translateDocumentBlocks(
+              parts,
+              translate,
+              signal,
+              undefined,
+              request
+            );
+            const failed = parts.find((part) => part.status === "error");
+            if (failed) throw new Error(failed.error);
+            block.targetRaw = documentMarkdown(parts, "target");
+            block.translationFromImage = false;
+          } else if (block.ast.type === "html") {
+            const body = sanitizedHtml(block.raw),
+              table = body.querySelector("table") || body;
+            const sourceCells =
+              table.tagName === "TABLE"
+                ? table.querySelectorAll("th,td")
+                : [table];
+            await runBoundedTranslationTasks(
+              indexedTranslationTasks(sourceCells, async (cell, _, signal) => {
+                if (!cell.textContent.trim()) return;
+                if (signal?.aborted)
+                  throw new DOMException("已取消", "AbortError");
+                const masked = [],
+                  clone = cell.cloneNode(true);
+                protectedHtmlElements(clone).forEach((el) => {
+                  const token = `KTDOCMASK${masked.length}END`;
+                  masked.push({ token, raw: el.outerHTML });
+                  el.replaceWith(token);
+                });
+                const input = clone.innerHTML.replace(
+                  /<[^>]+>|\$[^$\n]+\$/g,
+                  (raw) => {
+                    const token = `KTDOCMASK${masked.length}END`;
+                    masked.push({ token, raw });
+                    return token;
+                  }
+                );
+                let result = await request(
+                  () => translate(input, signal, block),
+                  signal
+                );
+                if (signal?.aborted)
+                  throw new DOMException("已取消", "AbortError");
+                result = escape(result);
+                for (const mask of masked) {
+                  if (result.split(mask.token).length !== 2)
+                    throw new Error("表格占位符损坏");
+                  result = result.replace(mask.token, () => mask.raw);
+                }
+                cell.innerHTML = result;
+              }),
+              signal,
+              { concurrency: 8, collect: false }
+            );
+            if (signal.aborted) throw new DOMException("已取消", "AbortError");
+            block.targetRaw =
+              table.tagName === "BODY" ? table.innerHTML : table.outerHTML;
+          } else {
+            const target = copy(block.ast),
+              units = translationUnits(target),
+              originalUnits = translationUnits(block.ast);
+            await runBoundedTranslationTasks(
+              indexedTranslationTasks(units, async (unit, i, signal) => {
+                if (signal?.aborted)
+                  throw new DOMException("已取消", "AbortError");
+                const masked = maskUnit(originalUnits[i]);
+                if (
+                  !masked.text.trim() ||
+                  /^KTDOCMASK\d+END$/.test(masked.text.trim())
+                )
+                  return;
+                const result = await request(
+                  () => translate(masked.text, signal, block),
+                  signal
+                );
+                if (signal?.aborted)
+                  throw new DOMException("已取消", "AbortError");
+                unit.children = restoreUnit(result, masked.masks);
+              }),
+              signal,
+              { concurrency: 8, collect: false }
+            );
+            if (signal.aborted) throw new DOMException("已取消", "AbortError");
+            block.targetAst = target;
+            block.targetRaw = stringify(target);
+          }
+          Object.assign(block, bilingualResult(block), {
+            bilingualVersion: BILINGUAL_RESULT_VERSION,
+            translationRepairRequired: false,
+          });
+          block.status = "done";
+          count.done++;
+        } catch (e) {
+          if (signal?.aborted) {
+            block.status = "idle";
+            throw e;
+          }
+          block.status = "error";
+          block.error = e.message;
         }
-        Object.assign(block, bilingualResult(block), {
-          bilingualVersion: BILINGUAL_RESULT_VERSION,
-          translationRepairRequired: false,
-        });
-        block.status = "done";
-        done++;
-      } catch (e) {
-        if (signal?.aborted) {
-          block.status = "idle";
-          throw e;
-        }
-        block.status = "error";
-        block.error = e.message;
-      }
-      progress(done, total, block);
-    }),
-    signal
-  );
+        await progress(count.done, total, block);
+      };
+  }
+  await runBoundedTranslationTasks(tasks(), signal, {
+    concurrency: 16,
+    collect: false,
+  });
   return blocks;
 }
 export function blockMarkdown(block, mode = "source") {

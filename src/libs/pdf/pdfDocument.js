@@ -96,12 +96,17 @@ export async function renderPdfRegion(
   const box = bbox || [0, 0, full.width, full.height];
   const width = Math.max(1, Math.ceil((box[2] - box[0]) * scale)),
     height = Math.max(1, Math.ceil((box[3] - box[1]) * scale));
-  if (width * height > 16000000)
+  if (width * height > 8000000 || Math.max(width, height) > 4096)
     return renderPdfRegion(
       page,
       bbox,
       signal,
-      scale * Math.sqrt(16000000 / (width * height)),
+      scale *
+        Math.min(
+          Math.sqrt(8000000 / (width * height)),
+          4096 / Math.max(width, height)
+        ) *
+        0.999,
       masks
     );
   const canvas = document.createElement("canvas");

@@ -19,6 +19,9 @@ jest.mock("../providers/backgroundInvocation", () => ({
   invokeBackgroundPlugin: jest.fn(),
 }));
 jest.mock("../localAi/core/inputLimits", () => ({ prepareImage: jest.fn() }));
+jest.mock("./imageDimensions", () => ({
+  imageDecodePlan: jest.fn().mockResolvedValue({ resize: false }),
+}));
 
 jest.mock("webextension-polyfill", () => ({
   runtime: {

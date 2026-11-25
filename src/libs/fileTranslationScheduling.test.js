@@ -30,8 +30,20 @@ afterEach(() => clearAllBatchQueue());
 const finishBackwards = () =>
   [...pending].reverse().forEach(({ text, resolve }) => resolve(`译:${text}`));
 
+async function drain(expected) {
+  let completed = 0;
+  while (completed < expected) {
+    const ready = pending.slice(completed);
+    expect(ready.length).toBeGreaterThan(0);
+    expect(ready.length).toBeLessThanOrEqual(32);
+    completed += ready.length;
+    [...ready].reverse().forEach(({ text, resolve }) => resolve(`译:${text}`));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
 test.each(["txt", "markdown"])(
-  "%s submits more than 50 units before any response and preserves order",
+  "%s bounds requests and preserves order",
   async (kind) => {
     const lines = Array.from({ length: 61 }, (_, i) => `line${i}`);
     const progress = jest.fn();
@@ -39,8 +51,8 @@ test.each(["txt", "markdown"])(
       kind === "txt"
         ? translateTxt(lines.join("\r\n"), {}, {}, undefined, progress)
         : translateMarkdown(lines.join("\n\n"), {}, {}, undefined, progress);
-    expect(pending).toHaveLength(61);
-    finishBackwards();
+    expect(pending).toHaveLength(kind === "txt" ? 4 : 32);
+    await drain(61);
     const result = await run;
     expect(result.comparisons.map((row) => row.source)).toEqual(lines);
     expect(progress.mock.calls.map(([done]) => done)).toEqual(
@@ -81,7 +93,7 @@ test("first failure cancels sibling requests and suppresses late progress", asyn
   expect(progress).not.toHaveBeenCalled();
 });
 
-test("EPUB submits every chapter and paragraph together and reports actual completed chapters", async () => {
+test("EPUB limits chapters and paragraphs and reports actual completed chapters", async () => {
   const paths = ["a.xhtml", "b.xhtml"];
   const book = {
     filesMap: Object.fromEntries(
@@ -96,8 +108,8 @@ test("EPUB submits every chapter and paragraph together and reports actual compl
   };
   const progress = jest.fn();
   const run = translateEpubBook(book, {}, {}, undefined, progress);
-  expect(pending).toHaveLength(102);
-  finishBackwards();
+  expect(pending).toHaveLength(32);
+  await drain(102);
   const result = await run;
   expect(Object.keys(result.chapterResults)).toEqual(paths);
   for (const path of paths) {

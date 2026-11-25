@@ -447,7 +447,7 @@ test("one-click translation reparses after changing the selected recognition ser
   });
 });
 
-test("one-click passes its newly detected layout and parsed blocks directly into translation", async () => {
+test("one-click lets the parser detect missing layout per page before translating its blocks", async () => {
   const {
     parsePdfDocument,
     detectPdfLayout,
@@ -497,8 +497,11 @@ test("one-click passes its newly detected layout and parsed blocks directly into
     )
   );
   await act(async () => ref.current.oneClickTranslate());
-  expect(detectPdfLayout).toHaveBeenCalledTimes(1);
-  expect(parsePdfDocument.mock.calls.at(-1)[1].layoutRegions).toEqual(layout);
+  expect(detectPdfLayout).not.toHaveBeenCalled();
+  expect(parsePdfDocument.mock.calls.at(-1)[1]).toMatchObject({
+    layoutRegions: {},
+    layoutServiceId: "layout",
+  });
   expect(translateDocumentBlocks).toHaveBeenCalledTimes(1);
   expect(translateDocumentBlocks.mock.calls[0][0][0].id).toBe("fresh");
 });

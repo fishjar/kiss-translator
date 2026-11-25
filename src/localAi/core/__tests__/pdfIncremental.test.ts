@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { incrementalPdfBlocks } from "../../../libs/pdf/incremental";
+import { createPdfReadingSnapshot, incrementalPdfBlocks } from "../../../libs/pdf/incremental";
 
 const pages = [1, 2, 3].map((page) => ({ page, width: 600, height: 800 }));
 const paragraph = (page: number, text = "continued", y = 700) => ({ id: `p${page}`, type: "paragraph", source: "native", text,
@@ -43,4 +43,19 @@ it("holds and merges native tables without mutating cached page rows", () => {
   expect(merged[0].cells).toHaveLength(3);
   expect(merged[0].translationReady).toBe(true);
   expect(first.cells).toHaveLength(2);
+});
+
+it("publishes a stable prefix once while holding a three-page continuation", () => {
+  const stable = { ...paragraph(1, "Stable.", 200), id: "stable" };
+  const tail = paragraph(1, "a multi-");
+  const second = { ...paragraph(2, "page", 50), fragments: [{ page: 2, bbox: [50, 50, 500, 740] }] };
+  const third = paragraph(3, "boundary.", 50);
+  const pageBlocks = [[stable, tail], [second], [third]];
+  const snapshot = createPdfReadingSnapshot((blocks: any[]) => blocks.map((block) => ({ ...block })), 3);
+  const one = snapshot(pageBlocks.slice(0, 1), pages, new Set([1]));
+  const two = snapshot(pageBlocks.slice(0, 2), pages, new Set([1, 2]));
+  const done = snapshot(pageBlocks, pages, new Set([1, 2, 3]));
+  expect(two[0]).toBe(one[0]);
+  expect(two[1].translationReady).toBe(false);
+  expect(done).toEqual(incrementalPdfBlocks(pageBlocks, pages, [1, 2, 3], 3));
 });

@@ -6,7 +6,11 @@ import {
   documentOcrBlocks,
   documentRecognitionKey,
 } from "../../libs/pdf/recognition";
-import { runTranslationTasks } from "../../libs/translationTasks";
+import {
+  createTranslationRequestWindow,
+  indexedTranslationTasks,
+  runBoundedTranslationTasks,
+} from "../../libs/translationTasks";
 import TocDrawer from "./TocDrawer";
 import {
   forwardRef,
@@ -63,10 +67,16 @@ import {
 } from "../../libs/document/markdown";
 import { exportDocument } from "../../libs/document/export";
 import {
+  documentAssetPath,
   DocumentAssetPreview,
   normalizeDocumentAssets,
 } from "../../libs/document/assets";
 import PdfPage from "./PdfPage";
+import { createDocumentSession } from "../../fileTranslation/documentSession";
+import {
+  useDocumentWindow,
+  useMeasuredDocumentItem,
+} from "./useDocumentWindow";
 import ReaderAlert from "./ReaderAlert";
 import "katex/dist/katex.min.css";
 import "./PdfWorkspace.css";
@@ -170,6 +180,33 @@ function SourceToolbar({
 }
 
 const PREF_KEY = "kiss_pdf_reader";
+function MeasuredPdfItem({ index, measure, children }) {
+  const ref = useRef(null);
+  useMeasuredDocumentItem(ref, index, measure);
+  return (
+    <div ref={ref} style={{ display: "flow-root" }}>
+      {children}
+    </div>
+  );
+}
+
+function applyPdfTranslation(block, translation) {
+  return {
+    ...block,
+    status: translation.status,
+    targetRaw: translation.targetRaw,
+    bilingualRaw: translation.bilingualRaw,
+    targetAst: translation.targetAst,
+    bilingualAst: translation.bilingualAst,
+    storedTranslation: translation.storedTranslation,
+    translationKey: translation.translationKey,
+    translationFromImage: translation.translationFromImage,
+    error: translation.error,
+    bilingualVersion: translation.bilingualVersion,
+    translationRepairRequired: translation.translationRepairRequired,
+  };
+}
+
 function pdfPageScale(page) {
   const scale = Number(page.dataset.scale);
   return Number.isFinite(scale) && scale > 0 ? scale : 1;
@@ -271,6 +308,80 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     highlightTimer = useRef(null),
     raf = useRef(null),
     anchor = useRef(null);
+  const pageStore = useRef(null);
+  const downloadTask = useRef(null);
+  useEffect(() => () => downloadTask.current?.abort(), [file]);
+  useEffect(() => {
+    if (!pdf || (pdf.numPages <= 24 && (file?.size || 0) < 32 * 1024 ** 2))
+      return;
+    const session = createDocumentSession();
+    pageStore.current = session;
+    return () => {
+      pageStore.current = null;
+      session.close();
+    };
+  }, [pdf, file?.size]);
+  const pdfList = useRef(null);
+  const mdList = useRef(null);
+  const pendingPageJump = useRef(null);
+  const requestTranslation = useMemo(createTranslationRequestWindow, []);
+  const largePdf = Number(pdf?.numPages) > 24;
+  const largeBlocks = largePdf || blocks.length > 120;
+  const pageWindow = useDocumentWindow(
+    largePdf ? pdf.numPages : 0,
+    pdfScroll,
+    pdfList,
+    pageWidth * zoom * 1.3 + 40,
+    1,
+    { documentKey: pdf, layoutKey: `${zoom}:${pageWidth}` }
+  );
+  const blockWindow = useDocumentWindow(
+    largeBlocks ? blocks.length : 0,
+    mdScroll,
+    mdList,
+    180,
+    3,
+    { documentKey: file || markdownContent, layoutKey: mode }
+  );
+  const jumpPageWindow = pageWindow.jump;
+  const jumpBlockWindow = blockWindow.jump;
+  const visibleBlocks = useMemo(
+    () =>
+      largeBlocks ? blocks.slice(blockWindow.start, blockWindow.end) : blocks,
+    [largeBlocks, blocks, blockWindow.start, blockWindow.end]
+  );
+  const [visibleTranslations, setVisibleTranslations] = useState(new Map());
+  useEffect(() => {
+    let active = true;
+    const store = pageStore.current;
+    const keys = visibleBlocks
+      .map((block) => block.storedTranslation)
+      .filter(Boolean);
+    if (store && mode !== "source" && keys.length)
+      void Promise.all(keys.map(async (key) => [key, await store.get(key)]))
+        .then((pairs) => {
+          if (active) setVisibleTranslations(new Map(pairs));
+        })
+        .catch((error) => {
+          if (active) setError(error.message);
+        });
+    else setVisibleTranslations((old) => (old.size ? new Map() : old));
+    return () => {
+      active = false;
+    };
+  }, [visibleBlocks, mode]);
+  const shownBlocks = useMemo(
+    () =>
+      visibleBlocks.map((block) => {
+        const translation = visibleTranslations.get(block.storedTranslation);
+        return translation
+          ? { ...block, ...translation }
+          : block.storedTranslation && mode !== "source"
+            ? { ...block, status: "busy" }
+            : block;
+      }),
+    [visibleBlocks, visibleTranslations, mode]
+  );
   const hasLayoutResult = Boolean(Object.keys(layoutRegions).length);
   const busy =
     ["opening", "parsing", "translating", "detecting"].includes(phase) ||
@@ -455,7 +566,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       setResult(null);
       setBlocks(isPdf ? [] : parseDocumentMarkdown(markdownContent));
     }
-    const release = assetPreview.current.sync(assets);
+    const release = assets.some((asset) => asset.storedBlob)
+      ? () => {}
+      : registry.sync(assets);
     if (assets.some((asset) => asset.url)) {
       const normalized = normalizeDocumentAssets(result, assets);
       resultRef.current = normalized;
@@ -473,6 +586,53 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     };
     // Asset identity, rather than each progress snapshot, controls URL allocation.
   }, [result?.assets, file, isPdf, markdownContent]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const assets = result?.assets;
+    const store = pageStore.current;
+    if (!store || !assets?.some((asset) => asset.storedBlob)) return;
+    let active = true;
+    const names = new Set();
+    for (const block of shownBlocks) {
+      for (const text of [block.raw, block.targetRaw, block.bilingualRaw]) {
+        if (!text) continue;
+        for (const match of text.matchAll(/assets\/([\w-]+\.png)/g))
+          names.add(match[1]);
+      }
+    }
+    const registry = assetPreview.current;
+    let release, timer;
+    void Promise.all(
+      assets
+        .filter((asset) => names.has(asset.name))
+        .map(async (asset) =>
+          asset.storedBlob
+            ? {
+                ...asset,
+                blob:
+                  registry.entries.get(documentAssetPath(asset.name))?.blob ||
+                  (await store.get(asset.storedBlob)),
+              }
+            : asset
+        )
+    )
+      .then((visibleAssets) => {
+        if (!active) return;
+        release = registry.sync(visibleAssets);
+        updateAssetPreview((version) => version + 1);
+        timer = setTimeout(() => {
+          release();
+          release = undefined;
+        }, 0);
+      })
+      .catch((error) => {
+        if (active) setError(error.message);
+      });
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      release?.();
+    };
+  }, [result?.assets, shownBlocks]);
   const publishBlocks = (next) => {
     next = next.map(restoreDocumentBilingual);
     blocksRef.current = next;
@@ -480,34 +640,22 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       resultRef.current = { ...resultRef.current, blocks: next };
     setBlocks(next);
   };
-  const retainTranslations = (next, previous = blocksRef.current) =>
-    next && {
+  const retainTranslations = (next, previous = blocksRef.current) => {
+    if (!next) return next;
+    const byId = new Map(previous.map((item) => [item.id, item]));
+    return {
       ...next,
       blocks: next.blocks.map((block) => {
-        const old = previous.find(
-          (item) =>
-            item.id === block.id &&
-            item.raw === block.raw &&
-            JSON.stringify(item.visualResult) ===
-              JSON.stringify(block.visualResult)
-        );
-        return old
-          ? {
-              ...block,
-              status: old.status,
-              targetRaw: old.targetRaw,
-              bilingualRaw: old.bilingualRaw,
-              targetAst: old.targetAst,
-              bilingualAst: old.bilingualAst,
-              translationKey: old.translationKey,
-              translationFromImage: old.translationFromImage,
-              error: old.error,
-              bilingualVersion: old.bilingualVersion,
-              translationRepairRequired: old.translationRepairRequired,
-            }
+        const old = byId.get(block.id);
+        return old &&
+          old.raw === block.raw &&
+          JSON.stringify(old?.visualResult) ===
+            JSON.stringify(block.visualResult)
+          ? applyPdfTranslation(block, old)
           : block;
       }),
     };
+  };
   const commit = (next) => {
     next = retainTranslations(normalizeDocumentAssets(next, next.assets));
     resultRef.current = next;
@@ -698,7 +846,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     reset = false,
     retryRegion,
     regions = layoutComplete ? layoutRegions : {},
-    prepared
+    prepared,
+    pageRange
   ) => {
     if (!pdf || busy) return;
     const version = ++operation.current,
@@ -765,6 +914,8 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         retryRegion,
         cacheMode: ignoreCache ? "refresh" : undefined,
         layoutRegions: regions,
+        pageRange,
+        pageStore: pageStore.current,
         onProgress: (p, partial) => {
           if (
             mounted.current &&
@@ -792,7 +943,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           retainTranslations(next, [...blocksRef.current, ...savedTranslations])
         );
         if (next?.layoutRegions && Object.keys(next.layoutRegions).length) {
-          setLayoutComplete(true);
+          setLayoutComplete(
+            Object.keys(next.layoutRegions).length === pdf.numPages
+          );
           setLayoutRegions((prev) => {
             const merged = { ...next.layoutRegions };
             for (const [pNo, regs] of Object.entries(prev)) {
@@ -811,7 +964,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           !automaticRun.current &&
           !translationRun.current &&
           !blocksRef.current.some(
-            (block) => block.status === "done" && block.targetRaw !== undefined
+            (block) =>
+              block.status === "done" &&
+              (block.targetRaw !== undefined || block.storedTranslation)
           )
         )
           setMode("source");
@@ -863,40 +1018,30 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       abort = new AbortController(),
       run = { abort };
     translationRun.current = run;
+    const translatedById = new Map(
+      targetBlocks.map((block) => [block.id, block])
+    );
     const valid = () =>
       mounted.current &&
       operation.current === version &&
       translationRun.current === run &&
       !abort.signal.aborted;
+    const awaitingWrite = new Set();
     const publish = () => {
-      if (!valid()) return;
       publishBlocks(
         blocksRef.current.map((block) => {
-          const translated = targetBlocks.find(
-            (item) =>
-              item.id === block.id &&
-              item.raw === block.raw &&
-              JSON.stringify(item.visualResult) ===
-                JSON.stringify(block.visualResult)
-          );
-          return translated
-            ? {
-                ...block,
-                status: translated.status,
-                targetRaw: translated.targetRaw,
-                bilingualRaw: translated.bilingualRaw,
-                targetAst: translated.targetAst,
-                bilingualAst: translated.bilingualAst,
-                translationKey: translated.translationKey,
-                translationFromImage: translated.translationFromImage,
-                error: translated.error,
-                bilingualVersion: translated.bilingualVersion,
-                translationRepairRequired: translated.translationRepairRequired,
-              }
+          const translated = translatedById.get(block.id);
+          return translated &&
+            !awaitingWrite.has(translated.id) &&
+            translated.raw === block.raw &&
+            JSON.stringify(translated.visualResult) ===
+              JSON.stringify(block.visualResult)
+            ? applyPdfTranslation(block, translated)
             : block;
         })
       );
     };
+    let previewTimer;
     setTranslationBusy(true);
     if (!automatic) setError("");
     setMode("bilingual");
@@ -911,6 +1056,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           delete block.bilingualRaw;
           delete block.targetAst;
           delete block.bilingualAst;
+          delete block.storedTranslation;
         }
         block.translationKey = settingsKey;
       }
@@ -939,43 +1085,85 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
             pieces.push(text.slice(start, end));
             start = end;
           }
-          const translated = await runTranslationTasks(
-            pieces.map((piece) => async (signal) => {
-              const out = await client.request(
-                "translateText",
-                {
-                  text: piece,
-                  kind,
-                  ...((ignoreCache || failedIds.has(block?.id)) && {
-                    cacheMode: "refresh",
-                  }),
-                  scene: {
-                    fromLang: config.fromLang,
-                    toLang: config.toLang,
-                    apiSlug: config.apiSlug,
-                    promptSlug: config.promptSlug,
-                    textStyle: config.textStyle,
-                  },
-                },
-                { signal }
+          const translated = await runBoundedTranslationTasks(
+            indexedTranslationTasks(pieces, async (piece, _, signal) => {
+              const out = await requestTranslation(
+                () =>
+                  client.request(
+                    "translateText",
+                    {
+                      text: piece,
+                      kind,
+                      ...((ignoreCache || failedIds.has(block?.id)) && {
+                        cacheMode: "refresh",
+                      }),
+                      scene: {
+                        fromLang: config.fromLang,
+                        toLang: config.toLang,
+                        apiSlug: config.apiSlug,
+                        promptSlug: config.promptSlug,
+                        textStyle: config.textStyle,
+                      },
+                    },
+                    { signal }
+                  ),
+                signal
               );
               return out.text;
             }),
-            signal
+            signal,
+            { concurrency: 4 }
           );
           return translated.join("");
         },
         abort.signal,
-        (done, total) => {
-          if (valid()) {
-            publish();
-            setTranslationProgress({ done, total });
+        async (done, total, block) => {
+          if (!valid()) return;
+          const store = pageStore.current;
+          if (
+            store &&
+            block?.status === "done" &&
+            block.targetRaw !== undefined
+          ) {
+            const key = `translation:${crypto.randomUUID()}`;
+            const { targetRaw, bilingualRaw, targetAst, bilingualAst } = block;
+            awaitingWrite.add(block.id);
+            try {
+              await store.put(key, {
+                targetRaw,
+                bilingualRaw,
+                targetAst,
+                bilingualAst,
+              });
+            } catch (error) {
+              block.status = "idle";
+              if (automaticRun.current) automaticRun.current.cancelled = true;
+              if (valid()) setError(error.message);
+              abort.abort();
+              throw error;
+            } finally {
+              awaitingWrite.delete(block.id);
+            }
+            block.storedTranslation = key;
+            delete block.targetRaw;
+            delete block.bilingualRaw;
+            delete block.targetAst;
+            delete block.bilingualAst;
           }
+          if (!valid()) return;
+          clearTimeout(previewTimer);
+          previewTimer = setTimeout(() => {
+            if (valid()) {
+              publish();
+              setTranslationProgress({ done, total });
+            }
+          }, 60);
         }
       );
     } catch (e) {
       if (valid()) setError(e.message);
     } finally {
+      clearTimeout(previewTimer);
       if (
         mounted.current &&
         operation.current === version &&
@@ -985,35 +1173,7 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
           targetBlocks.forEach((block) => {
             if (block.status === "busy") block.status = "idle";
           });
-        // Cancellation preserves successful blocks but suppresses delayed request results.
-        if (!abort.signal.aborted)
-          publishBlocks(
-            blocksRef.current.map((block) => {
-              const translated = targetBlocks.find(
-                (item) =>
-                  item.id === block.id &&
-                  item.raw === block.raw &&
-                  JSON.stringify(item.visualResult) ===
-                    JSON.stringify(block.visualResult)
-              );
-              return translated
-                ? {
-                    ...block,
-                    status: translated.status,
-                    targetRaw: translated.targetRaw,
-                    bilingualRaw: translated.bilingualRaw,
-                    targetAst: translated.targetAst,
-                    bilingualAst: translated.bilingualAst,
-                    translationKey: translated.translationKey,
-                    translationFromImage: translated.translationFromImage,
-                    error: translated.error,
-                    bilingualVersion: translated.bilingualVersion,
-                    translationRepairRequired:
-                      translated.translationRepairRequired,
-                  }
-                : block;
-            })
-          );
+        publish();
         translationRun.current = null;
         setTranslationBusy(false);
         setTranslationProgress(null);
@@ -1130,21 +1290,49 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       }
     }
   };
-  const scrollPdf = useCallback((fragment) => {
-    const container = pdfScroll.current,
-      element = container?.querySelector(`[data-pdf-page="${fragment.page}"]`);
-    if (!element) return;
-    const scale = pdfPageScale(element);
-    container.scrollTo({
-      top: element.offsetTop + fragment.bbox[1] * scale - 40,
-    });
-    setPageNumber(fragment.page);
-  }, []);
-  const scrollMd = useCallback((id) => {
-    const container = mdScroll.current,
-      element = container?.querySelector(`[data-document-block="${id}"]`);
-    if (element) container.scrollTo({ top: element.offsetTop - 12 });
-  }, []);
+  const scrollPdf = useCallback(
+    (fragment) => {
+      const container = pdfScroll.current,
+        element = container?.querySelector(
+          `[data-pdf-page="${fragment.page}"]`
+        );
+      if (!element) {
+        pendingPageJump.current = fragment;
+        jumpPageWindow(fragment.page - 1);
+        setPageNumber(fragment.page);
+        return;
+      }
+      const scale = pdfPageScale(element);
+      container.scrollTo({
+        top: element.offsetTop + fragment.bbox[1] * scale - 40,
+      });
+      setPageNumber(fragment.page);
+    },
+    [jumpPageWindow]
+  );
+  useLayoutEffect(() => {
+    const fragment = pendingPageJump.current;
+    if (
+      !fragment ||
+      fragment.page - 1 < pageWindow.start ||
+      fragment.page - 1 >= pageWindow.end
+    )
+      return;
+    pendingPageJump.current = null;
+    scrollPdf(fragment);
+  }, [pageWindow.start, pageWindow.end, scrollPdf]);
+  const scrollMd = useCallback(
+    (id) => {
+      const container = mdScroll.current,
+        element = container?.querySelector(`[data-document-block="${id}"]`);
+      if (element) container.scrollTo({ top: element.offsetTop - 12 });
+      else {
+        const index = blocksRef.current.findIndex((block) => block.id === id);
+        if (index >= 0) jumpBlockWindow(index);
+      }
+    },
+    [jumpBlockWindow]
+  );
   const highlight = sourceFragments(
     blocks.find((block) => block.id === (locatedBlock?.id || hoverBlock)),
     locatedBlock ? locatedBlock.sourceIds : hoverSources
@@ -1295,6 +1483,9 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
     });
   };
   const download = async (format) => {
+    downloadTask.current?.abort();
+    const abort = new AbortController();
+    downloadTask.current = abort;
     try {
       setError("");
       await exportDocument(
@@ -1303,10 +1494,17 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
         warnings,
         result?.assets,
         file.name.replace(/\.[^.]+$/, ""),
-        format
+        format,
+        {
+          loadTranslation: pageStore.current?.get,
+          loadAsset: pageStore.current?.get,
+          signal: abort.signal,
+        }
       );
     } catch (e) {
-      setError(e.message);
+      if (!abort.signal.aborted) setError(e.message);
+    } finally {
+      if (downloadTask.current === abort) downloadTask.current = null;
     }
   };
 
@@ -1488,19 +1686,14 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
       if (run.cancelled || preparation.signal.aborted) return;
       const { config, context, visualSignature } = task;
       enqueueTranslation.current = () => pump(task);
-      let currentRegions = layoutRegions;
-      if (config.parseMode === "smart" && (!layoutComplete || ignoreCache)) {
-        if (!task.hasLayout) {
-          setError(
-            i18n?.(
-              "layout_service_empty",
-              "未配置界面分析服务（请在服务配置中添加）"
-            ) || "未配置界面分析服务（请在服务配置中添加）"
-          );
-          return;
-        }
-        currentRegions = await detectLayout(task);
-        if (!currentRegions || run.cancelled) return;
+      if (config.parseMode === "smart" && !layoutComplete && !task.hasLayout) {
+        setError(
+          i18n?.(
+            "layout_service_empty",
+            "未配置界面分析服务（请在服务配置中添加）"
+          ) || "未配置界面分析服务（请在服务配置中添加）"
+        );
+        return;
       }
       const currentResult = resultRef.current;
       if (
@@ -1514,7 +1707,12 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               visualSignature,
             }))
       )
-        await parse(ignoreCache, undefined, currentRegions, task);
+        await parse(
+          ignoreCache,
+          undefined,
+          ignoreCache ? {} : layoutRegions,
+          task
+        );
       if (!run.cancelled) await pump(task);
       await run.promise;
     } catch (error) {
@@ -1531,13 +1729,28 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
 
   const parseAndTranslate = oneClickTranslate;
 
-  const translateCurrentPage = () => {
-    const pageBlocks = blocksRef.current.filter(
-      (b) =>
-        pendingTranslation(b) && b.fragments?.some((f) => f.page === pageNumber)
-    );
+  const translateCurrentPage = async () => {
+    if (!pdf || busy) return;
+    const targetPage = pageNumber;
+    const ready = () =>
+      blocksRef.current.filter(
+        (b) =>
+          pendingTranslation(b) &&
+          b.fragments?.some((f) => f.page === targetPage)
+      );
+    if (
+      !resultRef.current?.complete &&
+      !resultRef.current?.completedPages?.includes(targetPage)
+    ) {
+      const parsed = await parse(false, undefined, layoutRegions, undefined, [
+        Math.max(1, targetPage - 1),
+        Math.min(pdf.numPages, targetPage + 1),
+      ]);
+      if (!parsed) return;
+    }
+    const pageBlocks = ready();
     if (!pageBlocks.length) {
-      setNotice(`第 ${pageNumber} 页暂无可翻译的文本段落`);
+      setNotice(`第 ${targetPage} 页暂无可翻译的文本段落`);
       return;
     }
     translate(pageBlocks.map((b) => b.id));
@@ -1990,35 +2203,70 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               }}
               tabIndex={0}
             >
-              {pdf ? (
-                Array.from({ length: pdf.numPages }, (_, i) => (
-                  <PdfPage
-                    key={i}
-                    pdf={pdf}
-                    number={i + 1}
-                    width={pageWidth}
-                    zoom={zoom}
-                    scrollRoot={pdfScroll.current}
-                    highlight={highlight}
-                    regions={layoutRegions[i + 1]}
-                    showLayout={showLayoutAreas}
-                    onToggleRegion={busy ? undefined : toggleRegion}
-                    disabled={busy}
-                    recognizingRegionId={
-                      phase === "parsing" &&
-                      progress?.startedAt &&
-                      progress?.page === i + 1
-                        ? progress.regionId
-                        : null
-                    }
-                    i18n={i18n}
+              <div ref={pdfList} style={{ overflowAnchor: "none" }}>
+                {largePdf && (
+                  <div
+                    aria-hidden="true"
+                    style={{ height: pageWindow.before }}
                   />
-                ))
-              ) : (
-                <Typography p={3}>
-                  {phase === "opening" ? "正在读取 PDF…" : "未能读取 PDF"}
-                </Typography>
-              )}
+                )}
+                {pdf ? (
+                  Array.from(
+                    {
+                      length: largePdf
+                        ? pageWindow.end - pageWindow.start
+                        : pdf.numPages,
+                    },
+                    (_, offset) => {
+                      const i = largePdf ? pageWindow.start + offset : offset;
+                      const page = (
+                        <PdfPage
+                          key={i}
+                          pdf={pdf}
+                          number={i + 1}
+                          width={pageWidth}
+                          zoom={zoom}
+                          scrollRoot={pdfScroll.current}
+                          highlight={highlight}
+                          regions={layoutRegions[i + 1]}
+                          showLayout={showLayoutAreas}
+                          onToggleRegion={busy ? undefined : toggleRegion}
+                          disabled={busy}
+                          recognizingRegionId={
+                            phase === "parsing" &&
+                            progress?.startedAt &&
+                            progress?.page === i + 1
+                              ? progress.regionId
+                              : null
+                          }
+                          i18n={i18n}
+                        />
+                      );
+                      return largePdf ? (
+                        <MeasuredPdfItem
+                          key={i}
+                          index={i}
+                          measure={pageWindow.measure}
+                        >
+                          {page}
+                        </MeasuredPdfItem>
+                      ) : (
+                        page
+                      );
+                    }
+                  )
+                ) : (
+                  <Typography p={3}>
+                    {phase === "opening" ? "正在读取 PDF…" : "未能读取 PDF"}
+                  </Typography>
+                )}
+                {largePdf && (
+                  <div
+                    aria-hidden="true"
+                    style={{ height: pageWindow.after }}
+                  />
+                )}
+              </div>
             </div>
           </Card>
         )}
@@ -2124,7 +2372,10 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
               size="small"
               variant="outlined"
               color="primary"
-              disabled={!canTranslate}
+              disabled={
+                !canTranslate &&
+                !(isPdf && pdf && connected && !busy && !result?.complete)
+              }
               onClick={translateCurrentPage}
               sx={{
                 height: 28,
@@ -2228,154 +2479,195 @@ const PdfWorkspace = forwardRef(function PdfWorkspace(
             }}
             tabIndex={0}
           >
-            {!blocks.length ? (
-              <Box p={3}>
-                <Typography color="text.secondary">
-                  PDF 原文已保留在中栏。解析后，Markdown 将显示在这里。
-                </Typography>
-                <Button disabled={busy || !pdf} onClick={() => parse()}>
-                  解析为 Markdown
-                </Button>
-              </Box>
-            ) : view === "source" ? (
-              <pre className="kt-pdf-source">
-                {blocks.map((block) => (
-                  <span
-                    key={block.id}
-                    data-document-block={block.id}
-                    style={{ display: "block" }}
-                  >
-                    {blockMarkdown(block, mode) + "\n\n"}
-                    {(block.formulaDiagnostics || [])
-                      .filter((diagnostic) => diagnostic.error)
-                      .map(
-                        (diagnostic) =>
-                          `公式识别原始输出 (${diagnostic.regionId}):\n${diagnostic.output || "（空结果）"}\n${diagnostic.error}\n\n`
-                      )
-                      .join("")}
-                  </span>
-                ))}
-                {documentMarkdown([], mode, warnings)}
-              </pre>
-            ) : (
-              blocks.map((block) => (
-                <section
-                  key={block.id}
-                  data-document-block={block.id}
-                  className={`kt-pdf-block${touchBlock === block.id ? " kt-pdf-block-active" : ""}`}
-                  tabIndex={
-                    isPdf && sourceFragments(block).length ? 0 : undefined
-                  }
-                  onMouseOver={(event) =>
-                    isPdf && activateBlock(block, event.target)
-                  }
-                  onMouseLeave={() =>
-                    setHoverBlock((current) =>
-                      current === block.id ? null : current
-                    )
-                  }
-                  onFocus={(event) =>
-                    isPdf && activateBlock(block, event.target)
-                  }
-                  onBlur={(event) => {
-                    if (!event.currentTarget.contains(event.relatedTarget))
-                      setHoverBlock((current) =>
-                        current === block.id ? null : current
-                      );
-                  }}
-                  onPointerDown={(event) => {
-                    if (isPdf && event.pointerType === "touch") {
-                      setTouchBlock(block.id);
-                      activateBlock(block, event.target);
-                    }
-                  }}
-                  onKeyDown={(event) => {
-                    if (
-                      event.key === "Enter" &&
-                      (event.target === event.currentTarget ||
-                        hoveredSources(block, event.target).length)
-                    ) {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      locate(
-                        block,
-                        undefined,
-                        hoveredSources(block, event.target)
-                      );
-                    }
-                  }}
-                >
-                  <div
-                    onErrorCapture={(event) => {
-                      const image = event.target;
-                      if (!isPdf || image.tagName !== "IMG") return;
-                      const path = image.getAttribute("data-document-asset"),
-                        oldUrl = image.getAttribute("src");
-                      if (!path) return;
-                      const url = assetPreview.current.retry(path, oldUrl);
-                      if (url) {
-                        image.setAttribute("src", url);
-                        URL.revokeObjectURL(oldUrl);
-                      }
-                      updateAssetPreview((version) => version + 1);
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: renderDocumentBlock(
-                        block,
-                        mode,
-                        blocks,
-                        [],
-                        isPdf ? assetPreview.current.urls() : undefined,
-                        i18n?.("pdf_asset_failed", "图片资源加载失败") ||
-                          "图片资源加载失败"
-                      ),
-                    }}
-                  />
-                  {isPdf && (
-                    <SourceToolbar
-                      block={block}
-                      sourceIds={
-                        locatedBlock?.id === block.id
-                          ? locatedBlock.sourceIds
-                          : hoverBlock === block.id
-                            ? hoverSources
-                            : undefined
-                      }
-                      busy={busy}
-                      connected={connected}
-                      locate={locate}
-                      recognizeImage={recognizeImage}
-                      i18n={i18n}
-                    />
-                  )}
-                  {mode !== "source" &&
-                    isTranslatableBlock(block) &&
-                    block.status !== "done" && (
-                      <Typography
-                        variant="caption"
-                        color={
-                          block.status === "error" ? "error" : "text.secondary"
-                        }
+            <div ref={mdList} style={{ overflowAnchor: "none" }}>
+              {largeBlocks && (
+                <div
+                  aria-hidden="true"
+                  style={{ height: blockWindow.before }}
+                />
+              )}
+              {!blocks.length ? (
+                <Box p={3}>
+                  <Typography color="text.secondary">
+                    PDF 原文已保留在中栏。解析后，Markdown 将显示在这里。
+                  </Typography>
+                  <Button disabled={busy || !pdf} onClick={() => parse()}>
+                    解析为 Markdown
+                  </Button>
+                </Box>
+              ) : view === "source" ? (
+                <pre className="kt-pdf-source">
+                  {shownBlocks.map((block, index) => {
+                    const content = (
+                      <span
+                        key={block.id}
+                        data-document-block={block.id}
+                        style={{ display: "block" }}
                       >
-                        {block.status === "error"
-                          ? `失败：${block.error}`
-                          : block.status === "busy"
-                            ? "翻译中…"
-                            : "尚未完成翻译"}
-                        {block.status === "error" && (
-                          <Button
-                            size="small"
-                            disabled={busy || !connected}
-                            onClick={() => translate(block.id)}
+                        {blockMarkdown(block, mode) + "\n\n"}
+                        {(block.formulaDiagnostics || [])
+                          .filter((diagnostic) => diagnostic.error)
+                          .map(
+                            (diagnostic) =>
+                              `公式识别原始输出 (${diagnostic.regionId}):\n${diagnostic.output || "（空结果）"}\n${diagnostic.error}\n\n`
+                          )
+                          .join("")}
+                      </span>
+                    );
+                    return largeBlocks ? (
+                      <MeasuredPdfItem
+                        key={block.id}
+                        index={blockWindow.start + index}
+                        measure={blockWindow.measure}
+                      >
+                        {content}
+                      </MeasuredPdfItem>
+                    ) : (
+                      content
+                    );
+                  })}
+                  {documentMarkdown([], mode, warnings)}
+                </pre>
+              ) : (
+                shownBlocks.map((block, index) => {
+                  const content = (
+                    <section
+                      key={block.id}
+                      data-document-block={block.id}
+                      className={`kt-pdf-block${touchBlock === block.id ? " kt-pdf-block-active" : ""}`}
+                      tabIndex={
+                        isPdf && sourceFragments(block).length ? 0 : undefined
+                      }
+                      onMouseOver={(event) =>
+                        isPdf && activateBlock(block, event.target)
+                      }
+                      onMouseLeave={() =>
+                        setHoverBlock((current) =>
+                          current === block.id ? null : current
+                        )
+                      }
+                      onFocus={(event) =>
+                        isPdf && activateBlock(block, event.target)
+                      }
+                      onBlur={(event) => {
+                        if (!event.currentTarget.contains(event.relatedTarget))
+                          setHoverBlock((current) =>
+                            current === block.id ? null : current
+                          );
+                      }}
+                      onPointerDown={(event) => {
+                        if (isPdf && event.pointerType === "touch") {
+                          setTouchBlock(block.id);
+                          activateBlock(block, event.target);
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          (event.target === event.currentTarget ||
+                            hoveredSources(block, event.target).length)
+                        ) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          locate(
+                            block,
+                            undefined,
+                            hoveredSources(block, event.target)
+                          );
+                        }
+                      }}
+                    >
+                      <div
+                        onErrorCapture={(event) => {
+                          const image = event.target;
+                          if (!isPdf || image.tagName !== "IMG") return;
+                          const path = image.getAttribute(
+                              "data-document-asset"
+                            ),
+                            oldUrl = image.getAttribute("src");
+                          if (!path) return;
+                          const url = assetPreview.current.retry(path, oldUrl);
+                          if (url) {
+                            image.setAttribute("src", url);
+                            URL.revokeObjectURL(oldUrl);
+                          }
+                          updateAssetPreview((version) => version + 1);
+                        }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderDocumentBlock(
+                            block,
+                            mode,
+                            blocks,
+                            [],
+                            isPdf ? assetPreview.current.urls() : undefined,
+                            i18n?.("pdf_asset_failed", "图片资源加载失败") ||
+                              "图片资源加载失败"
+                          ),
+                        }}
+                      />
+                      {isPdf && (
+                        <SourceToolbar
+                          block={block}
+                          sourceIds={
+                            locatedBlock?.id === block.id
+                              ? locatedBlock.sourceIds
+                              : hoverBlock === block.id
+                                ? hoverSources
+                                : undefined
+                          }
+                          busy={busy}
+                          connected={connected}
+                          locate={locate}
+                          recognizeImage={recognizeImage}
+                          i18n={i18n}
+                        />
+                      )}
+                      {mode !== "source" &&
+                        isTranslatableBlock(block) &&
+                        block.status !== "done" && (
+                          <Typography
+                            variant="caption"
+                            color={
+                              block.status === "error"
+                                ? "error"
+                                : "text.secondary"
+                            }
                           >
-                            重试此块
-                          </Button>
+                            {block.status === "error"
+                              ? `失败：${block.error}`
+                              : block.status === "busy"
+                                ? "翻译中…"
+                                : "尚未完成翻译"}
+                            {block.status === "error" && (
+                              <Button
+                                size="small"
+                                disabled={busy || !connected}
+                                onClick={() => translate(block.id)}
+                              >
+                                重试此块
+                              </Button>
+                            )}
+                          </Typography>
                         )}
-                      </Typography>
-                    )}
-                </section>
-              ))
-            )}
+                    </section>
+                  );
+                  return largeBlocks ? (
+                    <MeasuredPdfItem
+                      key={block.id}
+                      index={blockWindow.start + index}
+                      measure={blockWindow.measure}
+                    >
+                      {content}
+                    </MeasuredPdfItem>
+                  ) : (
+                    content
+                  );
+                })
+              )}
+              {largeBlocks && (
+                <div aria-hidden="true" style={{ height: blockWindow.after }} />
+              )}
+            </div>
           </div>
         </Card>
       </Box>

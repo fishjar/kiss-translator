@@ -178,9 +178,11 @@ export async function recognizeImageWithLayout(
       const canvas = document.createElement("canvas");
       canvas.width = Math.max(1, Math.ceil(right - left));
       canvas.height = Math.max(1, Math.ceil(bottom - top));
-      canvas
-        .getContext("2d")
-        .drawImage(
+      let blob;
+      try {
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("无法创建图片区域裁剪画布");
+        context.drawImage(
           image,
           left,
           top,
@@ -191,21 +193,28 @@ export async function recognizeImageWithLayout(
           canvas.width,
           canvas.height
         );
-      const blob = await new Promise((resolve, reject) =>
-        canvas.toBlob(
-          (value) =>
-            value ? resolve(value) : reject(new Error("图片区域裁剪失败")),
-          "image/png"
-        )
-      );
+        blob = await new Promise((resolve, reject) =>
+          canvas.toBlob(
+            (value) =>
+              value ? resolve(value) : reject(new Error("图片区域裁剪失败")),
+            "image/png"
+          )
+        );
+      } finally {
+        canvas.width = canvas.height = 0;
+      }
       check(signal);
       const result = await client.recognize(blob, selection, signal, options);
       check(signal);
+      if (result.items != null && !Array.isArray(result.items))
+        throw new Error("图片区域识别返回了无效的条目");
       if (
         result.translation ||
         result.layout ||
         result.items?.some((item) => item.translation || item.error)
       ) {
+        if (!validSize(result.imageSize) || !Array.isArray(result.items))
+          throw new Error("图片区域识别缺少有效的尺寸或条目");
         const sx = (right - left) / result.imageSize.width;
         const sy = (bottom - top) / result.imageSize.height;
         const offset = (poly) =>

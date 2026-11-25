@@ -74,13 +74,16 @@ export default function PdfPage({
     let active = true,
       renderTask,
       layer;
+    const surface = canvas.current;
+    const textLayer = text.current;
     (async () => {
       const page = await pdf.getPage(number);
       if (!active) return;
       const ratio = window.devicePixelRatio || 1,
         renderScale = Math.min(
           scale * ratio,
-          Math.sqrt(12000000 / (size.width * size.height))
+          Math.sqrt(8000000 / (size.width * size.height)),
+          4096 / Math.max(size.width, size.height)
         ),
         viewport = page.getViewport({ scale: renderScale });
       canvas.current.width = Math.ceil(viewport.width);
@@ -109,6 +112,8 @@ export default function PdfPage({
       active = false;
       renderTask?.cancel();
       layer?.cancel();
+      textLayer?.replaceChildren();
+      if (surface) surface.width = surface.height = 0;
     };
   }, [pdf, number, scale, visible, size.width, size.height]);
   return (
