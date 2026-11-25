@@ -1807,4 +1807,42 @@ describe("YouTubeCaptionProvider acquisition lifecycle", () => {
       { isAsr: false }
     );
   });
+
+  test("re-enabling CC after toggling it off mid-translation restarts segmentation instead of sticking on processingId", async () => {
+    let resolveFirst;
+    eventsToSubtitles
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve;
+          })
+      )
+      .mockResolvedValueOnce([
+        [{ start: 0, end: 1000, text: "hello", translation: "你好" }],
+        100,
+        null,
+      ]);
+
+    create();
+    await flushPromises();
+    await flushPromises();
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(1);
+
+    const ccBtn = document.querySelector(".ytp-subtitles-button");
+    ccBtn.dispatchEvent(new Event("pointerdown"));
+    ccBtn.setAttribute("aria-pressed", "false");
+    await flushPromises();
+
+    // Even if the cancelled first run settles later, it must not block the new run.
+    resolveFirst?.([[], 0, null]);
+    await flushPromises();
+
+    ccBtn.dispatchEvent(new Event("pointerdown"));
+    ccBtn.setAttribute("aria-pressed", "true");
+    await flushPromises();
+    await flushPromises();
+
+    expect(eventsToSubtitles).toHaveBeenCalledTimes(2);
+    expect(mockManagers.length).toBeGreaterThan(0);
+  });
 });
