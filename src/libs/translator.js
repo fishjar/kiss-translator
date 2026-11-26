@@ -1495,6 +1495,13 @@ export class Translator {
           });
         }
       }
+
+      // 移除的子树可能包含候选节点，及时释放已脱离文档的节点
+      if (removedParents.size) {
+        for (const node of this.#touchCandidates) {
+          if (!node.isConnected) this.#touchCandidates.delete(node);
+        }
+      }
     });
   }
 
