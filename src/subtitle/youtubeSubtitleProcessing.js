@@ -165,27 +165,56 @@ export function prepareTimedTextEvents(
     events.push(canonicalEvent);
     lastVisibleEventKey = eventKey;
 
-    // 没有 tOffsetMs 的后续 seg 与前一个 seg 共用起点（例如行内斜体或旧式 ASR 短语），
-    // 无法单独定时，合并进前一个 seg，避免除末尾 seg 外的文本被静默丢弃。
+    // Group fragments that cannot be timed separately. Keep explicit timing
+    // boundaries and the original whitespace of inline caption fragments.
     const timedSegs = [];
     normalizedSegs.forEach((seg, segIndex) => {
       const previous = timedSegs[timedSegs.length - 1];
-      if (
-        previous &&
-        segIndex > 0 &&
-        seg.tOffsetMs === undefined &&
-        seg.utf8 &&
-        previous.utf8 &&
-        !isLineBreak
-      ) {
-        previous.utf8 = `${previous.utf8}${canExpandCoarseText ? " " : ""}${seg.utf8}`;
-        return;
+      const offset =
+        seg.tOffsetMs == null
+          ? (previous?.tOffsetMs ?? 0)
+          : Number(seg.tOffsetMs) || 0;
+      const rawText = String(rawSegs[segIndex]?.utf8 ?? "");
+      const hasAsrConfidence = Object.prototype.hasOwnProperty.call(
+        seg,
+        "acAsrConf"
+      );
+      const nonSpeech = isNonSpeechSegment(seg.utf8);
+      if (!isLineBreak && previous?.tOffsetMs === offset) {
+        if (!seg.utf8) {
+          if (canExpandCoarseText && !previous.nonSpeech) {
+            previous.rawText += rawText;
+          }
+          return;
+        }
+        if (nonSpeech) {
+          filteredNonSpeechCount += 1;
+          return;
+        }
+        if (previous.nonSpeech || !previous.utf8) {
+          if (previous.nonSpeech) filteredNonSpeechCount += 1;
+          timedSegs.pop();
+        } else {
+          const isAsrFragment =
+            isAsr || previous.hasAsrConfidence || hasAsrConfidence;
+          const separator = canExpandCoarseText && isAsrFragment ? " " : "";
+          previous.rawText += separator + rawText;
+          previous.utf8 = cleanTimedText(previous.rawText);
+          previous.hasAsrConfidence ||= hasAsrConfidence;
+          return;
+        }
       }
-      timedSegs.push({ ...seg });
+      timedSegs.push({
+        utf8: seg.utf8,
+        tOffsetMs: offset,
+        rawText,
+        hasAsrConfidence,
+        nonSpeech,
+      });
     });
 
     for (let index = 0; index < timedSegs.length; index += 1) {
-      const { utf8 = "", tOffsetMs = 0 } = timedSegs[index];
+      const { utf8, tOffsetMs, hasAsrConfidence, nonSpeech } = timedSegs[index];
       const text = cleanTimedText(utf8);
       const start = tStartMs + (Number(tOffsetMs) || 0);
 
@@ -195,7 +224,7 @@ export function prepareTimedTextEvents(
         continue;
       }
 
-      if (isNonSpeechSegment(text)) {
+      if (nonSpeech) {
         // 在声音说明开始处结束前一个语音片段，保留真实静音间隔供后续断句判断。
         flushBuffer(start);
         filteredNonSpeechCount += 1;
@@ -220,9 +249,7 @@ export function prepareTimedTextEvents(
         nextEventStart > start
           ? Math.min(declaredEnd, nextEventStart)
           : declaredEnd;
-      const isAsrSegment =
-        isAsr ||
-        Object.prototype.hasOwnProperty.call(timedSegs[index], "acAsrConf");
+      const isAsrSegment = isAsr || hasAsrConfidence;
       const expanded =
         isAsrSegment && canExpandCoarseText && text.includes(" ")
           ? expandCoarseTimedText(text, start, effectiveEnd)

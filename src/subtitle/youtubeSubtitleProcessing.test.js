@@ -213,6 +213,115 @@ describe("youtubeSubtitleProcessing", () => {
     expect(words.join(" ")).toBe("a lay person looked at this and sees a mess");
   });
 
+  test.each([
+    [
+      "an untimed newline",
+      "en",
+      [{ utf8: "hello" }, { utf8: "\n" }, { utf8: "world" }],
+      "hello world",
+      0,
+      0,
+    ],
+    [
+      "untimed non-speech cues",
+      "en",
+      [{ utf8: "[Music]" }, { utf8: "hello" }, { utf8: "[Applause]" }],
+      "hello",
+      0,
+      2,
+    ],
+    [
+      "styled punctuation and quotes",
+      "en",
+      [{ utf8: 'say "' }, { utf8: "hello", pPenId: 1 }, { utf8: '"!' }],
+      'say "hello"!',
+      0,
+      0,
+    ],
+    [
+      "styling inside a word",
+      "en",
+      [{ utf8: "un" }, { utf8: "believ", pPenId: 1 }, { utf8: "able" }],
+      "unbelievable",
+      0,
+      0,
+    ],
+    [
+      "equal zero offsets",
+      "en",
+      [
+        { utf8: "hello ", tOffsetMs: 0 },
+        { utf8: "world", tOffsetMs: 0 },
+      ],
+      "hello world",
+      0,
+      0,
+    ],
+    [
+      "equal positive offsets",
+      "en",
+      [
+        { utf8: "hello ", tOffsetMs: 500 },
+        { utf8: "world", tOffsetMs: 500 },
+      ],
+      "hello world",
+      500,
+      0,
+    ],
+    [
+      "null offsets",
+      "en",
+      [
+        { utf8: "hello ", tOffsetMs: null },
+        { utf8: "world", tOffsetMs: null },
+      ],
+      "hello world",
+      0,
+      0,
+    ],
+    [
+      "Chinese text",
+      "zh-CN",
+      [{ utf8: "你好" }, { utf8: "世界" }, { utf8: "！" }],
+      "你好世界！",
+      0,
+      0,
+    ],
+  ])(
+    "preserves text and timing with %s",
+    (_, lang, segs, text, offset, count) => {
+      const result = prepareTimedTextEvents(
+        [{ tStartMs: 1000, dDurationMs: 2000, segs }],
+        lang
+      );
+      expect(result.flatEvents).toEqual([
+        { text, start: 1000 + offset, end: 3000 },
+      ]);
+      expect(result.filteredNonSpeechCount).toBe(count);
+    }
+  );
+
+  test("preserves ASR confidence from a later segment across an untimed newline", () => {
+    const result = prepareTimedTextEvents(
+      [
+        {
+          tStartMs: 1000,
+          dDurationMs: 2000,
+          segs: [
+            { utf8: "one" },
+            { utf8: "\n" },
+            { utf8: "two", acAsrConf: 0 },
+          ],
+        },
+      ],
+      "en"
+    );
+    expect(result.flatEvents).toEqual([
+      { text: "one", start: 1000, end: 2000 },
+      { text: "two", start: 2000, end: 3000 },
+    ]);
+  });
+
   test("filters a non-speech segment inside a mixed event and keeps its time gap", () => {
     const prepared = prepareTimedTextEvents([
       {
