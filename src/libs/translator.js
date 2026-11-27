@@ -336,7 +336,6 @@ export class Translator {
   #removeMouseHoldHandlers; // 按住鼠标按键触发方式的清理函数
   #touchController = null;
   #touchPending = new Map();
-  #touchCandidates = new Set();
 
   get touchMode() {
     return this.#touchController?.mode || "off";
@@ -372,10 +371,21 @@ export class Translator {
       this.#setting.mouseHoverSetting?.touchDirection || "right"
     );
     if (this.#touchController.mode !== "off") {
-      if (!this.#isInitialized) this.#init();
-      for (const node of this.#touchCandidates) {
-        if (!node.isConnected) this.#touchCandidates.delete(node);
-        else this.#touchController.observe(node);
+      if (!this.#isInitialized) {
+        this.#init();
+      } else if (this.#touchController.mode === "swipe") {
+        // 按需收集已监控的段落，避免长期持有节点引用
+        for (const root of this.#rootNodes) {
+          if (!root.isConnected) continue;
+          const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_ELEMENT
+          );
+          for (let node = walker.currentNode; node; node = walker.nextNode()) {
+            if (this.#observedNodes.has(node))
+              this.#touchController.observe(node);
+          }
+        }
       }
       this.#touchController.flush();
     }
@@ -2869,7 +2879,6 @@ export class Translator {
   #startObserveNode(node) {
     // todo: DocumentFragment 无法被 this.#io.observe
     if (!Translator.isElement(node) || isInInlineHidden(node)) return;
-    this.#touchCandidates.add(node);
     this.#touchController?.observe(node);
     if (this.#tryAdoptExistingTranslationHost(node)) {
       if (hasFavoriteHighlights(this.#rule.highlightWords)) {
@@ -5479,7 +5488,6 @@ overflow-wrap: anywhere !important;`;
     this.#rootNodes.clear();
     this.#favoriteHighlightScopes.clear();
     this.#favoriteSourceGroups = new WeakMap();
-    this.#touchCandidates.clear();
     this.#observedNodes = new WeakSet();
     this.#translationNodes = new WeakMap();
     this.#processedNodes = new WeakMap();

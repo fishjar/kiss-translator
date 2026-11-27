@@ -3030,6 +3030,33 @@ describe("Translator rule styles", () => {
       expect(inner.querySelector("br")).toBeNull();
     });
 
+    test("swipe mode picks up paragraphs observed while touch was off", async () => {
+      document.getElementById("root").innerHTML =
+        '<p id="kept">Kept paragraph text.</p><section><p id="removed">Removed paragraph text.</p></section>';
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      translator.setTouchMode("tap");
+      await flushAsync();
+      translator.setTouchMode("off");
+      const kept = document.getElementById("kept");
+      const removed = document.getElementById("removed");
+      removed.closest("section").remove();
+      await flushMutations();
+
+      // jsdom 16 does not implement touch-action; watch the style writes instead.
+      const keptStyle = jest.spyOn(kept.style, "setProperty");
+      const removedStyle = jest.spyOn(removed.style, "setProperty");
+      translator.setTouchMode("swipe");
+      expect(keptStyle).toHaveBeenCalledWith(
+        "touch-action",
+        "pan-y pinch-zoom",
+        "important"
+      );
+      expect(removedStyle).not.toHaveBeenCalled();
+    });
+
     test("concurrent touch tasks share a pending snapshot and can retry a failed load", async () => {
       const { loadTerminologySnapshot } = require("./terminologyStorage");
       let reject;
