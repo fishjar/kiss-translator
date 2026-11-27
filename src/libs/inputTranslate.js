@@ -429,9 +429,8 @@ export class InputTranslator {
 
     const showDot = this.#config.inputRule.showDot || OPT_INPUT_DOT_MOBILE;
     if (showDot === OPT_INPUT_DOT_DISABLE) return;
-    if (showDot === OPT_INPUT_DOT_MOBILE) {
-      const isTouch = isMobile || navigator.maxTouchPoints > 0;
-      if (!isTouch) return;
+    if (showDot === OPT_INPUT_DOT_MOBILE && !isMobile) {
+      return;
     }
 
     // 确保 activeInput 与传入的节点一致
@@ -452,8 +451,7 @@ export class InputTranslator {
     this.#floatBtn.className = "notranslate";
     this.#floatBtn.setAttribute("data-kiss-ui", "");
     // ... 样式代码保持不变 ...
-    const isTouch = isMobile || navigator.maxTouchPoints > 0;
-    const size = isTouch ? "36px" : "30px";
+    const size = isMobile ? "36px" : "30px";
 
     this.#floatBtn.style.cssText = `
         position: fixed;
@@ -523,8 +521,7 @@ export class InputTranslator {
 
     const rect = this.#activeInput.getBoundingClientRect();
     // ... 位置计算逻辑保持不变 ...
-    const isTouch = isMobile || navigator.maxTouchPoints > 0;
-    const btnSize = isTouch ? 36 : 30;
+    const btnSize = isMobile ? 36 : 30;
     const padding = 5;
     let top = rect.bottom - btnSize - padding;
     let left = rect.right - btnSize - padding;
