@@ -47,7 +47,17 @@ import {
 } from "@mui/material";
 import { useFileTranslation } from "./State";
 import { DEFAULT_FILE_TRANSLATE_SETTING } from "../../config";
-import { ChevronLeftRoundedIcon, ChevronRightRoundedIcon, ExpandMoreRoundedIcon, ZoomInRoundedIcon, ZoomOutRoundedIcon, StopRoundedIcon, MenuBookRoundedIcon, MenuRoundedIcon, SearchRoundedIcon } from "../../components/icons";
+import {
+  ChevronLeftRoundedIcon,
+  ChevronRightRoundedIcon,
+  ExpandMoreRoundedIcon,
+  ZoomInRoundedIcon,
+  ZoomOutRoundedIcon,
+  StopRoundedIcon,
+  MenuBookRoundedIcon,
+  MenuRoundedIcon,
+  SearchRoundedIcon,
+} from "../../components/icons";
 import { openPdf } from "../../libs/pdf/pdfDocument";
 import {
   MissingDocumentModel,

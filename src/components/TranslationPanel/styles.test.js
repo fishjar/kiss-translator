@@ -6,7 +6,9 @@ describe("TranslationPanel pressed/checked states use the secondary-container to
   // 内层规则拼接，状态选择器规则不因嵌套结构调整而漏检。
   const extractCssRules = (css) => {
     const rules = [];
-    for (const m of css.matchAll(/([^{}]+)\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g)) {
+    for (const m of css.matchAll(
+      /([^{}]+)\{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/g
+    )) {
       if (m[1].trim().startsWith("@")) {
         for (const inner of m[2].matchAll(/[^{}]+\{[^{}]*\}/g)) {
           rules.push(inner[0].trim());
@@ -17,8 +19,10 @@ describe("TranslationPanel pressed/checked states use the secondary-container to
     }
     return rules;
   };
-  const stateRules = extractCssRules(TRANSLATION_PANEL_STYLES).filter((rule) => /aria-pressed="true"|aria-checked="true"|button:hover/.test(rule));
-    // 伪下拉对勾已移除：__menu-check 规则不再存在，stateRules 无需额外过滤。
+  const stateRules = extractCssRules(TRANSLATION_PANEL_STYLES).filter((rule) =>
+    /aria-pressed="true"|aria-checked="true"|button:hover/.test(rule)
+  );
+  // 伪下拉对勾已移除：__menu-check 规则不再存在，stateRules 无需额外过滤。
 
   test("menu styles no longer contain any __menu-check rules", () => {
     const glyphRules = TRANSLATION_PANEL_STYLES.split("\n").filter(
@@ -48,7 +52,9 @@ describe("TranslationPanel pressed/checked states use the secondary-container to
     // hover 规则走 State Layer 叠色（color-mix currentColor 8%）。
     const hoverRules = stateRules.filter((rule) => /button:hover/.test(rule));
     for (const rule of hoverRules) {
-      expect(rule).toContain("color-mix(in srgb, currentColor 8%, transparent)");
+      expect(rule).toContain(
+        "color-mix(in srgb, currentColor 8%, transparent)"
+      );
     }
   });
 
@@ -86,6 +92,4 @@ describe("tranbox header menu follows the M3 structural spec", () => {
   test("menu check glyph rules have been removed (fake dropdown check eliminated)", () => {
     expect(TRANSLATION_PANEL_STYLES).not.toContain("__menu-check");
   });
-
-
 });

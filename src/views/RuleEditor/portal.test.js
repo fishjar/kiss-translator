@@ -28,9 +28,9 @@ describe("RuleEditor portal base-slot resolution chain", () => {
     document.body.appendChild(wrapper);
     try {
       expect(getEditorPortalContainer(field)).toBe(wrapper);
-      expect(
-        getEditorPortalContainer(document.createElement("div"))
-      ).toBe(document.body);
+      expect(getEditorPortalContainer(document.createElement("div"))).toBe(
+        document.body
+      );
     } finally {
       wrapper.remove();
     }

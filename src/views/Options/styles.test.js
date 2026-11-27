@@ -432,7 +432,9 @@ describe("settings layout boundaries", () => {
     expect(OPTIONS_STYLES).toMatch(
       /\.kt-sync-method__description\s*\{[^}]*transition:[^;}]*color[^;}]*opacity/
     );
-    expect(selectedRule).toContain("box-shadow: inset 0 0 0 1px var(--kt-secc)");
+    expect(selectedRule).toContain(
+      "box-shadow: inset 0 0 0 1px var(--kt-secc)"
+    );
     expect(selectedRule).toContain("background: var(--kt-secc)");
     expect(selectedRule).toContain("color: var(--kt-onsecc)");
     expect(selectedRule).not.toContain("border: 2px");

@@ -12,7 +12,10 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
 import Tooltip from "@mui/material/Tooltip";
-import { ContentCopyRoundedIcon, CheckRoundedIcon } from "../../components/icons";
+import {
+  ContentCopyRoundedIcon,
+  CheckRoundedIcon,
+} from "../../components/icons";
 
 export default function ImageTranslateContent({
   items = [],

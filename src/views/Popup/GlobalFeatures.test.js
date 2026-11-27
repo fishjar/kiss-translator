@@ -67,9 +67,7 @@ describe("persistent global feature segments", () => {
         '[data-feature="input"] [data-testid="KeyboardRoundedIcon"]'
       )
     ).not.toBeNull();
-    expect(
-      group.querySelector('[data-testid="CheckRoundedIcon"]')
-    ).toBeNull();
+    expect(group.querySelector('[data-testid="CheckRoundedIcon"]')).toBeNull();
     expect(group.querySelector('[role="radio"]')).toBeNull();
     expect(group.querySelector("h1, h2, h3, p")).toBeNull();
     expect(group.querySelector('[data-feature="hover"]').title).toBe(

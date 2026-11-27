@@ -62,7 +62,9 @@ describe("dispatcher ↔ GLYPH_META ↔ render consistency", () => {
 
   test("dispatcher exports nothing beyond GLYPH_META", () => {
     const metaNames = new Set(GLYPH_META.map(({ name }) => name));
-    const extra = Object.keys(Dispatcher).filter((name) => !metaNames.has(name));
+    const extra = Object.keys(Dispatcher).filter(
+      (name) => !metaNames.has(name)
+    );
     expect(extra).toEqual([]);
   });
 

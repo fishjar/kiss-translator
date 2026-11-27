@@ -38,7 +38,21 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { CloudUploadRoundedIcon, InsertDriveFileRoundedIcon, ImageRoundedIcon, PlayArrowRoundedIcon, StopRoundedIcon, ContentCopyRoundedIcon, ContentPasteRoundedIcon, FileDownloadRoundedIcon, ZoomInRoundedIcon, WarningAmberRoundedIcon, ArrowDropDownRoundedIcon, MenuBookRoundedIcon, PictureAsPdfRoundedIcon } from "../../components/icons";
+import {
+  CloudUploadRoundedIcon,
+  InsertDriveFileRoundedIcon,
+  ImageRoundedIcon,
+  PlayArrowRoundedIcon,
+  StopRoundedIcon,
+  ContentCopyRoundedIcon,
+  ContentPasteRoundedIcon,
+  FileDownloadRoundedIcon,
+  ZoomInRoundedIcon,
+  WarningAmberRoundedIcon,
+  ArrowDropDownRoundedIcon,
+  MenuBookRoundedIcon,
+  PictureAsPdfRoundedIcon,
+} from "../../components/icons";
 
 import ButtonGroup from "@mui/material/ButtonGroup";
 import Menu from "@mui/material/Menu";

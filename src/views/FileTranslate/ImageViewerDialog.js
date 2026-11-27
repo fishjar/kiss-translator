@@ -6,7 +6,13 @@ import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import { RemoveRoundedIcon, AddRoundedIcon, RestartAltRoundedIcon, CloseRoundedIcon, FileDownloadRoundedIcon } from "../../components/icons";
+import {
+  RemoveRoundedIcon,
+  AddRoundedIcon,
+  RestartAltRoundedIcon,
+  CloseRoundedIcon,
+  FileDownloadRoundedIcon,
+} from "../../components/icons";
 
 /**
  * 原图与译图大图放大查看器（沉浸式半透明毛玻璃背景、无边框、悬浮胶囊工具栏）
