@@ -3030,37 +3030,31 @@ describe("Translator rule styles", () => {
       expect(inner.querySelector("br")).toBeNull();
     });
 
-    test("releases touch candidates of removed subtrees while touch is off", async () => {
-      document.body.innerHTML =
-        '<main id="root"><p id="kept">Kept paragraph text.</p><section><div><p id="removed">Removed paragraph text.</p></div></section></main>';
-      // #startObserveNode registers each candidate before any other Set.
-      const firstSets = new Map();
-      const add = Set.prototype.add;
-      const spy = jest
-        .spyOn(Set.prototype, "add")
-        .mockImplementation(function (value) {
-          if (value?.nodeType === Node.ELEMENT_NODE && !firstSets.has(value))
-            firstSets.set(value, this);
-          return add.call(this, value);
-        });
-      try {
-        createTranslator();
-        await flushMutations();
-      } finally {
-        spy.mockRestore();
-      }
+    test("swipe mode picks up paragraphs observed while touch was off", async () => {
+      document.getElementById("root").innerHTML =
+        '<p id="kept">Kept paragraph text.</p><section><p id="removed">Removed paragraph text.</p></section>';
+      const translator = createTranslator(
+        { transOpen: "false" },
+        { preInit: false }
+      );
+      translator.setTouchMode("tap");
+      await flushAsync();
+      translator.setTouchMode("off");
       const kept = document.getElementById("kept");
       const removed = document.getElementById("removed");
-      const candidates = firstSets.get(kept);
-      expect(firstSets.get(removed)).toBe(candidates);
-      expect(candidates.has(kept)).toBe(true);
-      expect(candidates.has(removed)).toBe(true);
-
       removed.closest("section").remove();
-      document.getElementById("root").append(kept);
       await flushMutations();
-      expect(candidates.has(removed)).toBe(false);
-      expect(candidates.has(kept)).toBe(true);
+
+      // jsdom 16 does not implement touch-action; watch the style writes instead.
+      const keptStyle = jest.spyOn(kept.style, "setProperty");
+      const removedStyle = jest.spyOn(removed.style, "setProperty");
+      translator.setTouchMode("swipe");
+      expect(keptStyle).toHaveBeenCalledWith(
+        "touch-action",
+        "pan-y pinch-zoom",
+        "important"
+      );
+      expect(removedStyle).not.toHaveBeenCalled();
     });
 
     test("concurrent touch tasks share a pending snapshot and can retry a failed load", async () => {
