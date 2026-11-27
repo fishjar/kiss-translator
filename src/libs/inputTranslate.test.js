@@ -48,6 +48,7 @@ jest.mock("./log", () =>
 );
 
 const { InputTranslator } = require("./inputTranslate");
+const mobile = require("./mobile");
 const { stepShortcutRegister } = require("./shortcut");
 const { resolveApiPromptSettings } = require("../config/prompt");
 const { apiTranslate } = require("../apis");
@@ -105,6 +106,7 @@ describe("InputTranslator input button", () => {
   });
 
   beforeEach(() => {
+    mobile.isMobile = false;
     document.body.innerHTML = "";
     mockUnregisterShortcut.mockClear();
     stepShortcutRegister.mockReturnValue(mockUnregisterShortcut);
@@ -121,6 +123,7 @@ describe("InputTranslator input button", () => {
 
   afterEach(() => {
     translator.disable();
+    mobile.isMobile = false;
     document.body.innerHTML = "";
   });
 
@@ -273,6 +276,63 @@ describe("InputTranslator input button", () => {
 
     expect(getFloatButton(target)).toBeUndefined();
     expect(mockUnregisterShortcut).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not show mobile-only dot on desktop even when maxTouchPoints > 0", () => {
+    const originalTouchPoints = Object.getOwnPropertyDescriptor(
+      navigator,
+      "maxTouchPoints"
+    );
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
+
+    try {
+      translator.disable();
+      translator = new InputTranslator({
+        inputRule: {
+          transOpen: true,
+          showDot: "mobile",
+        },
+      });
+
+      const target = document.createElement("input");
+      focusTarget(translator, target);
+
+      expect(getFloatButton(target)).toBeUndefined();
+    } finally {
+      if (originalTouchPoints) {
+        Object.defineProperty(navigator, "maxTouchPoints", originalTouchPoints);
+      } else {
+        delete navigator.maxTouchPoints;
+      }
+    }
+  });
+
+  test("shows mobile-only dot with mobile sizing and positioning when isMobile is true", () => {
+    translator.disable();
+    mobile.isMobile = true;
+    translator = new InputTranslator({
+      inputRule: {
+        transOpen: true,
+        showDot: "mobile",
+      },
+    });
+
+    const target = document.createElement("input");
+    focusTarget(
+      translator,
+      target,
+      makeRect({ top: 100, right: 200, height: 30 })
+    );
+
+    const button = getFloatButton(target);
+    expect(button).toBeTruthy();
+    expect(button.style.width).toBe("36px");
+    expect(button.style.height).toBe("36px");
+    expect(button.style.top).toBe("62px");
+    expect(button.style.left).toBe("159px");
   });
 
   test("requests editable content as plain text", async () => {
