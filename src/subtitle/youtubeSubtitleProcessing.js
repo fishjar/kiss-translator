@@ -165,8 +165,56 @@ export function prepareTimedTextEvents(
     events.push(canonicalEvent);
     lastVisibleEventKey = eventKey;
 
-    for (let index = 0; index < normalizedSegs.length; index += 1) {
-      const { utf8 = "", tOffsetMs = 0 } = normalizedSegs[index];
+    // Group fragments that cannot be timed separately. Keep explicit timing
+    // boundaries and the original whitespace of inline caption fragments.
+    const timedSegs = [];
+    normalizedSegs.forEach((seg, segIndex) => {
+      const previous = timedSegs[timedSegs.length - 1];
+      const offset =
+        seg.tOffsetMs == null
+          ? (previous?.tOffsetMs ?? 0)
+          : Number(seg.tOffsetMs) || 0;
+      const rawText = String(rawSegs[segIndex]?.utf8 ?? "");
+      const hasAsrConfidence = Object.prototype.hasOwnProperty.call(
+        seg,
+        "acAsrConf"
+      );
+      const nonSpeech = isNonSpeechSegment(seg.utf8);
+      if (!isLineBreak && previous?.tOffsetMs === offset) {
+        if (!seg.utf8) {
+          if (canExpandCoarseText && !previous.nonSpeech) {
+            previous.rawText += rawText;
+          }
+          return;
+        }
+        if (nonSpeech) {
+          filteredNonSpeechCount += 1;
+          return;
+        }
+        if (previous.nonSpeech || !previous.utf8) {
+          if (previous.nonSpeech) filteredNonSpeechCount += 1;
+          timedSegs.pop();
+        } else {
+          const isAsrFragment =
+            isAsr || previous.hasAsrConfidence || hasAsrConfidence;
+          const separator = canExpandCoarseText && isAsrFragment ? " " : "";
+          previous.rawText += separator + rawText;
+          previous.utf8 = cleanTimedText(previous.rawText);
+          previous.hasAsrConfidence ||= hasAsrConfidence;
+          return;
+        }
+      }
+      timedSegs.push({
+        utf8: seg.utf8,
+        tOffsetMs: offset,
+        rawText,
+        hasAsrConfidence,
+        nonSpeech,
+      });
+    });
+
+    for (let index = 0; index < timedSegs.length; index += 1) {
+      const { utf8, tOffsetMs, hasAsrConfidence, nonSpeech } = timedSegs[index];
       const text = cleanTimedText(utf8);
       const start = tStartMs + (Number(tOffsetMs) || 0);
 
@@ -176,7 +224,7 @@ export function prepareTimedTextEvents(
         continue;
       }
 
-      if (isNonSpeechSegment(text)) {
+      if (nonSpeech) {
         // 在声音说明开始处结束前一个语音片段，保留真实静音间隔供后续断句判断。
         flushBuffer(start);
         filteredNonSpeechCount += 1;
@@ -185,9 +233,9 @@ export function prepareTimedTextEvents(
 
       flushBuffer(start);
       const nextOffset =
-        index === normalizedSegs.length - 1
+        index === timedSegs.length - 1
           ? dDurationMs
-          : Number(normalizedSegs[index + 1]?.tOffsetMs) || 0;
+          : Number(timedSegs[index + 1]?.tOffsetMs) || 0;
       const declaredEnd = tStartMs + nextOffset;
       const nextEventStart = findNextEffectiveEventStart(
         sourceEvents,
@@ -196,17 +244,12 @@ export function prepareTimedTextEvents(
         start
       );
       const effectiveEnd =
-        index === normalizedSegs.length - 1 &&
+        index === timedSegs.length - 1 &&
         Number.isFinite(nextEventStart) &&
         nextEventStart > start
           ? Math.min(declaredEnd, nextEventStart)
           : declaredEnd;
-      const isAsrSegment =
-        isAsr ||
-        Object.prototype.hasOwnProperty.call(
-          normalizedSegs[index],
-          "acAsrConf"
-        );
+      const isAsrSegment = isAsr || hasAsrConfidence;
       const expanded =
         isAsrSegment && canExpandCoarseText && text.includes(" ")
           ? expandCoarseTimedText(text, start, effectiveEnd)
@@ -218,7 +261,7 @@ export function prepareTimedTextEvents(
       }
 
       buffer = { text, start };
-      if (index === normalizedSegs.length - 1) {
+      if (index === timedSegs.length - 1) {
         buffer.end = tStartMs + dDurationMs;
       }
     }
