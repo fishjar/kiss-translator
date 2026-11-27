@@ -2535,9 +2535,7 @@ describe("focusSelectedOption guard (unit)", () => {
     jest
       .spyOn(item, "getBoundingClientRect")
       .mockReturnValue({ top: 350, height: 48 });
-    jest
-      .spyOn(paper, "getBoundingClientRect")
-      .mockReturnValue({ top: 20 });
+    jest.spyOn(paper, "getBoundingClientRect").mockReturnValue({ top: 20 });
     let paperScrollTop = 0;
     Object.defineProperty(paper, "scrollTop", {
       configurable: true,

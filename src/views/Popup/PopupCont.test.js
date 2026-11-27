@@ -148,7 +148,10 @@ async function selectScope(container, pattern) {
   await act(async () => choice.click());
 }
 
-function renderPopupCont(props = {}, { statefulRule = false, shadow = false } = {}) {
+function renderPopupCont(
+  props = {},
+  { statefulRule = false, shadow = false } = {}
+) {
   const host = document.createElement("div");
   document.body.appendChild(host);
   let container;

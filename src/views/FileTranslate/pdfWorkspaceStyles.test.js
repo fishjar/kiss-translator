@@ -1,10 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
 
-const css = readFileSync(
-  path.resolve(__dirname, "PdfWorkspace.css"),
-  "utf8"
-);
+const css = readFileSync(path.resolve(__dirname, "PdfWorkspace.css"), "utf8");
 
 describe("pdf workspace recognition spinner tokenization", () => {
   test("spinner color consumes the M3 primary token, not a raw hex", () => {
@@ -19,7 +16,10 @@ describe("pdf workspace recognition spinner tokenization", () => {
     // 会走继承回退、指示器颜色与主题主色脱钩；根 Box 须以 sx 把 --kt-pri
     // 绑定到 theme.palette.primary.main，令牌随主题走（css 面禁 raw hex，
     // 由上一用例锁定）。
-    const src = readFileSync(path.resolve(__dirname, "PdfWorkspace.js"), "utf8");
+    const src = readFileSync(
+      path.resolve(__dirname, "PdfWorkspace.js"),
+      "utf8"
+    );
     expect(src).toMatch(
       /"--kt-pri":\s*\(theme\)\s*=>\s*theme\.palette\.primary\.main/
     );
