@@ -168,7 +168,7 @@ export function prepareTimedTextEvents(
     // Group fragments that cannot be timed separately. Keep explicit timing
     // boundaries and the original whitespace of inline caption fragments.
     const timedSegs = [];
-    normalizedSegs.forEach((seg, segIndex) => {
+    for (const [segIndex, seg] of normalizedSegs.entries()) {
       const previous = timedSegs[timedSegs.length - 1];
       const offset =
         seg.tOffsetMs == null
@@ -185,11 +185,11 @@ export function prepareTimedTextEvents(
           if (canExpandCoarseText && !previous.nonSpeech) {
             previous.rawText += rawText;
           }
-          return;
+          continue;
         }
         if (nonSpeech) {
           filteredNonSpeechCount += 1;
-          return;
+          continue;
         }
         if (previous.nonSpeech || !previous.utf8) {
           if (previous.nonSpeech) filteredNonSpeechCount += 1;
@@ -201,7 +201,7 @@ export function prepareTimedTextEvents(
           previous.rawText += separator + rawText;
           previous.utf8 = cleanTimedText(previous.rawText);
           previous.hasAsrConfidence ||= hasAsrConfidence;
-          return;
+          continue;
         }
       }
       timedSegs.push({
@@ -211,7 +211,7 @@ export function prepareTimedTextEvents(
         hasAsrConfidence,
         nonSpeech,
       });
-    });
+    }
 
     for (let index = 0; index < timedSegs.length; index += 1) {
       const { utf8, tOffsetMs, hasAsrConfidence, nonSpeech } = timedSegs[index];
