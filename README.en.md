@@ -37,13 +37,13 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 ### Translation Scenarios & Interactions
 
-- **Multi-scenario coverage**: Bilingual webpage translation, instant input-field translation, selection word lookup, and mouse-hover translation. Fully supports rich text styling, custom translation styles, and a "show translation only (hide original)" mode.
+- **Multi-scenario coverage**: Bilingual webpage translation, instant input-field translation, selection word lookup, mouse-hover translation, plus webpage image hover translation and region screenshot translation. Fully supports rich text styling, custom translation styles, and a "show translation only (hide original)" mode.
 - **Lookup & comparison panels**: Floating popup and standalone comparison window to contrast multiple translation services side by side, look up English words with built-in/Collins dictionaries, save vocabulary to word lists, and optionally enable automatic clipboard translation.
-- **YouTube bilingual subtitles**: Merges subtitle segments intelligently with AI semantic sentence segmentation; offers customizable subtitle styles, full subtitle transcript view, hover word lookup, vocabulary saving, and AI video summaries based on subtitles.
+- **YouTube bilingual subtitles**: Merges subtitle segments intelligently with AI semantic sentence segmentation and ASR speech transcription for generating subtitles; offers customizable subtitle styles, full subtitle transcript view, hover word lookup, vocabulary saving, and AI video summaries based on subtitles.
 
 ### Service Configuration & Provider Plugins
 
-- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX, OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, and CloudflareAI, plus browser built-in AI and Local AI.
+- **Extensive built-in services**: Supports major traditional and AI translation services, including Google, Microsoft, Baidu, Tencent, Volcengine, Yandex, DeepL/DeepLX, Qwen-MT, OpenAI, Gemini, Claude, Ollama, DeepSeek, SiliconFlow, AliyunBailian, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI, and more, plus browser built-in AI and Local AI.
 - **Select by capability**: Independently configure services and model parameters for text translation, dictionary lookup, subtitle segmentation, OCR recognition, or speech synthesis; supports batch aggregation, streaming responses, multi-turn conversation memory, AI glossaries, and reasoning settings based on model capabilities.
 - **Provider plugin ecosystem**: Browse separate official and external plugin lists and click to install online, or import ZIP archives, local folders, GitHub repository root URLs, or HTTPS links. Requests are restricted to declared network scopes; package updates and saved instance upgrades are manual.
 - **Open custom protocols**: Connect any non-standard API via plugins. See the [plugin development guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md), [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md), and [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
@@ -65,14 +65,14 @@ A simple, open-source [bilingual translation extension & userscript](https://git
 
 - **Smart & custom rules**: Automatically scans page content; visual element picker with draft editing, undo/redo, and highlighted translation range previews; rule subscriptions, sharing, and personal specialized glossaries.
 - **Settings & testing suites**: Global search in settings, prompt template management, service connectivity testing, glossary tests, and subtitle segmentation debugger.
-- **Multi-device sync**: Full configuration sync across devices via [KISS-Worker](https://github.com/fishjar/kiss-worker) (deployable on Cloudflare Workers or Docker) or standard WebDAV.
-- **Customizable global shortcuts**:
-  - `Alt+Q`: Toggle webpage translation
-  - `Alt+D`: Open standalone translation window
-  - `Alt+K`: Open settings popup
-  - `Alt+S`: Open translation panel / translate selected text
-  - `Alt+O`: Open full settings page
-  - `Alt+I`: Translate current input field
+- **Multi-device sync**: Full configuration sync across devices via [KISS-Worker](https://github.com/fishjar/kiss-worker) (deployable on Cloudflare Workers or Docker), standard WebDAV, or GitHub Gist, with optional encrypted sync.
+- **Default shortcuts** (additional extension commands such as screenshot translation, translation-only mode, and opening full settings can be bound in your browser's extension shortcuts page):
+  - `Alt+Q`: Toggle webpage translation (extension global default)
+  - `Alt+D`: Open standalone translation window (extension global default)
+  - `Alt+K`: Open settings popup (extension global default)
+  - `Alt+S`: Open translation panel / translate selected text (extension global default)
+  - `Alt+I`: Translate current input field (in-page shortcut)
+  - `Alt+O`: Open full settings page (page/userscript default; bind globally in browser shortcuts)
 
 ## Quick Start
 
@@ -176,6 +176,8 @@ If you are interested in any of these directions, feel free to discuss in [Issue
 
 ## Development Guidelines
 
+> **Documentation & Community**: [Developer Guide](docs/DEVELOPER.md) | [Architecture](docs/architecture.md) | [Contributing Guide](CONTRIBUTING.md) | [Code of Conduct](CODE_OF_CONDUCT.md) | [Security Policy](SECURITY.md) | [Changelog](CHANGELOG.md) | [AI Agent Guide](AGENTS.md) | [Docs Index](docs/README.md)
+
 ### Local Build & Debugging
 
 **Prerequisites**: Node.js >= 20 (Node 22/24 recommended), pnpm >= 9
@@ -206,21 +208,7 @@ pnpm build             # Full build for all target platforms
 
 For plugin development, please read the [Plugin Development Guide (Chinese)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) and refer to the [OpenAI-compatible plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) or [DeepSeek plugin](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md).
 
-### External Trigger Example
-
-Webpage scripts can control the translator by dispatching custom events:
-
-```js
-// `toggle_translate`   Toggle webpage translation
-// `toggle_styles`      Toggle translation styles
-// `toggle_popup`       Open/close control panel
-// `toggle_transbox`    Open/close standalone translation popup
-// `toggle_hover_node`  Translate hovered paragraph
-// `input_translate`    Translate current input field
-window.dispatchEvent(
-  new CustomEvent("kiss_translator", { detail: { action: "toggle_translate" } })
-);
-```
+To trigger translation actions from external webpage scripts, bookmarklets, or mouse gesture extensions, see [Developer Guide - External Event Trigger API](docs/DEVELOPER.md#7-外部事件触发接口).
 
 ## Community
 

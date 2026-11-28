@@ -37,13 +37,13 @@
 
 ### 번역 기능과 상호작용
 
-- **다양한 번역 환경 지원**: 웹페이지 원문·번역 대조 표시, 입력란 즉시 번역, 텍스트 선택 단어 조회, 마우스 호버 번역 지원. 서식 있는 텍스트(Rich Text) 레이아웃 보존, 번역 스타일 맞춤 설정, '번역문만 표시(원문 숨기기)' 모드를 지원합니다.
+- **다양한 번역 환경 지원**: 웹페이지 원문·번역 대조 표시, 입력란 즉시 번역, 텍스트 선택 단어 조회, 마우스 호버 번역과 더불어 웹페이지 이미지 호버 번역 및 영역 스크린샷 번역을 지원합니다. 서식 있는 텍스트(Rich Text) 레이아웃 보존, 번역 스타일 맞춤 설정, '번역문만 표시(원문 숨기기)' 모드를 지원합니다.
 - **단어 조회 및 비교 패널**: 번역 팝업 및 독립 비교 창을 통해 여러 번역 서비스의 결과를 나란히 대조할 수 있으며, 영영/영한 사전 검색, 단어장 저장, 클립보드 자동 번역 기능을 제공합니다.
-- **YouTube 이중 언어 자막**: 스마트 자막 병합 알고리즘 및 AI 문맥 문장 분할 지원. 맞춤형 자막 스타일, 전체 스크립트 대조 목록, 마우스 오버 단어 검색, 단어 저장, 자막 기반 AI 영상 요약을 지원합니다.
+- **YouTube 이중 언어 자막**: 스마트 자막 병합 알고리즘, AI 문맥 문장 분할 및 ASR 음성 전사 자막 생성을 지원합니다. 맞춤형 자막 스타일, 전체 스크립트 대조 목록, 마우스 오버 단어 검색, 단어 저장, 자막 기반 AI 영상 요약을 지원합니다.
 
 ### 서비스 설정과 인터페이스 플러그인
 
-- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, DeepL/DeepLX 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, DeepSeek, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
+- **풍부한 내장 서비스**: Google, Microsoft, Baidu, Tencent, Volcengine, Yandex, DeepL/DeepLX, Qwen-MT 등 전통적인 번역 서비스는 물론 OpenAI, Gemini, Claude, Ollama, DeepSeek, SiliconFlow, AliyunBailian, OpenRouter, OrcaRouter, Requesty, AzureAI, CloudflareAI 등의 주요 AI 서비스, Chrome 브라우저 내장 AI, 로컬 AI를 지원합니다.
 - **기능별 자유로운 서비스 할당**: 텍스트 번역, 사전 검색, 자막 분할, OCR 문자 인식, 음성 합성 등 기능별로 독립된 서비스와 모델 파라미터를 설정할 수 있습니다. 모델 사양에 따라 일괄 배치 번역, 스트리밍 출력, 대화 문맥 기억, AI 전문 용어집, 추론(Reasoning) 설정을 지원합니다.
 - **인터페이스 플러그인 생태계**: 공식 및 외부 플러그인을 별도 목록에서 선택하고 클릭하여 온라인으로 설치할 수 있습니다. ZIP, 로컬 폴더, GitHub 저장소 루트 URL, HTTPS 링크로 가져올 수도 있습니다. 요청은 선언된 네트워크 범위로 제한되며 수동 업데이트와 저장된 서비스 인스턴스 업그레이드를 지원합니다.
 - **개방형 커스텀 프로토콜**: 비표준 API도 플러그인을 통해 연동할 수 있습니다. 자세한 내용은 [플러그인 개발 가이드(중국어)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md), [OpenAI 호환 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md), [DeepSeek 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)를 참고하세요.
@@ -65,14 +65,14 @@
 
 - **스마트 감지 및 사용자 정의 규칙**: 웹페이지 콘텐츠 자동 인식 스캔을 지원합니다. 시각적 요소 선택기, 초안 편집, 실행 취소/다시 실행, 번역 범위 하이라이트 미리보기, 규칙 구독, 공유, 맞춤형 전문 용어집을 제공합니다.
 - **설정 관리 및 테스트 도구**: 설정 전체 검색, 시스템 프롬프트 템플릿 관리, 서비스 연결 테스트 도구, 용어집 및 자막 분할 디버깅 도구를 제공합니다.
-- **다중 기기 데이터 동기화**: [KISS-Worker](https://github.com/fishjar/kiss-worker)(Cloudflare Workers 또는 Docker 기반 자체 호스팅) 또는 표준 WebDAV 프로토콜을 통해 모든 설정을 기기 간에 동기화할 수 있습니다.
-- **사용자 정의 전역 단축키**:
-  - `Alt+Q`: 웹페이지 번역 시작 / 전환
-  - `Alt+D`: 독립 번역 창 열기
-  - `Alt+K`: 설정 팝업 열기
-  - `Alt+S`: 번역 패널 열기 / 선택한 텍스트 번역
-  - `Alt+O`: 전체 설정 페이지 열기
-  - `Alt+I`: 현재 입력란 번역
+- **다중 기기 데이터 동기화**: [KISS-Worker](https://github.com/fishjar/kiss-worker)(Cloudflare Workers 또는 Docker 기반 자체 호스팅), 표준 WebDAV 프로토콜 또는 GitHub Gist를 통해 모든 설정을 기기 간에 동기화할 수 있으며 데이터 암호화 동기화를 지원합니다.
+- **기본 단축키**(스크린샷 번역, 번역문만 표시, 전체 설정 열기 등 추가 확장 명령은 브라우저 확장 단축키 설정에서 지정 가능):
+  - `Alt+Q`: 웹페이지 번역 시작 / 전환 (확장 전역 기본값)
+  - `Alt+D`: 독립 번역 창 열기 (확장 전역 기본값)
+  - `Alt+K`: 설정 팝업 열기 (확장 전역 기본값)
+  - `Alt+S`: 번역 패널 열기 / 선택한 텍스트 번역 (확장 전역 기본값)
+  - `Alt+I`: 현재 입력란 번역 (페이지 내 단축키)
+  - `Alt+O`: 전체 설정 페이지 열기 (페이지/스크립트 기본값; 확장 전역은 브라우저 설정에서 지정 가능)
 
 ## 빠른 시작
 
@@ -176,6 +176,8 @@
 
 ## 개발 가이드
 
+> **문서 및 커뮤니티**: [개발자 가이드](docs/DEVELOPER.md) | [아키텍처](docs/architecture.md) | [기여 가이드](CONTRIBUTING.md) | [행동 강령](CODE_OF_CONDUCT.md) | [보안 정책](SECURITY.md) | [변경 로그](CHANGELOG.md) | [AI 에이전트 가이드](AGENTS.md) | [문서 목록](docs/README.md)
+
 ### 로컬 빌드 및 디버깅
 
 **환경 요구 사항**: Node.js >= 20(권장: Node 22/24), pnpm >= 9
@@ -206,21 +208,7 @@ pnpm build             # 모든 플랫폼 대상 전체 빌드
 
 플러그인 개발은 [플러그인 개발 가이드(중국어)](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)를 읽어보시고 [OpenAI 호환 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 또는 [DeepSeek 플러그인](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)를 참고하세요.
 
-### 외부 이벤트 호출 예시
-
-웹페이지 스크립트에서 커스텀 이벤트를 발생시켜 번역기를 제어할 수 있습니다:
-
-```js
-// `toggle_translate`   웹페이지 번역 전환
-// `toggle_styles`      번역 스타일 전환
-// `toggle_popup`       제어 패널 열기/닫기
-// `toggle_transbox`    독립 번역 팝업 열기/닫기
-// `toggle_hover_node`  마우스 호버 단락 번역
-// `input_translate`    현재 입력란 번역
-window.dispatchEvent(
-  new CustomEvent("kiss_translator", { detail: { action: "toggle_translate" } })
-);
-```
+외부 웹페이지 스크립트, 북마클릿 또는 마우스 제스처 확장 프로그램에서 번역을 트리거하는 방법은 [개발자 가이드 - 외부 이벤트 트리거 API](docs/DEVELOPER.md#7-外部事件触发接口)를 참고하세요.
 
 ## 커뮤니티
 

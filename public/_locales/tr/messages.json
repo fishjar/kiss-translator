@@ -3,7 +3,7 @@
     "message": "KISS Translator"
   },
   "app_description": {
-    "message": "Web sayfalarını, seçili metni ve video altyazılarını destekleyen minimalist iki dilli çeviri uzantısı."
+    "message": "Web sayfaları, YouTube altyazıları, PDF/EPUB, ekran görüntüsü ve çevrimdışı yerel yapay zeka için açık kaynaklı çevirmen."
   },
   "translate_selection": {
     "message": "\"%s\" ifadesini çevir"

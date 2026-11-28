@@ -1,0 +1,4 @@
+interface:
+  display_name: "KISS Translator 代码与 PR 审查"
+  short_description: "按 KISS Translator 工程红线与标准报告模板执行只读代码/PR 审查"
+  default_prompt: "使用 $review-kiss-translator 审查当前改动或指定 PR，并按标准格式输出中文审查报告。"

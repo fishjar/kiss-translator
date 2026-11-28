@@ -1,0 +1,36 @@
+KISS Translator is a minimalist, open-source bilingual translation browser extension for webpage translation, YouTube bilingual subtitles, selection word lookup, input field translation, webpage image and screenshot translation, PDF and EPUB document translation, and offline Local AI translation.
+
+[Core Translation Scenarios]
+• Bilingual Webpage Translation: Automatically detects main content while preserving rich text formatting. Customize translation styles or switch to translation-only mode (hide original text) for effortless reading of articles, documentation, and social feeds.
+• Selection Lookup & Hover Translation: Highlight any text for an instant floating translation panel, hover over paragraphs to translate, look up English words with built-in and Collins dictionaries, save vocabulary lists, compare multiple services side by side in a standalone window, or enable optional automatic clipboard translation.
+• Instant Input Field Translation: Write emails, comments, or messages in your native language and translate them directly inside any webpage input box with a single shortcut.
+• Webpage Image & Screenshot Translation: Hover to translate images on webpages or capture any screen region for instant OCR and translation of charts, posters, and comics.
+• YouTube Bilingual Subtitles & ASR: Smart subtitle merging, AI semantic sentence segmentation, and ASR speech transcription for generating subtitles. Includes customizable dual subtitles, full interactive transcripts, hover word lookup, vocabulary saving, and AI video summaries.
+
+[Document & Image File Translation]
+• Multi-Format Pipelines: Translate TXT, Markdown, PDF, EPUB ebooks, and PNG/JPEG/WebP images. Independently assign dedicated services for translation, OCR, layout analysis, and table or math formula parsing.
+• Deep PDF & EPUB Support: Parse PDF layout, tables, and formulas with staged caching and export to Markdown, standalone HTML, or ZIP with assets. Translate EPUB books by chapter or in bulk and export bilingual or translated EPUB files.
+
+[Built-in Services, Local AI & Provider Plugins]
+• Extensive Translation & AI Providers: Built-in support for Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT, OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, Chrome built-in AI, and more. Supports batch aggregation, streaming responses, multi-turn context memory, custom glossaries, and prompt templates.
+• On-Device Local AI (Private & Offline): Built-in Model Center with WebGPU and CPU backends for local LLM translation, VLM vision understanding, OCR, ASR speech recognition, TTS synthesis, and document layout analysis. Once models are downloaded, inference runs completely offline on your machine.
+• Extensible Provider Plugin System: Install official plugins online or import external plugins from ZIP, local folders, or GitHub/HTTPS links to connect any custom API. Network requests are strictly scoped to declared domains and authorizations remain device-local.
+
+[Rules & Encrypted Multi-Device Sync]
+• Smart Rules & Visual Element Picker: Three-tier rule priority (Personal > Subscribed > Global) with an interactive visual selector, undo/redo drafts, and live translation range previews.
+• Cross-Device Sync: Sync settings, rules, and vocabulary across devices via self-hosted KISS-Worker (Cloudflare Workers or Docker), WebDAV, or GitHub Gist, with optional end-to-end encryption.
+
+[Default Keyboard Shortcuts]
+• Alt+Q: Toggle bilingual webpage translation (extension global default)
+• Alt+D: Open standalone multi-service comparison window (extension global default)
+• Alt+K: Open settings popup (extension global default)
+• Alt+S: Open translation panel / translate selected text (extension global default)
+• Alt+I: Translate active input field (in-page shortcut)
+• Alt+O: Open full settings page (page default; bind globally in browser extension shortcuts)
+Tip: Additional commands such as screenshot translation, translation-only mode, and style switching can be customized in your browser's extension shortcuts page.
+
+[Open Source & Privacy]
+Licensed under GPL-3.0, KISS Translator is completely open source and never tracks or sells your browsing history. Cloud API calls connect directly to the endpoints you configure, and Local AI runs entirely offline.
+
+Website: https://kiss-translator.rayjar.com
+Source Code & Issues: https://github.com/fishjar/kiss-translator

@@ -1,0 +1,36 @@
+KISS Translator là tiện ích mở rộng trình duyệt mã nguồn mở tối giản, hỗ trợ dịch song ngữ trang web, phụ đề song ngữ YouTube, tra từ khi bôi đen, dịch trực tiếp ô nhập liệu, dịch ảnh web và ảnh chụp màn hình, dịch tài liệu PDF/EPUB và dịch AI cục bộ ngoại tuyến ngay trên thiết bị của bạn.
+
+[Các tính năng dịch cốt lõi]
+• Dịch song ngữ trang web: Tự động nhận diện nội dung chính và giữ nguyên định dạng văn bản. Hỗ trợ tùy chỉnh kiểu hiển thị bản dịch hoặc chuyển sang chế độ chỉ hiển thị bản dịch (ẩn văn bản gốc) giúp đọc báo, tài liệu kỹ thuật và mạng xã hội mượt mà hơn.
+• Tra từ bôi đen và dịch khi di chuột: Bôi đen văn bản để mở khung dịch nổi, di chuột qua đoạn văn để dịch nhanh, tra từ điển tiếng Anh tích hợp và Collins, lưu từ vựng yêu thích, so sánh nhiều dịch vụ song song trong cửa sổ độc lập hoặc bật tự động dịch bộ nhớ tạm.
+• Dịch nhanh trong ô nhập liệu: Soạn email, bình luận hoặc tin nhắn bằng tiếng mẹ đẻ và nhấn phím tắt để dịch trực tiếp ngay trong ô nhập liệu.
+• Dịch ảnh web và ảnh chụp màn hình: Di chuột lên hình ảnh trên trang web hoặc chụp vùng màn hình bất kỳ để nhận diện OCR và dịch ngay biểu đồ, áp phích hay truyện tranh.
+• Phụ đề song ngữ YouTube và ASR: Gộp phụ đề thông minh, tách câu theo ngữ nghĩa bằng AI và nhận diện giọng nói ASR để tạo phụ đề. Hỗ trợ tùy chỉnh phụ đề kép, danh sách toàn bộ phụ đề, di chuột tra từ, lưu từ vựng và tóm tắt video bằng AI.
+
+[Dịch tài liệu và tệp hình ảnh]
+• Hỗ trợ đa định dạng: Dịch tệp TXT, Markdown, PDF, sách điện tử EPUB và ảnh PNG/JPEG/WebP, cho phép chọn riêng dịch vụ dịch thuật, OCR, phân tích bố cục và nhận diện bảng biểu/công thức toán học.
+• Xử lý sâu PDF và EPUB: Phân tích bố cục, bảng và công thức PDF có lưu đệm từng giai đoạn, xuất ra Markdown, HTML đơn tệp hoặc gói ZIP. Dịch sách EPUB theo chương hoặc toàn bộ cuốn sách và xuất tệp EPUB song ngữ hoặc bản dịch.
+
+[Dịch vụ tích hợp, AI cục bộ và hệ thống Plugin]
+• Đa dạng dịch vụ dịch và AI: Tích hợp sẵn Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT, OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, AI tích hợp trình duyệt và nhiều hơn nữa. Hỗ trợ dịch hàng loạt, xuất luồng trực tiếp, ghi nhớ ngữ cảnh, bảng thuật ngữ và mẫu prompt tùy chỉnh.
+• AI cục bộ trên thiết bị (Riêng tư và ngoại tuyến): Trung tâm mô hình tích hợp hỗ trợ WebGPU/CPU cho dịch LLM cục bộ, hiểu ảnh VLM, OCR, nhận diện giọng nói ASR, tổng hợp giọng nói TTS và phân tích bố cục tài liệu. Sau khi tải mô hình, mọi suy luận chạy hoàn toàn ngoại tuyến.
+• Hệ thống Plugin mở rộng: Cài đặt plugin chính thức trực tuyến hoặc nhập plugin ngoài từ tệp ZIP, thư mục cục bộ hay liên kết GitHub/HTTPS để kết nối mọi API tùy chỉnh. Yêu cầu mạng bị giới hạn trong tên miền đã khai báo và quyền truy cập chỉ lưu trên thiết bị.
+
+[Quy tắc thông minh và đồng bộ mã hóa]
+• Quy tắc thông minh và bộ chọn trực quan: Ba cấp ưu tiên quy tắc (Cá nhân > Đăng ký > Toàn cục) kèm bộ chọn phần tử trực quan, hoàn tác/làm lại và xem trước vùng dịch trực tiếp.
+• Đồng bộ đa thiết bị: Đồng bộ cài đặt, quy tắc và sổ từ vựng qua KISS-Worker tự triển khai (Cloudflare Workers hoặc Docker), WebDAV hoặc GitHub Gist, có hỗ trợ mã hóa dữ liệu.
+
+[Phím tắt mặc định]
+• Alt+Q: Bật/tắt dịch song ngữ trang web (mặc định toàn cục của tiện ích)
+• Alt+D: Mở cửa sổ độc lập so sánh nhiều dịch vụ (mặc định toàn cục)
+• Alt+K: Mở cửa sổ cài đặt nhanh (mặc định toàn cục)
+• Alt+S: Mở khung dịch / dịch văn bản đang chọn (mặc định toàn cục)
+• Alt+I: Dịch nội dung trong ô nhập liệu đang chọn (phím tắt trong trang)
+• Alt+O: Mở trang cài đặt đầy đủ (mặc định trong trang; có thể gán toàn cục trong phần phím tắt trình duyệt)
+Mẹo: Bạn có thể gán thêm phím tắt cho dịch ảnh chụp màn hình, chế độ chỉ hiện bản dịch hoặc đổi kiểu hiển thị tại trang quản lý phím tắt tiện ích của trình duyệt.
+
+[Mã nguồn mở và quyền riêng tư]
+Phát hành theo giấy phép GPL-3.0, KISS Translator hoàn toàn mã nguồn mở và không thu thập hay bán lịch sử duyệt web của bạn. Các yêu cầu đám mây kết nối trực tiếp tới API bạn cấu hình, còn AI cục bộ chạy hoàn toàn ngoại tuyến.
+
+Trang chủ: https://kiss-translator.rayjar.com
+Mã nguồn và phản hồi: https://github.com/fishjar/kiss-translator

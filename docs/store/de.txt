@@ -1,0 +1,36 @@
+KISS Translator ist eine minimalistische, quelloffene Browser-Erweiterung für zweisprachige Webseitenübersetzung, zweisprachige YouTube-Untertitel, Textauswahl-Wörterbuch, Eingabefeld-Übersetzung, Webbild- und Screenshot-Übersetzung, PDF-/EPUB-Dokumentübersetzung sowie private Offline-Übersetzung mit lokaler KI.
+
+[Kernfunktionen für den Alltag]
+• Zweisprachige Webseitenübersetzung: Erkennt Hauptinhalte automatisch, erhält Rich-Text-Formatierungen und bietet anpassbare Übersetzungsstile sowie einen Modus „Nur Übersetzung anzeigen“.
+• Textauswahl- und Hover-Übersetzung: Markieren Sie beliebigen Text für ein schwebendes Übersetzungsfenster, übersetzen Sie Absätze per Mauszeiger, schlagen Sie englische Begriffe im integrierten oder Collins-Wörterbuch nach, speichern Sie Vokabeln, vergleichen Sie mehrere Dienste nebeneinander in einem eigenen Fenster oder aktivieren Sie optional die automatische Zwischenablage-Übersetzung.
+• Sofortige Eingabefeld-Übersetzung: Schreiben Sie E-Mails, Kommentare oder Nachrichten in Ihrer Muttersprache und übersetzen Sie sie per Tastenkombination direkt im Eingabefeld.
+• Webbild- und Screenshot-Übersetzung: Übersetzen Sie Bilder auf Webseiten per Hover oder erfassen Sie beliebige Bildschirmbereiche für sofortige OCR-Texterkennung und Übersetzung von Diagrammen, Postern und Comics.
+• Zweisprachige YouTube-Untertitel & ASR: Intelligente Untertitel-Zusammenführung, semantische KI-Satztrennung und ASR-Spracherkennung zur Untertitelerstellung. Mit anpassbaren Doppeluntertiteln, vollständigem Transkript, Hover-Wörterbuch, Vokabelspeicherung und KI-Videozusammenfassung.
+
+[Dokument- und Bilddatei-Übersetzung]
+• Mehrformat-Unterstützung: Übersetzen Sie TXT, Markdown, PDF, EPUB-E-Books sowie PNG-/JPEG-/WebP-Bilder und weisen Sie separate Dienste für Übersetzung, OCR, Layoutanalyse sowie Tabellen- und Formelerkennung zu.
+• Tiefgehende PDF- und EPUB-Verarbeitung: Analysiert PDF-Layouts, Tabellen und Formeln mit mehrstufigem Cache und exportiert als Markdown, eigenständiges HTML oder ZIP-Archiv. Übersetzt EPUB-Bücher kapitelweise oder komplett und exportiert zweisprachige oder übersetzte EPUB-Dateien.
+
+[Integrierte Dienste, Lokale KI & Plugins]
+• Umfangreiche Übersetzungs- und KI-Anbieter: Unterstützt Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT sowie OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, integrierte Browser-KI und mehr. Mit Batch-Übersetzung, Streaming, Kontextgedächtnis, Glossaren und eigenen Prompt-Vorlagen.
+• Lokale KI auf dem Gerät (Privat & Offline): Integriertes Model Center mit WebGPU-/CPU-Unterstützung für lokale LLM-Übersetzung, VLM-Bildverständnis, OCR, ASR, TTS und Layoutanalyse. Nach dem Modell-Download läuft die gesamte Verarbeitung offline auf Ihrem Gerät.
+• Erweiterbares Plugin-System: Installieren Sie offizielle Plugins direkt online oder importieren Sie eigene Plugins per ZIP, lokalem Ordner oder GitHub-/HTTPS-Link für beliebige benutzerdefinierte APIs. Netzwerkanfragen bleiben auf deklarierte Domains beschränkt und Freigaben bleiben lokal.
+
+[Regel-Engine & verschlüsselte Synchronisation]
+• Intelligente Regeln & visueller Element-Auswähler: Dreistufige Regelpriorität (Persönlich > Abonniert > Global) mit interaktiver Auswahl, Rückgängig/Wiederholen und Live-Vorschau des Übersetzungsbereichs.
+• Geräteübergreifende Synchronisation: Synchronisieren Sie Einstellungen, Regeln und Vokabeln über selbst gehostetes KISS-Worker (Cloudflare Workers oder Docker), WebDAV oder GitHub Gist – optional verschlüsselt.
+
+[Standard-Tastenkombinationen]
+• Alt+Q: Zweisprachige Webseitenübersetzung umschalten (globaler Standard)
+• Alt+D: Eigenständiges Vergleichsfenster öffnen (globaler Standard)
+• Alt+K: Einstellungs-Popup öffnen (globaler Standard)
+• Alt+S: Übersetzungsfeld öffnen / ausgewählten Text übersetzen (globaler Standard)
+• Alt+I: Aktives Eingabefeld übersetzen (Seiten-Tastenkürzel)
+• Alt+O: Vollständige Einstellungsseite öffnen (Seitenstandard; global in den Browser-Tastenkürzeln festlegbar)
+Hinweis: Weitere Befehle wie Screenshot-Übersetzung, Nur-Übersetzung-Modus und Stilwechsel lassen sich in den Erweiterungs-Tastenkürzeln Ihres Browsers frei belegen.
+
+[Open Source & Datenschutz]
+KISS Translator steht unter der GPL-3.0-Lizenz, ist vollständig quelloffen und sammelt oder verkauft keinerlei Browserverlauf. Cloud-Anfragen gehen direkt an die von Ihnen konfigurierten APIs, und lokale KI arbeitet komplett offline.
+
+Website: https://kiss-translator.rayjar.com
+Quellcode & Feedback: https://github.com/fishjar/kiss-translator

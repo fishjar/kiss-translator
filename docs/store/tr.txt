@@ -1,0 +1,36 @@
+KISS Translator; iki dilli web sayfası çevirisi, YouTube çift altyazı, seçili metin sözlüğü, giriş alanı çevirisi, web görseli ve ekran görüntüsü çevirisi, PDF/EPUB belge çevirisi ve çevrimdışı yerel yapay zeka çevirisi sunan minimalist ve açık kaynaklı bir tarayıcı uzantısıdır.
+
+[Temel Çeviri Senaryoları]
+• İki Dilli Web Sayfası Çevirisi: Ana içeriği otomatik algılar, zengin metin biçimini korur ve makale, dokümantasyon veya sosyal medya okurken özelleştirilebilir çeviri stilleri ile "Yalnızca çeviriyi göster" modu sunar.
+• Seçim ve Üzerine Gelme Çevirisi: Metin seçerek anında yüzen çeviri penceresi açın, fareyle paragrafların üzerine gelerek çevirin, yerleşik ve Collins İngilizce sözlüklerinden arama yapın, kelime listenize kaydedin, bağımsız pencerede birden fazla servisi karşılaştırın veya isteğe bağlı otomatik pano çevirisini kullanın.
+• Anında Giriş Alanı Çevirisi: E-posta, yorum veya mesajları kendi dilinizde yazıp tek bir kısayolla doğrudan giriş kutusu içinde çevirin.
+• Web Görseli ve Ekran Görüntüsü Çevirisi: Web görsellerinin üzerine gelerek veya ekranın herhangi bir bölgesini seçerek OCR ile grafik, afiş ve çizgi roman metinlerini anında çevirin.
+• YouTube Çift Altyazı ve ASR: Akıllı altyazı birleştirme, yapay zeka ile anlamsal cümle bölme ve ASR konuşma tanıma ile altyazı oluşturma desteği. Özelleştirilebilir çift altyazı, tam metin listesi, üzerine gelerek kelime bakma, kelime kaydetme ve yapay zeka video özeti içerir.
+
+[Belge ve Görsel Dosya Çevirisi]
+• Çoklu Format Desteği: TXT, Markdown, PDF, EPUB e-kitap ve PNG/JPEG/WebP görsellerini çevirin; çeviri, OCR, sayfa düzeni analizi ile tablo ve formül ayrıştırma için ayrı servisler atayın.
+• Gelişmiş PDF ve EPUB İşleme: PDF düzeni, tablo ve formülleri aşamalı önbellekle işleyip Markdown, tek dosya HTML veya ZIP olarak dışa aktarın. EPUB kitaplarını bölüm bazında veya toplu çevirip iki dilli ya da yalnızca çeviri EPUB olarak kaydedin.
+
+[Yerleşik Servisler, Yerel Yapay Zeka ve Eklentiler]
+• Geniş Çeviri ve Yapay Zeka Desteği: Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT, OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, tarayıcı yerleşik yapay zekası ve daha fazlası. Toplu çeviri, akışlı çıktı, bağlam belleği, terim sözlüğü ve özel istem şablonlarını destekler.
+• Cihaz İçi Yerel Yapay Zeka (Gizli ve Çevrimdışı): WebGPU/CPU hızlandırmalı yerleşik Model Merkezi ile yerel LLM çevirisi, VLM görsel anlama, OCR, ASR konuşma tanıma, TTS ses sentezi ve belge düzeni analizi. Modeller indirildikten sonra tüm işlemler tamamen çevrimdışı çalışır.
+• Açık Eklenti Sistemi: Resmi eklentileri çevrimiçi kurun veya ZIP, yerel klasör ya da GitHub/HTTPS bağlantısıyla harici eklenti içe aktararak dilediğiniz özel API'yi bağlayın. Ağ istekleri yalnızca beyan edilen alan adlarıyla sınırlıdır ve yetkiler cihazda yerel olarak saklanır.
+
+[Akıllı Kurallar ve Şifreli Senkronizasyon]
+• Akıllı Kurallar ve Görsel Seçici: Üç kademeli kural önceliği (Kişisel > Abone > Genel), etkileşimli görsel öğe seçici, geri al/yinele ve canlı çeviri alanı önizlemesi.
+• Cihazlar Arası Senkronizasyon: Kendi barındırdığınız KISS-Worker (Cloudflare Workers veya Docker), WebDAV veya GitHub Gist ile ayarlarınızı, kurallarınızı ve kelime listenizi isteğe bağlı şifreleme ile senkronize edin.
+
+[Varsayılan Klavye Kısayolları]
+• Alt+Q: İki dilli web sayfası çevirisini aç/kapat (genel varsayılan)
+• Alt+D: Bağımsız çoklu servis karşılaştırma penceresini aç (genel varsayılan)
+• Alt+K: Ayarlar açılır penceresini aç (genel varsayılan)
+• Alt+S: Çeviri panelini aç / seçili metni çevir (genel varsayılan)
+• Alt+I: Etkin giriş alanını çevir (sayfa içi kısayol)
+• Alt+O: Tam ayarlar sayfasını aç (sayfa varsayılanı; tarayıcı kısayollarından genel olarak atanabilir)
+İpucu: Ekran görüntüsü çevirisi, yalnızca çeviri modu ve stil değiştirme gibi ek komutları tarayıcınızın uzantı kısayolları sayfasından özelleştirebilirsiniz.
+
+[Açık Kaynak ve Gizlilik]
+GPL-3.0 lisansıyla tamamen açık kaynaklı olan KISS Translator, tarama geçmişinizi asla toplamaz veya satmaz. Bulut çeviri istekleri doğrudan yapılandırdığınız API'lere gider ve yerel yapay zeka tamamen çevrimdışı çalışır.
+
+Web sitesi: https://kiss-translator.rayjar.com
+Kaynak Kodu ve Geri Bildirim: https://github.com/fishjar/kiss-translator
