@@ -3,7 +3,7 @@
     "message": "KISS Translator"
   },
   "app_description": {
-    "message": "Một tiện ích mở rộng dịch song ngữ tối giản, hỗ trợ dịch trang web, vùng chọn và phụ đề video."
+    "message": "Tiện ích dịch song ngữ mã nguồn mở cho web, phụ đề YouTube, PDF/EPUB, ảnh chụp màn hình và AI cục bộ ngoại tuyến."
   },
   "translate_selection": {
     "message": "Dịch \"%s\""

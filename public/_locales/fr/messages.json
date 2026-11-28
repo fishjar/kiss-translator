@@ -3,7 +3,7 @@
     "message": "KISS Traducteur"
   },
   "app_description": {
-    "message": "Une extension de traduction bilingue minimaliste prenant en charge la traduction de pages web, de texte sélectionné et de sous-titres vidéo."
+    "message": "Traducteur bilingue open source pour pages web, sous-titres YouTube, PDF/EPUB, captures et IA locale hors ligne."
   },
   "translate_selection": {
     "message": "Traduire \"%s\""

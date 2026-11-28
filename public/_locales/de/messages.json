@@ -3,7 +3,7 @@
     "message": "KISS Übersetzer"
   },
   "app_description": {
-    "message": "Eine minimalistische zweisprachige Übersetzungserweiterung, die Webseiten-, Textauswahl- und Videountertitel-Übersetzung unterstützt."
+    "message": "Open-Source-Übersetzer für Webseiten, YouTube-Untertitel, PDF/EPUB, Screenshots und lokale Offline-KI."
   },
   "translate_selection": {
     "message": "\"%s\" übersetzen"
