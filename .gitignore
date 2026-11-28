@@ -38,6 +38,8 @@ package-lock.json
 .agents/skills/*
 !.agents/skills/release-kiss-translator/
 !.agents/skills/release-kiss-translator/**
+!.agents/skills/review-kiss-translator/
+!.agents/skills/review-kiss-translator/**
 .claude
 
 # Generated provider example and local acceptance artifacts

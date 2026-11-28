@@ -37,13 +37,13 @@
 
 ### 翻訳シーンと操作
 
-- **多様な利用シーンに対応**：ウェブページの対訳表示、入力欄の即時翻訳、選択語句の検索、マウスホバー翻訳に対応。リッチテキストのレイアウト保持、カスタム訳文スタイル、さらに「訳文のみ表示（原文を非表示）」に対応しています。
+- **多様な利用シーンに対応**：ウェブページの対訳表示、入力欄の即時翻訳、選択語句の検索、マウスホバー翻訳に加え、ウェブ画像のホバー翻訳と範囲スクリーンショット翻訳に対応。リッチテキストのレイアウト保持、カスタム訳文スタイル、さらに「訳文のみ表示（原文を非表示）」に対応しています。
 - **検索と横断比較パネル**：翻訳ポップアップや独立した比較ウィンドウを提供。複数の翻訳サービスを横並びで比較したり、英英・英和辞書での単語検索、単語帳への登録、任意のクリップボード自動翻訳が利用可能です。
-- **YouTube 対訳字幕**：インテリジェントな字幕結合アルゴリズムと AI による文脈区切りに対応。カスタム字幕スタイル、全文スクリプト一覧、ホバー辞書検索、単語帳保存、字幕に基づく AI 動画要約を提供します。
+- **YouTube 対訳字幕**：インテリジェントな字幕結合アルゴリズム、AI による文脈区切り、および ASR 音声文字起こしによる字幕生成に対応。カスタム字幕スタイル、全文スクリプト一覧、ホバー辞書検索、単語帳保存、字幕に基づく AI 動画要約を提供します。
 
 ### サービス設定と API プラグイン
 
-- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
+- **多彩な組み込みサービス**：Google、Microsoft、Baidu、Tencent、Volcengine、Yandex、DeepL/DeepLX、Qwen-MT をはじめ、OpenAI、Gemini、Claude、Ollama、DeepSeek、SiliconFlow、AliyunBailian、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI などの主要な AI 翻訳サービス、Chrome ブラウザ内蔵 AI、ローカル AI に対応。
 - **能力に応じた柔軟な選択**：テキスト翻訳、辞書検索、字幕区切り、OCR 文字認識、音声合成などの機能ごとにサービスとモデルパラメータを個別に設定可能。一括バッチ翻訳、ストリーミング出力、コンテキスト対話記憶、AI 用語集、思考プロセス（Reasoning）設定をサポート。
 - **API プラグインエコシステム**：公式・外部プラグインを別々のリストから選び、クリックしてオンラインでインストールできます。ZIP、ローカルフォルダ、GitHub リポジトリのルート URL、HTTPS リンクからの導入にも対応。通信先は宣言された範囲に制限され、手動更新と保存済みサービスインスタンスのアップグレードを提供します。
 - **オープンなカスタムプロトコル**：非標準の API もプラグイン経由で柔軟に統合可能。詳細は [プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md)、[DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) を参照してください。
@@ -65,14 +65,14 @@
 
 - **スマート検出とカスタムルール**：ウェブページ内容の自動検出スキャンに対応。視覚的な要素セレクター、下書き編集、元に戻す/やり直し、翻訳範囲のハイライトプレビュー、ルール購読、共有、用語集管理を搭載。
 - **設定管理とテストスイート**：設定のグローバル検索、システムプロンプトテンプレート管理、サービス接続テストツール、用語集および字幕区切りデバッグツールを提供。
-- **マルチデバイスデータ同期**：[KISS-Worker](https://github.com/fishjar/kiss-worker)（Cloudflare Workers または Docker でセルフホスト可能）や標準の WebDAV プロトコルを介して、全設定を端末間で同期可能。
-- **カスタムグローバルショートカット**：
-  - `Alt+Q`：ウェブ翻訳の開始 / 切り替え
-  - `Alt+D`：独立した翻訳ウィンドウを開く
-  - `Alt+K`：設定ポップアップを開く
-  - `Alt+S`：翻訳パネルを開く / 選択したテキストを翻訳
-  - `Alt+O`：設定ページを開く
-  - `Alt+I`：現在の入力欄を翻訳
+- **マルチデバイスデータ同期**：[KISS-Worker](https://github.com/fishjar/kiss-worker)（Cloudflare Workers または Docker でセルフホスト可能）、標準の WebDAV プロトコル、または GitHub Gist を介して全設定を端末間で同期可能（暗号化同期にも対応）。
+- **デフォルトショートカット**（スクリーンショット翻訳、訳文のみ表示、設定ページを開く等の追加コマンドはブラウザの拡張機能ショートカット設定から割り当て可能）：
+  - `Alt+Q`：ウェブ翻訳の開始 / 切り替え（拡張機能グローバル既定）
+  - `Alt+D`：独立した翻訳ウィンドウを開く（拡張機能グローバル既定）
+  - `Alt+K`：設定ポップアップを開く（拡張機能グローバル既定）
+  - `Alt+S`：翻訳パネルを開く / 選択したテキストを翻訳（拡張機能グローバル既定）
+  - `Alt+I`：現在の入力欄を翻訳（ページ内ショートカット）
+  - `Alt+O`：設定ページを開く（ページ/スクリプト既定；拡張機能グローバルはブラウザ設定で割り当て可能）
 
 ## クイックスタート
 
@@ -176,6 +176,8 @@
 
 ## 開発ガイド
 
+> **ドキュメント・コミュニティ**：[開発者ガイド](docs/DEVELOPER.md) | [アーキテクチャ](docs/architecture.md) | [コントリビューションガイド](CONTRIBUTING.md) | [行動規範](CODE_OF_CONDUCT.md) | [セキュリティポリシー](SECURITY.md) | [変更履歴](CHANGELOG.md) | [AI エージェントガイド](AGENTS.md) | [ドキュメント一覧](docs/README.md)
+
 ### ローカルでのビルドとデバッグ
 
 **環境要件**：Node.js >= 20（推奨: Node 22/24）、pnpm >= 9
@@ -206,21 +208,7 @@ pnpm build             # 全プラットフォーム向けの一括フルビル�
 
 プラグイン開発については、[プラグイン開発ガイド（中国語）](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md) を参照し、[OpenAI 互換プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) または [DeepSeek プラグイン](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md) をご確認ください。
 
-### 外部イベント呼び出しの例
-
-ウェブページスクリプトからカスタムイベントを発行して翻訳機能を制御できます：
-
-```js
-// `toggle_translate`   ウェブ翻訳の切り替え
-// `toggle_styles`      訳文スタイルの切り替え
-// `toggle_popup`       コントロールパネルの開閉
-// `toggle_transbox`    独立翻訳ポップアップの開閉
-// `toggle_hover_node`  ホバー中の段落を翻訳
-// `input_translate`    現在の入力欄を翻訳
-window.dispatchEvent(
-  new CustomEvent("kiss_translator", { detail: { action: "toggle_translate" } })
-);
-```
+外部ウェブスクリプト、ブックマークレット、またはマウスジェスチャー拡張から翻訳機能を呼び出す方法については、[開発者ガイド - 外部イベントトリガー API](docs/DEVELOPER.md#7-外部事件触发接口) を参照してください。
 
 ## コミュニティ
 

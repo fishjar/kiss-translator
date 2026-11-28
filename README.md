@@ -37,13 +37,13 @@
 
 ### 翻译场景与交互
 
-- **多场景覆盖**：支持网页双语对照翻译、输入框即时翻译、划词查词与鼠标悬停翻译；完美支持富文本排版、自定义译文样式，并支持「仅显示译文（隐藏原文）」。
+- **多场景覆盖**：支持网页双语对照翻译、输入框即时翻译、划词查词、鼠标悬停翻译，以及网页图片悬停翻译与区域截图翻译；完美支持富文本排版、自定义译文样式，并支持「仅显示译文（隐藏原文）」。
 - **查词与对比面板**：提供翻译浮窗与独立对比窗口，支持多个翻译服务横向对照、柯林斯/内置英文词典查词与生词本收藏，支持可选的剪贴板自动翻译。
-- **YouTube 双语字幕**：支持基础智能合并算法与 AI 语义断句，提供自定义字幕样式、完整对照列表、字幕悬停查词、生词收藏以及基于字幕的 AI 视频总结。
+- **YouTube 双语字幕**：支持基础智能合并算法、AI 语义断句与 ASR 语音转写生成字幕，提供自定义字幕样式、完整对照列表、字幕悬停查词、生词收藏以及基于字幕的 AI 视频总结。
 
 ### 服务配置与接口插件
 
-- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、DeepL/DeepLX，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI，并支持 Chrome 浏览器内置 AI 与本地 AI。
+- **海量内置服务**：涵盖主流传统与 AI 翻译服务，包括 Google、Microsoft、Baidu、Tencent、Volcengine、Yandex、DeepL/DeepLX、Qwen-MT，以及 OpenAI、Gemini、Claude、Ollama、DeepSeek、SiliconFlow、AliyunBailian、OpenRouter、OrcaRouter、Requesty、AzureAI、CloudflareAI 等，并支持 Chrome 浏览器内置 AI 与本地 AI。
 - **按能力自由选用**：按文本翻译、词典查词、字幕断句、OCR 识别、语音合成等能力独立配置服务与模型参数；根据模型能力无缝支持批量聚合翻译、流式输出、上下文记忆对话、AI 专业术语及思考链（Reasoning）配置。
 - **接口插件体系**：官方与外部插件分列表展示，点击联网安装；也可通过 ZIP、本地文件夹、GitHub 项目根地址或 HTTPS 链接导入。请求受声明的网络范围限制，支持手动更新及配置实例升级。
 - **开放自定义协议**：任意非标准 API 均可通过插件实现对接。详细开发指引请参阅 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)、[OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 和 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
@@ -65,14 +65,14 @@
 
 - **智能与自定义规则**：支持网页内容自动识别扫描；提供可视化元素选取器，支持草稿编辑、撤销/重做、翻译范围高亮预览；支持规则订阅、导出分享及个人专业术语库。
 - **配置管理与测试套件**：提供设置全局搜索、系统提示词模板管理、服务连通性测试工具、术语库与字幕断句调试工具。
-- **多端数据同步**：支持通过 [KISS-Worker](https://github.com/fishjar/kiss-worker)（基于 Cloudflare Workers 或 Docker 自建）或标准 WebDAV 协议进行全量配置跨设备同步。
-- **自定义全局快捷键**：
-  - `Alt+Q`：开启/切换网页翻译
-  - `Alt+D`：打开独立翻译窗口
-  - `Alt+K`：打开设置浮窗
-  - `Alt+S`：打开翻译弹窗 / 翻译选中文字
-  - `Alt+O`：直接打开完整设置页
-  - `Alt+I`：翻译当前光标所在输入框
+- **多端数据同步**：支持通过 [KISS-Worker](https://github.com/fishjar/kiss-worker)（基于 Cloudflare Workers 或 Docker 自建）、标准 WebDAV 协议或 GitHub Gist 进行全量配置跨设备同步，并支持同步数据加密。
+- **默认快捷键**（更多扩展命令如截图翻译、仅显示译文、打开完整设置页等可在浏览器扩展快捷键页自定义绑定）：
+  - `Alt+Q`：开启/切换网页翻译（扩展全局默认）
+  - `Alt+D`：打开独立翻译窗口（扩展全局默认）
+  - `Alt+K`：打开设置浮窗（扩展全局默认）
+  - `Alt+S`：打开翻译弹窗 / 翻译选中文字（扩展全局默认）
+  - `Alt+I`：翻译当前光标所在输入框（页面内快捷键）
+  - `Alt+O`：打开完整设置页（页面/油猴默认；扩展全局可在浏览器快捷键页绑定）
 
 ## 快速上手
 
@@ -176,6 +176,8 @@
 
 ## 开发指引
 
+> **文档与协作导航**：[开发者指南](docs/DEVELOPER.md) | [系统架构](docs/architecture.md) | [贡献指南](CONTRIBUTING.md) | [行为准则](CODE_OF_CONDUCT.md) | [安全策略](SECURITY.md) | [更新日志](CHANGELOG.md) | [AI 协作指南](AGENTS.md) | [文档总目录](docs/README.md)
+
 ### 本地编译与调试
 
 **环境要求**：Node.js >= 20（推荐 Node 22/24），pnpm >= 9
@@ -206,21 +208,7 @@ pnpm build             # 全量打包构建所有平台
 
 插件开发请阅读 [插件开发指南](https://github.com/fishjar/kiss-translator-plugins/blob/main/docs/plugin-development-guide.md)，并参考 [OpenAI 兼容协议插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/openai-compatible-bundle/README.md) 或 [DeepSeek 插件](https://github.com/fishjar/kiss-translator-plugins/blob/main/plugins/deepseek/README.md)。
 
-### 外部触发示例
-
-网页脚本可通过触发自定义事件控制翻译器：
-
-```js
-// `toggle_translate`   切换网页翻译
-// `toggle_styles`      切换译文样式
-// `toggle_popup`       打开/关闭控制面板
-// `toggle_transbox`    打开/关闭独立翻译弹窗
-// `toggle_hover_node`  翻译鼠标悬停段落
-// `input_translate`    翻译当前输入框
-window.dispatchEvent(
-  new CustomEvent("kiss_translator", { detail: { action: "toggle_translate" } })
-);
-```
+如需通过外部网页脚本、书签脚本或鼠标手势触发翻译，请参阅 [开发者指南 - 外部事件触发接口](docs/DEVELOPER.md#7-外部事件触发接口)。
 
 ## 交流
 

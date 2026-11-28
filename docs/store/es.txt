@@ -1,0 +1,36 @@
+KISS Translator es una extensión de navegador minimalista y de código abierto para traducción bilingüe de páginas web, subtítulos bilingües de YouTube, consulta de texto seleccionado, traducción en campos de entrada, traducción de imágenes web y capturas de pantalla, traducción de documentos PDF y EPUB, y traducción sin conexión con IA local.
+
+[Escenarios principales de traducción]
+• Traducción bilingüe de páginas web: Detecta automáticamente el contenido principal conservando el formato de texto enriquecido. Personaliza los estilos de traducción o cambia al modo «Mostrar solo traducción» para leer artículos, documentación y redes sociales con fluidez.
+• Selección y traducción al pasar el cursor: Resalta cualquier texto para abrir un panel flotante de traducción, traduce párrafos al pasar el cursor, consulta diccionarios de inglés integrados o Collins, guarda vocabulario, compara varios servicios en una ventana independiente o activa la traducción automática del portapapeles.
+• Traducción instantánea en campos de entrada: Redacta correos, comentarios o mensajes en tu idioma y tradúcelos directamente dentro de cualquier cuadro de texto con un solo atajo.
+• Traducción de imágenes web y capturas de pantalla: Pasa el cursor sobre imágenes en la web o selecciona cualquier área de la pantalla para reconocer texto con OCR y traducir gráficos, pósteres y cómics al instante.
+• Subtítulos bilingües de YouTube y ASR: Combinación inteligente de subtítulos, segmentación semántica con IA y transcripción de voz ASR para generar subtítulos. Incluye subtítulos dobles personalizables, transcripción completa, diccionario al pasar el cursor, guardado de vocabulario y resúmenes de vídeo con IA.
+
+[Traducción de documentos y archivos de imagen]
+• Flujo multiformato: Traduce TXT, Markdown, PDF, libros electrónicos EPUB e imágenes PNG/JPEG/WebP, asignando servicios independientes para traducción, OCR, análisis de diseño y extracción de tablas o fórmulas matemáticas.
+• Procesamiento avanzado de PDF y EPUB: Analiza diseño, tablas y fórmulas en PDF con caché por etapas y exporta a Markdown, HTML independiente o ZIP con recursos. Traduce libros EPUB por capítulo o en bloque y exporta archivos EPUB bilingües o traducidos.
+
+[Servicios integrados, IA local y complementos]
+• Amplia gama de servicios de traducción e IA: Compatible de forma nativa con Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT, OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, IA integrada del navegador y más. Admite traducción por lotes, streaming, memoria de contexto, glosarios y plantillas de prompts.
+• IA local en tu dispositivo (Privada y sin conexión): Centro de modelos integrado con aceleración WebGPU/CPU para traducción LLM local, comprensión visual VLM, OCR, reconocimiento de voz ASR, síntesis de voz TTS y análisis de diseño. Una vez descargados los modelos, todo se ejecuta 100 % sin conexión.
+• Sistema abierto de complementos (Plugins): Instala complementos oficiales en línea o importa complementos externos desde ZIP, carpetas locales o enlaces GitHub/HTTPS para conectar cualquier API personalizada. Las solicitudes de red se limitan a los dominios declarados y las autorizaciones permanecen solo en tu dispositivo.
+
+[Motor de reglas y sincronización cifrada]
+• Reglas inteligentes y selector visual: Prioridad de reglas en tres niveles (Personal > Suscrita > Global) con selector visual interactivo, deshacer/rehacer y vista previa del rango de traducción.
+• Sincronización multidispositivo: Sincroniza ajustes, reglas y vocabulario mediante KISS-Worker autohospedado (Cloudflare Workers o Docker), WebDAV o GitHub Gist, con cifrado opcional.
+
+[Atajos de teclado predeterminados]
+• Alt+Q: Activar/desactivar traducción bilingüe de la página (global predeterminado)
+• Alt+D: Abrir ventana independiente de comparación de servicios (global predeterminado)
+• Alt+K: Abrir ventana emergente de ajustes (global predeterminado)
+• Alt+S: Abrir panel de traducción / traducir texto seleccionado (global predeterminado)
+• Alt+I: Traducir el campo de entrada activo (atajo en página)
+• Alt+O: Abrir página completa de ajustes (predeterminado en página; configurable globalmente en los atajos del navegador)
+Consejo: Comandos adicionales como traducción de capturas, modo solo traducción y cambio de estilo pueden configurarse libremente en la página de atajos de extensiones de tu navegador.
+
+[Código abierto y privacidad]
+Con licencia GPL-3.0, KISS Translator es completamente de código abierto y nunca recopila ni vende tu historial de navegación. Las llamadas a la nube van directamente a las API que configures y la IA local funciona totalmente sin conexión.
+
+Sitio web: https://kiss-translator.rayjar.com
+Código fuente y soporte: https://github.com/fishjar/kiss-translator

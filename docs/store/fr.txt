@@ -1,0 +1,36 @@
+KISS Translator est une extension de navigateur minimaliste et open source dédiée à la traduction bilingue de pages web, aux sous-titres bilingues YouTube, à la traduction par sélection, à la traduction de champs de saisie, à la traduction d'images web et de captures d'écran, à la traduction de documents PDF et EPUB, ainsi qu'à la traduction hors ligne par IA locale.
+
+[Scénarios de traduction essentiels]
+• Traduction bilingue de pages web : Détecte automatiquement le contenu principal tout en préservant la mise en forme riche. Personnalisez les styles de traduction ou activez le mode « Afficher uniquement la traduction » pour lire articles, documentations et réseaux sociaux confortablement.
+• Sélection de texte et traduction au survol : Surlignez n'importe quel texte pour afficher un panneau flottant, traduisez des paragraphes au survol de la souris, consultez les dictionnaires d'anglais intégrés ou Collins, enregistrez votre vocabulaire, comparez plusieurs services côte à côte dans une fenêtre dédiée ou activez la traduction automatique du presse-papiers.
+• Traduction instantanée dans les champs de saisie : Rédigez vos e-mails, commentaires ou messages dans votre langue et traduisez-les directement dans n'importe quel champ de texte grâce à un simple raccourci.
+• Traduction d'images web et de captures d'écran : Survolez les images d'une page ou capturez n'importe quelle zone de l'écran pour lancer l'OCR et traduire instantanément graphiques, affiches et bandes dessinées.
+• Sous-titres bilingues YouTube et ASR : Fusion intelligente des sous-titres, segmentation sémantique par IA et transcription vocale ASR pour générer des sous-titres. Profitez de doubles sous-titres personnalisables, de la transcription complète, du dictionnaire au survol, du carnet de vocabulaire et des résumés vidéo par IA.
+
+[Traduction de documents et fichiers image]
+• Prise en charge multiformat : Traduisez les fichiers TXT, Markdown, PDF, ebooks EPUB et images PNG/JPEG/WebP, en attribuant des services dédiés à la traduction, l'OCR, l'analyse de mise en page et l'extraction de tableaux ou formules mathématiques.
+• Traitement avancé PDF et EPUB : Analyse la mise en page, les tableaux et les formules PDF avec mise en cache par étape et exporte en Markdown, HTML autonome ou archive ZIP. Traduit les livres EPUB par chapitre ou en entier et exporte des EPUB bilingues ou traduits.
+
+[Services intégrés, IA locale et plugins]
+• Large choix de services de traduction et d'IA : Compatible nativement avec Google, Microsoft, DeepL/DeepLX, Baidu, Tencent, Volcengine, Yandex, Qwen-MT, OpenAI, Gemini, Claude, DeepSeek, Ollama, SiliconFlow, AliyunBailian, OpenRouter, AzureAI, CloudflareAI, l'IA intégrée du navigateur et bien d'autres. Prend en charge les requêtes par lots, le streaming, la mémoire de contexte, les glossaires et les modèles de prompts.
+• IA locale sur appareil (Privée et hors ligne) : Centre de modèles intégré avec accélération WebGPU/CPU pour la traduction LLM locale, la compréhension visuelle VLM, l'OCR, la reconnaissance vocale ASR, la synthèse vocale TTS et l'analyse de mise en page. Une fois les modèles téléchargés, tout fonctionne entièrement hors ligne.
+• Écosystème de plugins ouvert : Installez des plugins officiels en ligne ou importez des plugins externes via ZIP, dossier local ou lien GitHub/HTTPS pour connecter toute API personnalisée. Les requêtes réseau sont limitées aux domaines déclarés et les autorisations restent strictement locales.
+
+[Règles intelligentes et synchronisation chiffrée]
+• Règles et sélecteur visuel : Priorité à trois niveaux (Personnel > Abonné > Global) avec sélecteur visuel interactif, historique annuler/rétablir et aperçu en direct de la zone traduite.
+• Synchronisation multi-appareils : Synchronisez vos réglages, règles et mots favoris via KISS-Worker auto-hébergé (Cloudflare Workers ou Docker), WebDAV ou GitHub Gist, avec chiffrement optionnel.
+
+[Raccourcis clavier par défaut]
+• Alt+Q : Activer/désactiver la traduction bilingue de la page (raccourci global par défaut)
+• Alt+D : Ouvrir la fenêtre indépendante de comparaison multi-services (global par défaut)
+• Alt+K : Ouvrir le panneau de réglages rapides (global par défaut)
+• Alt+S : Ouvrir le panneau de traduction / traduire la sélection (global par défaut)
+• Alt+I : Traduire le champ de saisie actif (raccourci dans la page)
+• Alt+O : Ouvrir la page complète des paramètres (par défaut sur la page ; configurable globalement dans les raccourcis du navigateur)
+Astuce : D'autres commandes comme la traduction de capture d'écran, le mode traduction seule et le changement de style peuvent être configurées dans la page des raccourcis d'extensions de votre navigateur.
+
+[Open source et respect de la vie privée]
+Publié sous licence GPL-3.0, KISS Translator est entièrement open source et ne collecte ni ne vend jamais votre historique de navigation. Les requêtes cloud contactent directement les API que vous configurez, et l'IA locale s'exécute 100 % hors ligne.
+
+Site officiel : https://kiss-translator.rayjar.com
+Code source et retours : https://github.com/fishjar/kiss-translator
