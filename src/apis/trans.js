@@ -1648,6 +1648,7 @@ export const handleNativeSubtitle = async ({
   const res = await fetchData(input, init, {
     useCache: false,
     usePool: true,
+    maxRetries: 0,
     fetchInterval,
     fetchLimit,
     httpTimeout,
@@ -1719,6 +1720,7 @@ async function handleSubtitleStreamInternal(
   for await (const rawData of fetchStream(input, init, {
     useCache: false,
     usePool: true,
+    maxRetries: 0,
     fetchInterval,
     fetchLimit,
     httpTimeout,
