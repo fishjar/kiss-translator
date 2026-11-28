@@ -29,6 +29,55 @@ const langdetectFns = {
   [OPT_TRANS_BUILTINAI]: apiBuiltinAIDetect,
 };
 
+// 网络型检测端点的超时上限 (ms)。端点不可达时只能等系统 TCP 超时（实测约 10s），
+// 而这段等待发生在插入占位符之前，表现为“点了翻译没有任何反应”，所以给检测单独设上限：
+// 超时立即中止请求并回退本地检测。BuiltinAI 检测走本机接口，不在此列。
+const REMOTE_DETECT_TIMEOUT = {
+  [OPT_TRANS_GOOGLE]: 2000,
+  [OPT_TRANS_BAIDU]: 2000,
+  [OPT_TRANS_TENCENT]: 2000,
+};
+// 端点失败后的跳过窗口 (ms)。整页翻译按批次反复检测，坏端点不应每批重付一次超时。
+const REMOTE_DETECT_COOLDOWN = 60000;
+const remoteDetectCooldownUntil = new Map();
+
+// 供测试隔离冷却状态，避免用例之间互相影响
+export const __resetRemoteDetectCooldownForTests = () =>
+  remoteDetectCooldownUntil.clear();
+
+/**
+ * 调用检测端点，网络型端点受 REMOTE_DETECT_TIMEOUT 限制。
+ * @param {string} langDetector 检测器标识
+ * @param {string} text 待检测文本
+ * @returns {Promise<string>} 检测出的语言；超时或失败时抛错
+ */
+const detectRemoteLang = async (langDetector, text) => {
+  const timeout = REMOTE_DETECT_TIMEOUT[langDetector];
+  if (!timeout) return langdetectFns[langDetector](text);
+
+  const controller = new AbortController();
+  // 同步抛错也要走同一个失败分支，因此让它落到 Promise 链里
+  const detect = Promise.resolve().then(() =>
+    langdetectFns[langDetector](text, { signal: controller.signal })
+  );
+  let timer;
+  // 超时先返回时，被放弃的请求仍可能迟到 reject，提前吞掉避免未处理的 Promise 拒绝
+  detect.catch(() => {});
+  try {
+    return await Promise.race([
+      detect,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`detect timeout after ${timeout}ms`));
+        }, timeout);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 /**
  * 尝试检测给定文本的源语言代码
  * @param {string} text 待检测的文本内容
@@ -61,15 +110,25 @@ export const tryDetectLang = async (text, langDetector = "-") => {
   }
 
   // 1. 如果配置了特定的远程/内置 AI 语言检测服务，则首选该服务进行识别
-  if (OPT_LANGDETECTOR_MAP.has(langDetector)) {
+  if (
+    OPT_LANGDETECTOR_MAP.has(langDetector) &&
+    (remoteDetectCooldownUntil.get(langDetector) ?? 0) <= Date.now()
+  ) {
     try {
-      const lang = await langdetectFns[langDetector](text);
+      const lang = await detectRemoteLang(langDetector, text);
       if (lang) {
         // 转换成翻译器统一的语言代码格式
         const mappedLang = OPT_LANGS_TO_CODE[langDetector].get(lang) || lang;
         deLang = normalizeLanguageCode(mappedLang);
       }
     } catch (err) {
+      // 网络型端点失败后短暂跳过，避免长页面每批都重付一次超时
+      if (REMOTE_DETECT_TIMEOUT[langDetector]) {
+        remoteDetectCooldownUntil.set(
+          langDetector,
+          Date.now() + REMOTE_DETECT_COOLDOWN
+        );
+      }
       logger.child("detect").warn("detect lang remote", err);
     }
   }
